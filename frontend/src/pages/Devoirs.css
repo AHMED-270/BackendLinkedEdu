@@ -1,0 +1,368 @@
+/* ===== DEVOIRS PAGE - PERFECT MATCH ===== */
+.dvr-page {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* HEADER */
+.dvr-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.dvr-title-section h2 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+.dvr-title-section p {
+  color: #6B7280;
+  font-size: 0.875rem;
+  max-width: 500px;
+  line-height: 1.5;
+}
+
+.dvr-filters {
+  display: flex;
+  gap: 16px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-group label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #4B5563;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-select {
+  background: #E5E7EB;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 32px 8px 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%234B5563' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 8px center;
+  background-repeat: no-repeat;
+  background-size: 16px;
+  min-width: 150px;
+}
+
+/* CONTENT GRID */
+.dvr-content {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 32px;
+}
+
+/* LEFT COLUMN - FORM */
+.dvr-left-col {
+  background: white;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* very soft shadow */
+}
+
+.tab-container {
+  display: flex;
+  background: #F9FAFB;
+  border-radius: 8px;
+  padding: 4px;
+  margin-bottom: 32px;
+}
+
+.tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #6B7280;
+  transition: all 0.2s;
+}
+
+.tab-btn.active {
+  background: white;
+  color: #2563EB;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.form-group label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.input-field {
+  background: #F3F4F6;
+  border: 1px solid transparent;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #111827;
+  transition: border-color 0.2s;
+}
+
+.input-field:focus {
+  outline: none;
+  background: white;
+  border-color: #2563EB;
+}
+
+.textarea-field {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.upload-zone {
+  border: 2px dashed #D1D5DB;
+  border-radius: 8px;
+  background: #F9FAFB;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+}
+
+.upload-zone strong {
+  font-size: 0.875rem;
+  color: #111827;
+  margin-top: 4px;
+}
+
+.upload-desc {
+  font-size: 0.75rem;
+  color: #6B7280;
+}
+
+.upload-btn {
+  color: #2563EB;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: underline;
+  margin-top: 4px;
+}
+
+.primary-btn.publish-btn {
+  width: 100%;
+  background: #0F4A8A; /* Very dark blue matching image */
+  color: white;
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 14px;
+  border-radius: 6px;
+  margin-top: 16px;
+  text-align: center;
+  transition: transform 0.2s;
+}
+
+.primary-btn.publish-btn:hover {
+  transform: translateY(-1px);
+  background: #0B3A6E;
+}
+
+/* RIGHT COLUMN */
+.dvr-right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* STATS */
+.dvr-stats-row {
+  display: flex;
+  gap: 16px;
+}
+
+.stat-box {
+  flex: 1;
+  border-radius: 12px;
+  padding: 24px;
+  position: relative;
+}
+
+.stat-box.primary-bg {
+  background: #0F4A8A;
+  color: white;
+}
+
+.stat-box.secondary-bg {
+  background: #BFDBFE; /* light blue */
+  color: #1E3A8A;
+}
+
+.stat-icon {
+  margin-bottom: 24px;
+  display: inline-block;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.stat-box.primary-bg .stat-icon {
+  background: rgba(255,255,255,0.15);
+}
+
+.stat-box.secondary-bg .stat-icon {
+  background: rgba(255,255,255,0.5);
+}
+
+.stat-info strong {
+  display: block;
+  font-size: 2rem;
+  line-height: 1;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.stat-info p {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* RECENT PUBS */
+.recent-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.recent-header h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.link-all {
+  color: #2563EB;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.recent-item {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* very soft shadow */
+}
+
+.item-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bg-orange { background: #FFEDD5; }
+.bg-blue { background: #DBEAFE; }
+.bg-purple { background: #F3E8FF; }
+
+.item-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.item-details h4 {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.item-details p {
+  font-size: 0.75rem;
+  color: #6B7280;
+}
+
+.item-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.meta-badge {
+  background: #E0E7FF;
+  color: #3730A3;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.meta-text {
+  font-size: 0.7rem;
+  color: #6B7280;
+}
+
+/* GUIDE CARD */
+.guide-card {
+  border-radius: 12px;
+  height: 120px;
+  background-image: linear-gradient(to right, rgba(15, 74, 138, 0.9), rgba(15, 74, 138, 0.4)), url('https://images.unsplash.com/photo-1513258496099-48168024aec0?q=80&w=800&auto=format&fit=crop');
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 16px;
+  color: white;
+}
+
+.guide-content h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.guide-content p {
+  font-size: 0.75rem;
+  opacity: 0.9;
+}

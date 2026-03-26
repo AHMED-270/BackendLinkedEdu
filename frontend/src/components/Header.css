@@ -1,0 +1,78 @@
+.header {
+  height: 64px;
+  background: white;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  border-bottom: 1px solid #E5E7EB;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+}
+
+.header-logo {
+  font-size: 1.5rem;
+  font-weight: 800;
+  width: 260px; /* Match sidebar width approximately */
+}
+
+.logo-link {
+  color: #1a56db; /* Deep blue */
+}
+
+.logo-edu {
+  color: #2563eb;
+}
+
+.header-search-wrapper {
+  flex: 1;
+}
+
+.header-search {
+  display: flex;
+  align-items: center;
+  background: #F3F4F6;
+  border-radius: 8px;
+  padding: 10px 16px;
+  max-width: 400px;
+}
+
+.search-icon {
+  color: #9CA3AF;
+  margin-right: 12px;
+}
+
+.header-search input {
+  border: none;
+  background: transparent;
+  width: 100%;
+  font-size: 0.875rem;
+  color: #374151;
+  outline: none;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  color: #4B5563;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.icon-btn:hover {
+  background: #F3F4F6;
+  color: #111827;
+}
