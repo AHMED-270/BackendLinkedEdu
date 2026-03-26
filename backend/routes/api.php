@@ -3,6 +3,8 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminLoginController;
+use App\Http\Controllers\DirecteurController;
+use App\Http\Controllers\DirecteurLoginController;
 
 Route::any('/health', function (Request $request) {
     return response()->json([
@@ -23,4 +25,11 @@ Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
 
 Route::post('/admin/login', [AdminLoginController::class, 'login']);
 Route::post('/admin/logout', [AdminLoginController::class, 'logout'])->middleware('auth:sanctum');
+
+Route::post('/directeur/login', [DirecteurLoginController::class, 'login']);
+Route::post('/directeur/logout', [DirecteurLoginController::class, 'logout'])->middleware('auth:sanctum', 'role:directeur');
+
+Route::middleware(['auth:sanctum', 'role:directeur'])->group(function () {
+    Route::get('/directeur/dashboard', [DirecteurController::class, 'dashboard']);
+});
 

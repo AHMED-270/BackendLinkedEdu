@@ -1,14 +1,30 @@
 import { useState } from 'react'
 import axios from 'axios'
 
-function LoginCard() {
+function LoginCard({ onLoginSuccess }) {
   const [isForgotMode, setIsForgotMode] = useState(false)
   const [isResetSent, setIsResetSent] = useState(false)
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
+  const [loginRole, setLoginRole] = useState('directeur')
   const [loginFeedback, setLoginFeedback] = useState('')
   const [loginFeedbackType, setLoginFeedbackType] = useState('')
   const [isLoggingIn, setIsLoggingIn] = useState(false)
+
+  const applyDemoCredentials = (role) => {
+    if (role === 'admin') {
+      setLoginRole('admin')
+      setLoginEmail('admin@linkedu.com')
+      setLoginPassword('Admin@2026')
+    } else {
+      setLoginRole('directeur')
+      setLoginEmail('directeur@linkedu.com')
+      setLoginPassword('Directeur@2026')
+    }
+
+    setLoginFeedback('')
+    setLoginFeedbackType('')
+  }
 
   const handleLoginSubmit = async (event) => {
     event.preventDefault()
@@ -17,6 +33,9 @@ function LoginCard() {
     setLoginFeedbackType('')
 
     const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+    const loginPath = loginRole === 'admin' ? '/api/admin/login' : '/api/directeur/login'
+    const normalizedEmail = loginEmail.trim().toLowerCase()
+    const normalizedPassword = loginPassword.trim()
 
     try {
       await axios.get(`${apiBaseUrl}/sanctum/csrf-cookie`, {
@@ -24,11 +43,11 @@ function LoginCard() {
         withXSRFToken: true,
       })
 
-      await axios.post(
-        `${apiBaseUrl}/api/admin/login`,
+      const loginResponse = await axios.post(
+        `${apiBaseUrl}${loginPath}`,
         {
-          email: loginEmail,
-          password: loginPassword,
+          email: normalizedEmail,
+          password: normalizedPassword,
         },
         {
           withCredentials: true,
@@ -39,15 +58,25 @@ function LoginCard() {
         }
       )
 
-      const userResponse = await axios.get(`${apiBaseUrl}/api/user`, {
-        withCredentials: true,
-        withXSRFToken: true,
-        headers: {
-          Accept: 'application/json',
-        },
-      })
+      let authenticatedUser = loginResponse?.data?.user ?? null
+      const accessToken = loginResponse?.data?.token ?? null
 
-      setLoginFeedback(`Connecte en tant que ${userResponse.data?.email ?? loginEmail}.`)
+      if (!authenticatedUser) {
+        const userResponse = await axios.get(`${apiBaseUrl}/api/user`, {
+          withCredentials: true,
+          withXSRFToken: true,
+          headers: {
+            Accept: 'application/json',
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          },
+        })
+
+        authenticatedUser = userResponse.data
+      }
+
+      onLoginSuccess?.({ ...authenticatedUser, token: accessToken })
+
+      setLoginFeedback(`Connecte en tant que ${authenticatedUser?.email ?? loginEmail}.`)
       setLoginFeedbackType('success')
     } catch (error) {
       const status = error?.response?.status
@@ -56,7 +85,7 @@ function LoginCard() {
       if (!error?.response) {
         message = 'Serveur indisponible. Verifiez que le backend Laravel tourne sur http://127.0.0.1:8000.'
       } else if (status === 422 || status === 401) {
-        message = 'Email ou mot de passe incorrect.'
+        message = error?.response?.data?.errors?.email?.[0] ?? 'Email ou mot de passe incorrect.'
       } else if (status === 419) {
         message = 'Session expiree. Reessayez.'
       } else if (error?.response?.data?.message) {
@@ -92,6 +121,37 @@ function LoginCard() {
 
         {!isForgotMode && (
           <form className="auth-form" onSubmit={handleLoginSubmit}>
+            <label htmlFor="role">Role</label>
+            <select
+              id="role"
+              value={loginRole}
+              onChange={(event) => {
+                setLoginRole(event.target.value)
+                setLoginFeedback('')
+                setLoginFeedbackType('')
+              }}
+            >
+              <option value="directeur">Directeur</option>
+              <option value="admin">Admin</option>
+            </select>
+
+            <div className="demo-actions">
+              <button
+                type="button"
+                className="demo-button"
+                onClick={() => applyDemoCredentials('directeur')}
+              >
+                Compte demo Directeur
+              </button>
+              <button
+                type="button"
+                className="demo-button"
+                onClick={() => applyDemoCredentials('admin')}
+              >
+                Compte demo Admin
+              </button>
+            </div>
+
             <label htmlFor="email">E-mail</label>
             <input
               id="email"
