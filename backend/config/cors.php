@@ -2,22 +2,19 @@
 
 return [
     // Ensure sanctum routes are included
-    'paths' => ['api/*'],
+    'paths' => ['api/*', 'sanctum/csrf-cookie', 'login', 'register', 'logout', 'forgot-password', 'reset-password'],
 
     'allowed_methods' => ['*'],
 
-<<<<<<< HEAD
-    
-    'allowed_origins' => [ '*'],
-=======
     'allowed_origins' => [
         env('FRONTEND_URL', 'http://localhost:3000'),
         'http://localhost:3000',
         'http://127.0.0.1:3000',
+        'http://localhost:3001',
+        'http://127.0.0.1:3001',
         'http://localhost:5173',
         'http://127.0.0.1:5173',
     ],
->>>>>>> 841693ccf38102b7643a92672f6482cff10ce837
 
     'allowed_origins_patterns' => [],
 
