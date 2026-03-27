@@ -1,4 +1,5 @@
 ﻿import { useEffect, useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import axios from 'axios'
 import DirectorSidebar from './DirectorSidebar'
 import DirectoryReclamations from './DirectoryReclamations';
@@ -8,14 +9,52 @@ import DirectoryStudents from './DirectoryStudents';
 import DirectoryClasses from './DirectoryClasses';
 import DirectoryGrades from './DirectoryGrades';
 import DirectorySettings from './DirectorySettings';
-
+import DirectoryTimetable from './DirectoryTimetable';
+import DirectoryAnnonces from './DirectoryAnnonces';
 
 function DirecteurDashboard({ user, onLogout }) {
   const [stats, setStats] = useState(null)
   const [latestDevoirs, setLatestDevoirs] = useState([])
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(true)
-  const [activeMenu, setActiveMenu] = useState('Tableau de bord')
+
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  const pathToMenuMap = {
+    '/': 'Tableau de bord',
+    '/professeurs': 'Liste des Professeurs',
+    '/etudiants': 'Liste des Etudiants',
+    '/classes': 'Liste des Classes',
+    '/reclamations': 'Reclamations',
+    '/notes': 'Notes & Examens',
+    '/parametres': 'Parametres',
+    '/communication': 'Communication',
+    '/rapports': 'Rapports',
+    '/annonces': 'Annonces',
+    '/emploi-du-temps': 'Emploi du temps'
+  };
+
+  const menuToPathMap = {
+    'Tableau de bord': '/',
+    'Liste des Professeurs': '/professeurs',
+    'Liste des Etudiants': '/etudiants',
+    'Liste des Classes': '/classes',
+    'Reclamations': '/reclamations',
+    'Notes & Examens': '/notes',
+    'Parametres': '/parametres',
+    'Communication': '/communication',
+    'Rapports': '/rapports',
+    'Annonces': '/annonces',
+    'Emploi du temps': '/emploi-du-temps'
+  };
+
+  const activeMenu = pathToMenuMap[location.pathname] || 'Tableau de bord';
+  const setActiveMenu = (menuName) => {
+    const p = menuToPathMap[menuName] || '/';
+    navigate(p);
+  };
+
   const [activeTab, setActiveTab] = useState('devoir')
   const [actionFeedback, setActionFeedback] = useState('')
 
@@ -65,16 +104,16 @@ function DirecteurDashboard({ user, onLogout }) {
         <div className="topbar-left">
           <h2 className="brand-logo">LinkedU</h2>
           <nav className="topbar-links">
-            <button className="is-active">Tableau de bord</button>
-            <button>Communication</button>
-            <button>Rapports</button>
+            <button className={activeMenu === 'Tableau de bord' ? 'is-active' : ''} onClick={() => setActiveMenu('Tableau de bord')}>Tableau de bord</button>
+            <button className={activeMenu === 'Communication' ? 'is-active' : ''} onClick={() => setActiveMenu('Communication')}>Communication</button>
+            <button className={activeMenu === 'Rapports' ? 'is-active' : ''} onClick={() => setActiveMenu('Rapports')}>Rapports</button>
           </nav>
         </div>
         <div className="topbar-right">
-          <button className="icon-btn">
+          <button className="icon-btn" onClick={() => alert("Notifications en cours...")}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
           </button>
-          <button className="icon-btn">
+          <button className="icon-btn" onClick={() => setActiveMenu('Parametres')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
           </button>
           <div className="topbar-profile" onClick={onLogout} title="Deconnexion">
@@ -102,18 +141,18 @@ function DirecteurDashboard({ user, onLogout }) {
                   <p>Voici le point de situation de l'etablissement pour aujourd'hui.</p>
                 </div>
                 <div className="header-actions">
-                  <button className="btn-secondary">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                    Juin 2024
-                  </button>
-                  <button className="btn-primary">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                    Rapport Global
-                  </button>
-                </div>
-              </header>
+                    <button className="btn-secondary" onClick={() => alert('Filtre par période en cours de développement.')}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                      Juin 2024
+                    </button>
+                    <button className="btn-primary" onClick={() => alert('Génération du rapport global en cours de développement.')}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                      Rapport Global
+                    </button>
+                  </div>
+                </header>
 
-              <section className="kpi-grid">
+                <section className="kpi-grid">
                 <article className="kpi-card">
                   <div className="kpi-tag kpi-tag-red">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="17" y1="7" x2="7" y2="17"></line><polyline points="17 17 7 17 7 7"></polyline></svg>
@@ -151,7 +190,7 @@ function DirecteurDashboard({ user, onLogout }) {
                 <article className="classes-overview-card">
                   <div className="card-header">
                     <h2>Vue d'ensemble par Classe</h2>
-                    <a href="#">Voir tout le catalogue</a>
+                      <a href="#" onClick={(e) => { e.preventDefault(); setActiveMenu('Liste des Classes'); }}>Voir tout le catalogue</a>
                   </div>
                   <div className="table-wrapper">
                     <table>
@@ -235,7 +274,18 @@ function DirecteurDashboard({ user, onLogout }) {
               {!isLoading && !error && activeMenu === 'Parametres' && (
                 <DirectorySettings />
               )}
-        </section>
+              {!isLoading && !error && activeMenu === 'Communication' && (
+                <DirectoryFallback activeMenu={activeMenu} />
+              )}
+              {!isLoading && !error && activeMenu === 'Rapports' && (
+                <DirectoryFallback activeMenu={activeMenu} />
+              )}
+              {!isLoading && !error && activeMenu === 'Annonces' && (
+                <DirectoryAnnonces />
+              )}
+              {!isLoading && !error && activeMenu === 'Emploi du temps' && (
+                <DirectoryTimetable />
+              )}        </section>
       </main>
     </div>
   )

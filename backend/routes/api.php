@@ -3,6 +3,9 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminLoginController;
+use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\DirecteurLoginController;
+use App\Http\Controllers\DirecteurController;
 
 Route::any('/health', function (Request $request) {
     return response()->json([

@@ -1,4 +1,5 @@
-﻿import React from 'react';
+﻿import React, { useState } from 'react';
+import AdminUserForm from './AdminUserForm';
 
 const profData = [
   {
@@ -49,6 +50,25 @@ const profData = [
 ];
 
 function DirectoryProfessors() {
+  const [isAdding, setIsAdding] = useState(false);
+
+  if (isAdding) {
+    return (
+      <div className="prof-page">
+        <div className="prof-breadcrumb">
+          Portail Directeur &gt; <span onClick={() => setIsAdding(false)} style={{cursor: 'pointer', color: '#1d4ed8', textDecoration: 'underline'}}>Professeurs</span> &gt; <span>Ajouter</span>
+        </div>
+        <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '8px', marginTop: '20px' }}>
+          <AdminUserForm 
+             mode="create" 
+             onBack={() => setIsAdding(false)} 
+             onSuccess={() => setIsAdding(false)} 
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="prof-page">
       <div className="prof-breadcrumb">Portail Directeur &gt; <span>Professeurs</span></div>
@@ -58,7 +78,7 @@ function DirectoryProfessors() {
           <p>Supervisez l'effectif enseignant et l'état d'avancement des programmes.</p>
         </div>
         <div className="header-actions">
-          <button className="btn-primary">
+          <button className="btn-primary" onClick={() => setIsAdding(true)}>
              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle><line x1="20" y1="8" x2="24" y2="8"></line><line x1="22" y1="6" x2="22" y2="10"></line></svg>
              Ajouter un Professeur
           </button>

@@ -1,7 +1,7 @@
 ﻿import { useState } from 'react'
 import axios from 'axios'
 
-function LoginCard() {
+function LoginCard({ onLoginSuccess }) {
   const [isForgotMode, setIsForgotMode] = useState(false)
   const [isResetSent, setIsResetSent] = useState(false)
   const [loginEmail, setLoginEmail] = useState('')
@@ -32,7 +32,10 @@ function LoginCard() {
     setLoginFeedback('')
     setLoginFeedbackType('')
 
-    const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+    const normalizedEmail = loginEmail.trim().toLowerCase()
+    const normalizedPassword = loginPassword
+
+    const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000'
 
     try {
       await axios.get(apiBaseUrl + '/sanctum/csrf-cookie', {
@@ -40,8 +43,9 @@ function LoginCard() {
         withXSRFToken: true,
       })
 
-      await axios.post(
-        `${apiBaseUrl}/api/admin/login`,
+      const endpoint = loginRole === 'directeur' ? '/api/directeur/login' : '/api/admin/login';
+      const loginRes = await axios.post(
+        `${apiBaseUrl}${endpoint}`,
         {
           email: normalizedEmail,
           password: normalizedPassword,
@@ -70,11 +74,12 @@ function LoginCard() {
         onLoginSuccess(loginRes.data.user);
       }
     } catch (error) {
-      const status = error?.response?.status
-      let message = 'Echec de connexion.'
+        console.error("Login Error: ", error);
+        const status = error?.response?.status
+        let message = 'Echec de connexion.'
 
-      if (!error?.response) {
-        message = 'Serveur indisponible. Verifiez que le backend Laravel tourne sur http://127.0.0.1:8000.'
+        if (!error?.response) {
+          message = `Serveur indisponible. Details: ${error.message}`
       } else if (status === 422 || status === 401) {
         message = 'Email ou mot de passe incorrect.'
       } else if (status === 419) {
@@ -229,3 +234,5 @@ function LoginCard() {
     </section>
   )
 }
+
+export default LoginCard;

@@ -1,0 +1,139 @@
+.directory-annonces-container {
+  padding: 2rem;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  font-family: inherit;
+}
+
+.annonces-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.annonces-header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0 0 0.5rem 0;
+}
+
+.annonces-header p {
+  color: #718096;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.btn-new-annonce {
+  background-color: #3182ce;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-new-annonce:hover {
+  background-color: #2b6cb0;
+}
+
+.annonces-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.annonce-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1.5rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.annonce-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+}
+
+.annonce-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.annonce-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.badge-important {
+  background-color: #fed7d7;
+  color: #c53030;
+}
+
+.badge-info {
+  background-color: #ebf8ff;
+  color: #2b6cb0;
+}
+
+.badge-nouveau {
+  background-color: #f0fff4;
+  color: #2f855a;
+}
+
+.annonce-date {
+  color: #a0aec0;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.annonce-title {
+  margin: 0 0 1rem 0;
+  color: #2d3748;
+  font-size: 1.25rem;
+}
+
+.annonce-content {
+  color: #4a5568;
+  line-height: 1.6;
+  margin: 0 0 1.5rem 0;
+}
+
+.annonce-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1rem;
+  border-top: 1px solid #edf2f7;
+}
+
+.annonce-author {
+  font-size: 0.85rem;
+  color: #718096;
+  font-weight: 500;
+}
+
+.btn-edit-annonce {
+  background: transparent;
+  color: #3182ce;
+  border: 1px solid #3182ce;
+  padding: 0.4rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-edit-annonce:hover {
+  background: #3182ce;
+  color: white;
+}
