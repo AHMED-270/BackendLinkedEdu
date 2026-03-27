@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Bell, HelpCircle, LayoutDashboard, Users, GraduationCap, Settings, LogOut, UserCircle, DoorOpen, BookOpen } from 'lucide-react';
+import { Bell, LayoutDashboard, Users, GraduationCap, Settings, LogOut, UserCircle, DoorOpen, BookOpen } from 'lucide-react';
 import './AdminDashboard.css';
 import AdminDashboardHome from './AdminDashboardHome';
 import AdminUsers from './AdminUsers';
@@ -21,7 +21,7 @@ const defaultSubproject = {
   coordinator: '',
 };
 
-export default function AdminDashboard({ onLogout, userRole = 'admin' }) {
+export default function AdminDashboard({ onLogout, userRole = 'admin', user = null }) {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [currentView, setCurrentView] = useState('home');
@@ -29,6 +29,9 @@ export default function AdminDashboard({ onLogout, userRole = 'admin' }) {
   const [showCreateClassModal, setShowCreateClassModal] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState('');
   const [subproject, setSubproject] = useState(defaultSubproject);
+  const headerAvatar = user?.profilePhoto || avatarUrl;
+  const displayName = user?.name || 'Utilisateur';
+  const displayRole = userRole === 'directeur' ? 'DIRECTION' : 'SUPER ADMIN';
 
   useEffect(() => {
     const loadAvatar = () => {
@@ -217,7 +220,7 @@ export default function AdminDashboard({ onLogout, userRole = 'admin' }) {
                 <span>Matieres</span>
               </a>
             )}
-            <a href="#" className={'nav-item ' + (currentView === 'settings' ? 'active' : '')} onClick={(e) => {e.preventDefault(); setCurrentView('settings');}}>
+            <a href="#" className={'nav-item ' + (currentView === 'profile' ? 'active' : '')} onClick={(e) => {e.preventDefault(); setCurrentView('profile');}}>
               <Settings size={20} />
               <span>Parametres</span>
             </a>
@@ -227,7 +230,7 @@ export default function AdminDashboard({ onLogout, userRole = 'admin' }) {
         <div className="sidebar-bottom">
           <button className="logout-btn" onClick={() => setShowLogoutModal(true)}>
             <LogOut size={20} />
-            <span>Logout</span>
+            <span>Se déconnecter</span>
           </button>
         </div>
       </aside>
@@ -239,18 +242,15 @@ export default function AdminDashboard({ onLogout, userRole = 'admin' }) {
               <Bell size={20} />
               <span className="notif-dot"></span>
             </button>
-            <button className="icon-btn">
-              <HelpCircle size={20} />
-            </button>
             <div className="header-divider"></div>
             <div className="user-profile" onClick={() => setCurrentView('profile')} style={{ cursor: 'pointer' }}>
               <div className="user-info">
-                <span className="user-name">Ahmed Fahimi</span>
-                <span className="user-role">{userRole === 'directeur' ? 'DIRECTION' : 'SUPER ADMIN'}</span>
+                <span className="user-name">{displayName}</span>
+                <span className="user-role">{displayRole}</span>
               </div>
               <div className="avatar">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt="Photo de profil admin" className="avatar-image" />
+                {headerAvatar ? (
+                  <img src={headerAvatar} alt="Photo de profil admin" className="avatar-image" />
                 ) : (
                   <UserCircle size={36} strokeWidth={1.5} color="#0056b3" />
                 )}

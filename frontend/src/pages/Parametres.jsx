@@ -1,22 +1,21 @@
-﻿import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { User, Mail, Lock, Save, Camera, Trash2 } from 'lucide-react';
+import { User, Mail, Save, Camera, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import './Parametres.css';
 
-const ADMIN_AVATAR_STORAGE_KEY = 'linkedu_admin_avatar';
-
-export default function AdminProfile() {
+export default function Parametres() {
   const { user, updateAuthenticatedUser } = useAuth();
+  const fileInputRef = useRef(null);
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: ''
+    name: user?.name || '',
+    email: user?.email || '',
   });
+  const [avatarPreview, setAvatarPreview] = useState(user?.profilePhoto || '');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
-  const [avatarPreview, setAvatarPreview] = useState('');
 
   const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000';
 
@@ -27,101 +26,91 @@ export default function AdminProfile() {
           withCredentials: true,
           headers: { Accept: 'application/json' }
         });
+
         setFormData({
-          name: res.data.name,
-          email: res.data.email,
-          password: ''
+          name: res.data?.name || '',
+          email: res.data?.email || '',
         });
-        setAvatarPreview(user?.profilePhoto || localStorage.getItem(ADMIN_AVATAR_STORAGE_KEY) || '');
-      } catch (err) {
-        console.error('Erreur profile:', err);
+        setAvatarPreview(user?.profilePhoto || '');
+      } catch (fetchError) {
+        setError('Erreur lors du chargement du profil.');
       } finally {
         setLoading(false);
       }
     };
+
     fetchProfile();
   }, [apiBaseUrl, user?.profilePhoto]);
 
-  const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const initials = (formData.name || user?.name || 'P').trim().charAt(0).toUpperCase();
+
+  const handleInputChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const notifyAvatarUpdate = () => {
-    window.dispatchEvent(new Event('admin-avatar-updated'));
+  const handleOpenFilePicker = () => {
+    fileInputRef.current?.click();
   };
 
-  const handleAvatarChange = (e) => {
-    const file = e.target.files?.[0];
+  const handlePhotoChange = (event) => {
+    const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      setError('Veuillez choisir une image valide.');
-      return;
-    }
-
-    if (file.size > 2 * 1024 * 1024) {
-      setError('La photo ne doit pas depasser 2 MB.');
+    const isImage = file.type.startsWith('image/');
+    if (!isImage) {
       return;
     }
 
     const reader = new FileReader();
     reader.onload = () => {
       const result = typeof reader.result === 'string' ? reader.result : '';
-      if (!result) {
-        setError('Impossible de lire la photo selectionnee.');
-        return;
-      }
+      if (!result) return;
 
-      localStorage.setItem(ADMIN_AVATAR_STORAGE_KEY, result);
       setAvatarPreview(result);
       updateAuthenticatedUser({ profilePhoto: result });
+      setMessage('Photo de profil mise à jour.');
       setError(null);
-      setMessage('Photo de profil mise a jour.');
-      notifyAvatarUpdate();
     };
     reader.readAsDataURL(file);
+
+    // Reset input to allow selecting the same file again.
+    event.target.value = '';
   };
 
-  const removeAvatar = () => {
-    localStorage.removeItem(ADMIN_AVATAR_STORAGE_KEY);
+  const handleRemovePhoto = () => {
     setAvatarPreview('');
     updateAuthenticatedUser({ profilePhoto: null });
+    setMessage('Photo de profil supprimée.');
     setError(null);
-    setMessage('Photo de profil supprimee.');
-    notifyAvatarUpdate();
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setSaving(true);
     setMessage(null);
     setError(null);
+
     try {
-      await axios.get(apiBaseUrl + '/sanctum/csrf-cookie', {
+      const res = await axios.put(apiBaseUrl + '/api/professeur/profile', formData, {
         withCredentials: true,
-        withXSRFToken: true,
+        headers: { Accept: 'application/json' },
       });
 
-      const res = await axios.put(apiBaseUrl + '/api/admin/profile', formData, {
-        withCredentials: true,
-        withXSRFToken: true,
-        headers: { Accept: 'application/json' }
-      });
       updateAuthenticatedUser({ name: formData.name, email: formData.email });
-      setMessage(res.data.message);
-      setFormData(prev => ({ ...prev, password: '' })); // clear password field
-    } catch (err) {
-      setError(err.response?.data?.message || 'Erreur lors de la mise à jour.');
+      setMessage(res.data?.message || 'Profil mis à jour avec succès.');
+    } catch (submitError) {
+      setError(submitError?.response?.data?.message || 'Erreur lors de la mise à jour du profil.');
     } finally {
       setSaving(false);
     }
   };
-
+  
   return (
     <div className="dashboard-content">
       <header className="content-header">
         <h1>Mon Profil</h1>
-        <p>Gérez vos informations personnelles et votre mot de passe.</p>
+        <p>Gérez vos informations personnelles.</p>
       </header>
 
       <div className="card-panel" style={{ maxWidth: '600px', margin: '0 auto', padding: '30px' }}>
@@ -139,26 +128,26 @@ export default function AdminProfile() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
                 <div style={{ width: '84px', height: '84px', borderRadius: '9999px', overflow: 'hidden', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {avatarPreview ? (
-                    <img src={avatarPreview} alt="Profil admin" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={avatarPreview} alt="Profil professeur" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
-                    <User size={32} color="#64748b" />
+                    <span style={{ fontSize: '1.6rem', fontWeight: '700', color: '#475569' }}>{initials}</span>
                   )}
                 </div>
 
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <label style={{ padding: '9px 12px', borderRadius: '8px', background: '#0f172a', color: '#fff', cursor: 'pointer', fontWeight: '500' }}>
                     Choisir une photo
-                    <input type="file" accept="image/*" onChange={handleAvatarChange} style={{ display: 'none' }} />
+                    <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: 'none' }} />
                   </label>
                   {avatarPreview && (
-                    <button type="button" onClick={removeAvatar} style={{ padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', color: '#334155', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button type="button" onClick={handleRemovePhoto} style={{ padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', color: '#334155', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Trash2 size={16} /> Supprimer
                     </button>
                   )}
                 </div>
               </div>
             </div>
-            
+
             <div>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontWeight: '500', color: '#475569' }}>
                 <User size={18} /> Nom / Prénom
@@ -187,32 +176,17 @@ export default function AdminProfile() {
               />
             </div>
 
-            <div style={{ paddingTop: '10px', borderTop: '1px solid #e2e8f0' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontWeight: '500', color: '#475569' }}>
-                <Lock size={18} /> Nouveau Mot de Passe
-              </label>
-              <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '10px' }}>Laissez vide si vous ne souhaitez pas le changer.</p>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleInputChange}
-                placeholder="Nouveau mot de passe"
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1rem' }}
-              />
-            </div>
-
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={saving}
-              style={{ 
-                marginTop: '15px', 
-                padding: '12px', 
-                background: '#3b82f6', 
-                color: 'white', 
-                borderRadius: '8px', 
-                border: 'none', 
-                cursor: saving ? 'not-allowed' : 'pointer', 
+              style={{
+                marginTop: '15px',
+                padding: '12px',
+                background: '#3b82f6',
+                color: 'white',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: saving ? 'not-allowed' : 'pointer',
                 fontWeight: '600',
                 display: 'flex',
                 alignItems: 'center',

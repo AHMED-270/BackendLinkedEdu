@@ -1,7 +1,11 @@
 ﻿import { useState } from 'react'
 import axios from 'axios'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
-export default function LoginCard({ onLoginSuccess }) {
+function LoginCard() {
+  const navigate = useNavigate()
+  const { setAuthenticatedUser } = useAuth()
   const [isForgotMode, setIsForgotMode] = useState(false)
   const [isResetSent, setIsResetSent] = useState(false)
   const [loginEmail, setLoginEmail] = useState('')
@@ -16,7 +20,7 @@ export default function LoginCard({ onLoginSuccess }) {
     setLoginFeedback('')
     setLoginFeedbackType('')
 
-    const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'  
+    const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000'
 
     const performLogin = async () => {
       await axios.get(apiBaseUrl + '/sanctum/csrf-cookie', {
@@ -53,22 +57,27 @@ export default function LoginCard({ onLoginSuccess }) {
         }
       }
 
-      setLoginFeedback('Connecté en tant que ' + (loginRes.data.user?.email ?? loginEmail) + '.')
+      const connectedUser = loginRes?.data?.user
+      setAuthenticatedUser(connectedUser)
+      setLoginFeedback(`Connecte en tant que ${connectedUser?.email ?? loginEmail}.`)
       setLoginFeedbackType('success')
-      
-      if (onLoginSuccess) {
-        onLoginSuccess(loginRes.data.user);
-      }
+
+      const role = connectedUser?.role
+      const roleHome = role === 'admin' || role === 'directeur'
+        ? '/admin'
+        : role === 'professeur'
+          ? '/dashboard'
+          : '/login'
+
+      navigate(roleHome, { replace: true })
     } catch (error) {
       const status = error?.response?.status
       let message = 'Echec de connexion.'
 
-      if (!error?.response) {
-        message = 'Serveur indisponible. Verifiez que le backend Laravel tourne sur http://127.0.0.1:8000.'
-      } else if (status === 422 || status === 401 || status === 403) {
-        message = 'Email, mot de passe incorrect ou accès refusé.'
+      if (status === 422 || status === 401) {
+        message = 'Email ou mot de passe incorrect.'
       } else if (status === 419) {
-        message = 'Session expirée. Réessayez.'
+        message = 'Session expiree. Reessayez.'
       } else if (error?.response?.data?.message) {
         message = error.response.data.message
       } else if (error?.message) {
@@ -92,12 +101,12 @@ export default function LoginCard({ onLoginSuccess }) {
       <div className="auth-card">
         <p className="auth-logo">LinkedU</p>
         <h2 className="auth-heading">
-          {isForgotMode ? 'Mot de passe oublié ?' : 'Se connecter'}
+          {isForgotMode ? 'Mot de passe oublie ?' : 'Se connecter'}
         </h2>
         <p className="auth-description">
           {isForgotMode
-            ? "Saisissez l'adresse e-mail associée à votre compte pour recevoir un lien de réinitialisation."
-            : "Saisissez vos informations afin d'acceder a la plateforme."}     
+            ? "Saisissez l'adresse e-mail associee a votre compte pour recevoir un lien de reinitialisation."
+            : "Saisissez vos informations afin d'acceder a la plateforme."}
         </p>
 
         {!isForgotMode && (
@@ -135,7 +144,7 @@ export default function LoginCard({ onLoginSuccess }) {
               className="link-small link-button"
               onClick={() => setIsForgotMode(true)}
             >
-              Mot de passe oublié ?
+              Mot de passe oublie ?
             </button>
 
             <button type="submit" className="auth-button" disabled={isLoggingIn}>
@@ -144,7 +153,9 @@ export default function LoginCard({ onLoginSuccess }) {
 
             {loginFeedback && (
               <p
-                className={'auth-feedback ' + (loginFeedbackType === 'error' ? 'auth-feedback-error' : 'auth-feedback-success')}
+                className={`auth-feedback ${
+                  loginFeedbackType === 'error' ? 'auth-feedback-error' : 'auth-feedback-success'
+                }`}
               >
                 {loginFeedback}
               </p>
@@ -158,7 +169,7 @@ export default function LoginCard({ onLoginSuccess }) {
             <input id="forgot-email" type="email" placeholder="nom@ecole.com" required />
 
             <button type="submit" className="auth-button">
-              Réinitialiser le mot de passe &rarr;
+              Reinitialiser le mot de passe -&gt;
             </button>
 
             <button
@@ -169,22 +180,24 @@ export default function LoginCard({ onLoginSuccess }) {
                 setIsResetSent(false)
               }}
             >
-              &larr; Retour à la page de connexion
+              &lt;- Retour a la page de connexion
             </button>
 
             {isResetSent && (
               <p className="auth-feedback">
-                Si cet e-mail existe, un lien de réinitialisation a été envoyé.   
+                Si cet e-mail existe, un lien de reinitialisation a ete envoye.
               </p>
             )}
           </form>
         )}
 
         <div className="auth-footer">
-          <a href="#">Conditions d'utilisation</a>
-          <a href="#">Politique de confidentialité</a>
+          <a href="#">Conditions d&apos;utilisation</a>
+          <a href="#">Politique de confidentialite</a>
         </div>
       </div>
     </section>
   )
 }
+
+export default LoginCard

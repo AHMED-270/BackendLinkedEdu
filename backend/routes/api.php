@@ -2,8 +2,20 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProfessorController;
 use App\Http\Controllers\AdminLoginController;
 use App\Http\Controllers\AdminDashboardController;
+
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register API routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "api" middleware group.
+|
+*/
 
 Route::any('/health', function (Request $request) {
     return response()->json([
@@ -15,21 +27,26 @@ Route::any('/health', function (Request $request) {
     ]);
 });
 
-Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) { 
+// Auth Check (Frontend check)
+Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
     return $request->user();
 });
 
+// Admin routes
 Route::post('/admin/login', [AdminLoginController::class, 'login']);
 Route::post('/admin/logout', [AdminLoginController::class, 'logout'])->middleware('auth:sanctum');
 
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:admin,directeur'])->group(function () {
     Route::get('/admin/dashboard-stats', [AdminDashboardController::class, 'getStats']);
+    Route::get('/admin/classes', [AdminDashboardController::class, 'getClasses']);
+});
+
+Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::put('/admin/profile', [AdminDashboardController::class, 'updateProfile']);
     Route::get('/admin/users', [AdminDashboardController::class, 'getUsers']);
     Route::post('/admin/users', [AdminDashboardController::class, 'createUser']);
     Route::put('/admin/users/{id}', [AdminDashboardController::class, 'updateUser']);
     Route::delete('/admin/users/{id}', [AdminDashboardController::class, 'deleteUser']);
-    Route::get('/admin/classes', [AdminDashboardController::class, 'getClasses']);
     Route::post('/admin/classes', [AdminDashboardController::class, 'createClass']);
     Route::put('/admin/classes/{id}', [AdminDashboardController::class, 'updateClass']);
     Route::delete('/admin/classes/{id}', [AdminDashboardController::class, 'deleteClass']);
@@ -38,4 +55,27 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('/admin/matieres/{id}', [AdminDashboardController::class, 'updateMatiere']);
     Route::delete('/admin/matieres/{id}', [AdminDashboardController::class, 'deleteMatiere']);
     Route::post('/admin/reports/generate', [AdminDashboardController::class, 'generateReport']);
+});
+
+// Professor Module Routes (RBAC protected)
+Route::middleware(['auth:sanctum', 'role:professeur'])->prefix('professeur')->group(function () {
+    Route::put('/profile', [ProfessorController::class, 'updateProfile']);
+
+    // Dashboard
+    Route::get('/dashboard', [ProfessorController::class, 'getDashboard']);
+
+    // Devoirs et Ressources
+    Route::get('/publications', [ProfessorController::class, 'getDevoirsEtRessources']);
+    Route::post('/devoirs', [ProfessorController::class, 'publishDevoir']);
+    Route::post('/ressources', [ProfessorController::class, 'publishRessource']);
+
+    // Élèves, Appel et Notes
+    Route::get('/classes/{class_id}/eleves', [ProfessorController::class, 'getStudents']);
+    Route::get('/eleves', [ProfessorController::class, 'getStudents']); // All classes
+
+    // Annonces
+    Route::get('/annonces', [ProfessorController::class, 'getAnnouncements']);
+
+    // Réclamations
+    Route::post('/reclamations', [ProfessorController::class, 'submitComplaint']);
 });
