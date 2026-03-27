@@ -20,16 +20,16 @@ function LoginCard() {
     setLoginFeedback('')
     setLoginFeedbackType('')
 
-    const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+    const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000'
 
-    try {
-      await axios.get(`${apiBaseUrl}/sanctum/csrf-cookie`, {
+    const performLogin = async () => {
+      await axios.get(apiBaseUrl + '/sanctum/csrf-cookie', {
         withCredentials: true,
         withXSRFToken: true,
       })
 
-      await axios.post(
-        `${apiBaseUrl}/login`,
+      return axios.post(
+        apiBaseUrl + '/api/admin/login',
         {
           email: loginEmail,
           password: loginPassword,
@@ -42,21 +42,34 @@ function LoginCard() {
           },
         }
       )
+    }
 
-      const userResponse = await axios.get(`${apiBaseUrl}/api/user`, {
-        withCredentials: true,
-        withXSRFToken: true,
-        headers: {
-          Accept: 'application/json',
-        },
-      })
+    try {
+      let loginRes
 
-      setAuthenticatedUser(userResponse.data)
-      const normalizedRole = String(userResponse.data?.role || '').toLowerCase()
-      const targetRoute = ['admin', 'directeur'].includes(normalizedRole) ? '/admin' : '/dashboard'
-      setLoginFeedback(`Connecte en tant que ${userResponse.data?.email ?? loginEmail}.`)
+      try {
+        loginRes = await performLogin()
+      } catch (firstError) {
+        if (firstError?.response?.status === 419) {
+          loginRes = await performLogin()
+        } else {
+          throw firstError
+        }
+      }
+
+      const connectedUser = loginRes?.data?.user
+      setAuthenticatedUser(connectedUser)
+      setLoginFeedback(`Connecte en tant que ${connectedUser?.email ?? loginEmail}.`)
       setLoginFeedbackType('success')
-      navigate(targetRoute, { replace: true })
+
+      const role = connectedUser?.role
+      const roleHome = role === 'admin' || role === 'directeur'
+        ? '/admin'
+        : role === 'professeur'
+          ? '/dashboard'
+          : '/login'
+
+      navigate(roleHome, { replace: true })
     } catch (error) {
       const status = error?.response?.status
       let message = 'Echec de connexion.'

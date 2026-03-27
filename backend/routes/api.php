@@ -36,14 +36,17 @@ Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
 Route::post('/admin/login', [AdminLoginController::class, 'login']);
 Route::post('/admin/logout', [AdminLoginController::class, 'logout'])->middleware('auth:sanctum');
 
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:admin,directeur'])->group(function () {
     Route::get('/admin/dashboard-stats', [AdminDashboardController::class, 'getStats']);
+    Route::get('/admin/classes', [AdminDashboardController::class, 'getClasses']);
+});
+
+Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::put('/admin/profile', [AdminDashboardController::class, 'updateProfile']);
     Route::get('/admin/users', [AdminDashboardController::class, 'getUsers']);
     Route::post('/admin/users', [AdminDashboardController::class, 'createUser']);
     Route::put('/admin/users/{id}', [AdminDashboardController::class, 'updateUser']);
     Route::delete('/admin/users/{id}', [AdminDashboardController::class, 'deleteUser']);
-    Route::get('/admin/classes', [AdminDashboardController::class, 'getClasses']);
     Route::post('/admin/classes', [AdminDashboardController::class, 'createClass']);
     Route::put('/admin/classes/{id}', [AdminDashboardController::class, 'updateClass']);
     Route::delete('/admin/classes/{id}', [AdminDashboardController::class, 'deleteClass']);
@@ -54,9 +57,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/admin/reports/generate', [AdminDashboardController::class, 'generateReport']);
 });
 
-// Professor Module Routes (public prefix)
-Route::prefix('professeur')->group(function () {
-    // Note: Dans une application réelle, on protège ces routes avec middleware('auth:sanctum') et un check de rôle
+// Professor Module Routes (RBAC protected)
+Route::middleware(['auth:sanctum', 'role:professeur'])->prefix('professeur')->group(function () {
+    Route::put('/profile', [ProfessorController::class, 'updateProfile']);
 
     // Dashboard
     Route::get('/dashboard', [ProfessorController::class, 'getDashboard']);

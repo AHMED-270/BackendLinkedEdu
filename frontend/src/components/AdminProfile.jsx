@@ -1,10 +1,12 @@
 ﻿import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FiUser as User, FiMail as Mail, FiLock as Lock, FiSave as Save, FiCamera as Camera, FiTrash2 as Trash2 } from 'react-icons/fi';
+import { useAuth } from '../context/AuthContext';
 
 const ADMIN_AVATAR_STORAGE_KEY = 'linkedu_admin_avatar';
 
 export default function AdminProfile() {
+  const { user, updateAuthenticatedUser } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -16,7 +18,7 @@ export default function AdminProfile() {
   const [error, setError] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState('');
 
-  const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+  const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000';
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -30,7 +32,7 @@ export default function AdminProfile() {
           email: res.data.email,
           password: ''
         });
-        setAvatarPreview(localStorage.getItem(ADMIN_AVATAR_STORAGE_KEY) || '');
+        setAvatarPreview(user?.profilePhoto || localStorage.getItem(ADMIN_AVATAR_STORAGE_KEY) || '');
       } catch (err) {
         console.error('Erreur profile:', err);
       } finally {
@@ -38,7 +40,7 @@ export default function AdminProfile() {
       }
     };
     fetchProfile();
-  }, [apiBaseUrl]);
+  }, [apiBaseUrl, user?.profilePhoto]);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -72,6 +74,7 @@ export default function AdminProfile() {
 
       localStorage.setItem(ADMIN_AVATAR_STORAGE_KEY, result);
       setAvatarPreview(result);
+      updateAuthenticatedUser({ profilePhoto: result });
       setError(null);
       setMessage('Photo de profil mise a jour.');
       notifyAvatarUpdate();
@@ -82,6 +85,7 @@ export default function AdminProfile() {
   const removeAvatar = () => {
     localStorage.removeItem(ADMIN_AVATAR_STORAGE_KEY);
     setAvatarPreview('');
+    updateAuthenticatedUser({ profilePhoto: null });
     setError(null);
     setMessage('Photo de profil supprimee.');
     notifyAvatarUpdate();
@@ -93,10 +97,17 @@ export default function AdminProfile() {
     setMessage(null);
     setError(null);
     try {
+      await axios.get(apiBaseUrl + '/sanctum/csrf-cookie', {
+        withCredentials: true,
+        withXSRFToken: true,
+      });
+
       const res = await axios.put(apiBaseUrl + '/api/admin/profile', formData, {
         withCredentials: true,
+        withXSRFToken: true,
         headers: { Accept: 'application/json' }
       });
+      updateAuthenticatedUser({ name: formData.name, email: formData.email });
       setMessage(res.data.message);
       setFormData(prev => ({ ...prev, password: '' })); // clear password field
     } catch (err) {

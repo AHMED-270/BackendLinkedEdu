@@ -9,9 +9,33 @@ use App\Models\Classe;
 use App\Models\Student;
 use App\Models\Attendance;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ProfessorController extends Controller
 {
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        if (! $user || $user->role !== 'professeur') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+        ]);
+
+        $user->name = $validated['name'];
+        $user->email = $validated['email'];
+        $user->save();
+
+        return response()->json([
+            'message' => 'Profil mis à jour avec succès.',
+            'user' => $user,
+        ]);
+    }
+
     /**
      * Get Professor Dashboard Data (Stats, Today's Schedule, upcoming events)
      */
@@ -84,13 +108,100 @@ class ProfessorController extends Controller
      */
     public function getStudents(Request $request, $class_id = null)
     {
-        // MOCK data to return to React Eleves page
-        $students = [
-            ['id' => 1, 'firstName' => 'Ayoub', 'lastName' => 'Karim', 'class' => 'Master 2 - IA', 'avatar' => 'https://i.pravatar.cc/150?u=1', 'email' => 'ayoub@linkedu.ma', 'phone' => '+212 600-000001', 'rank' => 1, 'average' => 18.5],
-            ['id' => 2, 'firstName' => 'Zineb', 'lastName' => 'Benjelloun', 'class' => 'Master 2 - IA', 'avatar' => 'https://i.pravatar.cc/150?u=2', 'email' => 'zineb@linkedu.ma', 'phone' => '+212 600-000002', 'rank' => 2, 'average' => 17.8]
-        ];
+        $user = $request->user();
 
-        return response()->json(['students' => $students]);
+        if (! $user || $user->role !== 'professeur') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $assignedClassIds = DB::table('classe_professeur_assignments')
+            ->where('id_professeur', $user->id)
+            ->pluck('id_classe');
+
+        if ($assignedClassIds->isEmpty()) {
+            return response()->json([
+                'classes' => [],
+                'students' => [],
+            ]);
+        }
+
+        if ($class_id !== null && ! $assignedClassIds->contains((int) $class_id)) {
+            return response()->json(['message' => 'Unauthorized class access'], 403);
+        }
+
+        $classIdsToUse = $class_id !== null
+            ? collect([(int) $class_id])
+            : $assignedClassIds;
+
+        $classes = DB::table('classes')
+            ->leftJoin('etudiants', 'classes.id_classe', '=', 'etudiants.id_classe')
+            ->select(
+                'classes.id_classe',
+                'classes.nom',
+                'classes.niveau',
+                DB::raw('COUNT(DISTINCT etudiants.id_etudiant) as students_count')
+            )
+            ->whereIn('classes.id_classe', $classIdsToUse)
+            ->groupBy('classes.id_classe', 'classes.nom', 'classes.niveau')
+            ->orderBy('classes.niveau')
+            ->orderBy('classes.nom')
+            ->get()
+            ->map(function ($classe) {
+                return [
+                    'id' => (int) $classe->id_classe,
+                    'nom' => $classe->nom,
+                    'niveau' => $classe->niveau,
+                    'label' => trim($classe->nom . ' - ' . $classe->niveau),
+                    'students_count' => (int) $classe->students_count,
+                ];
+            })
+            ->values();
+
+        $students = DB::table('etudiants')
+            ->join('users', 'etudiants.id_etudiant', '=', 'users.id')
+            ->join('classes', 'etudiants.id_classe', '=', 'classes.id_classe')
+            ->leftJoin('parents', 'etudiants.id_parent', '=', 'parents.id_parent')
+            ->select(
+                'users.id',
+                'users.name',
+                'users.nom',
+                'users.prenom',
+                'users.email',
+                'classes.id_classe',
+                'classes.nom as classe_nom',
+                'classes.niveau as classe_niveau',
+                'etudiants.matricule',
+                'parents.telephone as parent_phone'
+            )
+            ->whereIn('etudiants.id_classe', $classIdsToUse)
+            ->orderBy('classes.niveau')
+            ->orderBy('classes.nom')
+            ->orderBy('users.name')
+            ->get()
+            ->map(function ($student) {
+                $firstName = $student->prenom ?: $student->name;
+                $lastName = $student->nom ?: '';
+
+                return [
+                    'id' => (int) $student->id,
+                    'firstName' => $firstName,
+                    'lastName' => $lastName,
+                    'classId' => (int) $student->id_classe,
+                    'class' => trim($student->classe_nom . ' - ' . $student->classe_niveau),
+                    'avatar' => null,
+                    'email' => $student->email,
+                    'phone' => $student->parent_phone,
+                    'rank' => null,
+                    'average' => null,
+                    'matricule' => $student->matricule,
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'classes' => $classes,
+            'students' => $students,
+        ]);
     }
 
     /**

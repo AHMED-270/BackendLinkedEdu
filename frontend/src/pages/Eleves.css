@@ -30,6 +30,17 @@
   overflow-x: auto;
 }
 
+.eleves-state-message {
+  margin: 0;
+  padding: var(--space-4) var(--space-5);
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+}
+
+.eleves-state-error {
+  color: var(--accent-red);
+}
+
 .eleves-table th { background: white; white-space: nowrap; }
 
 .eleve-profile-cell {
@@ -44,6 +55,16 @@
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid var(--border-color);
+}
+
+.eleve-avatar-fallback {
+  background: linear-gradient(135deg, var(--primary-500), var(--primary-700));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: var(--font-sm);
 }
 
 .eleve-info {
