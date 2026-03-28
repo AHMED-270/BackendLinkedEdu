@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { FiArrowLeft as ArrowLeft } from 'react-icons/fi';
+import { BiSolidUserDetail } from 'react-icons/bi';
 
 export default function AdminUserForm({ mode = 'create', userToEdit = null, onBack, onSuccess, isModal = false }) {
   const isEditing = mode === 'edit' && !!userToEdit;
@@ -21,6 +22,7 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
     id_parent: '',
     telephone: ''
   });
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 
@@ -64,6 +66,7 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
             id_parent: userToEdit.id_parent || '',
             telephone: userToEdit.telephone || ''
           });
+          setConfirmPassword('');
         } else {
           const firstParent = usersData.find((u) => u.role === 'parent');
           setFormData((prev) => ({
@@ -71,6 +74,7 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
             id_classe: classesData[0]?.id_classe ?? '',
             id_parent: firstParent?.id ?? ''
           }));
+          setConfirmPassword('');
         }
       } catch (error) {
         console.error('Erreur fetch:', error);
@@ -98,6 +102,12 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
     e.preventDefault();
     setFormError('');
     setSaving(true);
+
+    if (formData.password && formData.password !== confirmPassword) {
+      setFormError('La confirmation du mot de passe ne correspond pas.');
+      setSaving(false);
+      return;
+    }
 
     try {
       await ensureCsrfCookie();
@@ -146,7 +156,10 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
       {!isModal && (
         <header className="content-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h1>{isEditing ? 'Modifier Utilisateur' : 'Nouvel Utilisateur'}</h1>
+            <h1 className="mt-1 flex items-center gap-2 text-4xl lg:text-5xl font-extrabold italic tracking-tight text-slate-900">
+              <BiSolidUserDetail className="text-blue-600" />
+              {isEditing ? 'Modifier Utilisateur' : 'Nouvel Utilisateur'}
+            </h1>
             <p>Formulaire dedie pour ajouter ou modifier un utilisateur.</p>
           </div>
           <button
@@ -160,148 +173,182 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
         </header>
       )}
 
-      <div className="card-panel" style={{ marginBottom: '20px' }}>
-        {isModal && <h2 style={{ marginTop: 0 }}>{isEditing ? 'Modifier Utilisateur' : 'Nouvel Utilisateur'}</h2>}
-        {loadWarning && (
-          <p style={{ color: '#b45309', marginBottom: '10px' }}>{loadWarning}</p>
+      <div className={isModal ? 'bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden' : 'card-panel'} style={!isModal ? { marginBottom: '20px' } : undefined}>
+        {isModal && (
+          <div className="px-6 pt-6 pb-4 border-b border-gray-100 bg-gray-50/70">
+            <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">Users / {isEditing ? 'Modifier' : 'Ajouter'}</p>
+            <h2 className="text-3xl font-extrabold text-gray-900 mt-1">{isEditing ? 'Modifier un Utilisateur' : 'Ajouter un Utilisateur'}</h2>
+            <p className="text-sm text-gray-500 mt-1">Creez un nouveau profil et definissez ses permissions d'acces.</p>
+          </div>
         )}
-        {formError && <p style={{ color: 'red', marginBottom: '10px' }}>{formError}</p>}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '15px' }}>
-          <div style={{ display: 'flex', gap: '15px' }}>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Nom complet</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                required
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-              />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Email</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                required
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-              />
-            </div>
-          </div>
+        <div className={isModal ? 'p-6' : ''}>
+          {loadWarning && (
+            <p style={{ color: '#b45309', marginBottom: '10px' }}>{loadWarning}</p>
+          )}
+          {formError && <p style={{ color: 'red', marginBottom: '10px' }}>{formError}</p>}
 
-          <div style={{ display: 'flex', gap: '15px' }}>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
-                Mot de passe {isEditing && '(Laisser vide pour ne pas modifier)'}
-              </label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleInputChange}
-                required={!isEditing}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-              />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Role</label>
-              <select
-                name="role"
-                value={formData.role}
-                onChange={handleInputChange}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+          <form onSubmit={handleSubmit} className="space-y-5 mt-2">
+            <section className="border border-gray-200 rounded-xl overflow-hidden">
+              <div className="grid grid-cols-1 md:grid-cols-12">
+                <div className="md:col-span-4 bg-gray-50 p-4 border-b md:border-b-0 md:border-r border-gray-200">
+                  <h3 className="text-sm font-bold text-gray-800">Informations de compte</h3>
+                  <p className="text-xs text-gray-500 mt-1">Identite de base de l'utilisateur sur la plateforme.</p>
+                </div>
+                <div className="md:col-span-8 p-4 grid grid-cols-1 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Nom complet</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">E-mail professionnel</label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Role assigne</label>
+                    <select
+                      name="role"
+                      value={formData.role}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
+                    >
+                      {roles.map((r) => (
+                        <option key={r.value} value={r.value}>{r.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="border border-gray-200 rounded-xl overflow-hidden">
+              <div className="grid grid-cols-1 md:grid-cols-12">
+                <div className="md:col-span-4 bg-gray-50 p-4 border-b md:border-b-0 md:border-r border-gray-200">
+                  <h3 className="text-sm font-bold text-gray-800">Securite</h3>
+                  <p className="text-xs text-gray-500 mt-1">Definissez les identifiants d'acces initiaux.</p>
+                </div>
+                <div className="md:col-span-8 p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Mot de passe</label>
+                    <input
+                      type="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      required={!isEditing}
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Confirmation</label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required={!isEditing}
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {formData.role === 'etudiant' && (
+              <section className="border border-gray-200 rounded-xl p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Classe de l'etudiant</label>
+                  <select
+                    name="id_classe"
+                    value={formData.id_classe}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
+                  >
+                    <option value="">-- Selectionner une classe --</option>
+                    {classes.map((c) => (
+                      <option key={c.id_classe} value={c.id_classe}>{c.nom} ({c.niveau})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Parent de l'etudiant</label>
+                  <select
+                    name="id_parent"
+                    value={formData.id_parent}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
+                  >
+                    <option value="">-- Selectionner un parent --</option>
+                    {parentUsers.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} {p.telephone ? `(${p.telephone})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <small className="block mt-1 text-xs text-gray-500">
+                    Telephone du parent: {selectedParent?.telephone || 'Non renseigne'}
+                  </small>
+                </div>
+              </section>
+            )}
+
+            {(formData.role === 'parent' || formData.role === 'directeur' || formData.role === 'professeur') && (
+              <section className="border border-gray-200 rounded-xl p-4">
+                <label className="block text-xs font-semibold text-gray-500 mb-1">
+                  {formData.role === 'directeur'
+                    ? 'Telephone du directeur'
+                    : formData.role === 'professeur'
+                      ? 'Telephone du professeur'
+                      : 'Telephone du parent'}
+                </label>
+                <input
+                  type="tel"
+                  name="telephone"
+                  value={formData.telephone}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="Ex: 0612345678"
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
+                />
+              </section>
+            )}
+
+           
+            <div className="flex gap-2 justify-end pt-1">
+              <button
+                type="button"
+                onClick={onBack}
+                disabled={saving}
+                className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium"
               >
-                {roles.map((r) => (
-                  <option key={r.value} value={r.value}>{r.label}</option>
-                ))}
-              </select>
+                Annuler
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold"
+              >
+                {saving ? 'Enregistrement...' : 'Enregistrer'}
+              </button>
             </div>
-          </div>
-
-          {formData.role === 'etudiant' && (
-            <div style={{ display: 'flex', gap: '15px' }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Classe de l'etudiant</label>
-                <select
-                  name="id_classe"
-                  value={formData.id_classe}
-                  onChange={handleInputChange}
-                  required
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                >
-                  <option value="">-- Selectionner une classe --</option>
-                  {classes.map((c) => (
-                    <option key={c.id_classe} value={c.id_classe}>{c.nom} ({c.niveau})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Parent de l'etudiant</label>
-                <select
-                  name="id_parent"
-                  value={formData.id_parent}
-                  onChange={handleInputChange}
-                  required
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                >
-                  <option value="">-- Selectionner un parent --</option>
-                  {parentUsers.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} {p.telephone ? `(${p.telephone})` : ''}
-                    </option>
-                  ))}
-                </select>
-                <small style={{ display: 'block', marginTop: '6px', color: '#64748b' }}>
-                  Telephone du parent: {selectedParent?.telephone || 'Non renseigne'}
-                </small>
-              </div>
-            </div>
-          )}
-
-          {(formData.role === 'parent' || formData.role === 'directeur' || formData.role === 'professeur') && (
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
-                {formData.role === 'directeur'
-                  ? 'Telephone du directeur'
-                  : formData.role === 'professeur'
-                    ? 'Telephone du professeur'
-                    : 'Telephone du parent'}
-              </label>
-              <input
-                type="tel"
-                name="telephone"
-                value={formData.telephone}
-                onChange={handleInputChange}
-                required
-                placeholder="Ex: 0612345678"
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-              />
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
-            <button
-              type="button"
-              onClick={onBack}
-              disabled={saving}
-              style={{ padding: '10px 20px', background: '#f1f5f9', color: '#475569', borderRadius: '8px', border: 'none', cursor: 'pointer' }}
-            >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              style={{ padding: '10px 20px', background: '#3b82f6', color: 'white', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '500' }}
-            >
-              {saving ? 'Enregistrement...' : 'Enregistrer'}
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FiSave as Save, FiRotateCcw as RotateCcw } from 'react-icons/fi';
+import { BiSolidUserDetail } from 'react-icons/bi';
 
 const STORAGE_KEY = 'linkedu_admin_settings';
 const SUBPROJECT_STORAGE_KEY = 'linkedu_subproject_settings';
@@ -75,7 +76,10 @@ export default function AdminSettings() {
   return (
     <div className="dashboard-content">
       <header className="content-header">
-        <h1>Parametres</h1>
+        <h1 className="mt-1 flex items-center gap-2 text-4xl lg:text-5xl font-extrabold italic tracking-tight text-slate-900">
+          <BiSolidUserDetail className="text-blue-600" />
+          Parametres
+        </h1>
         <p>Reglages simples de la console administrateur.</p>
       </header>
 

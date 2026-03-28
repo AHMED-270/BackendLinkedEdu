@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { FiPlus as Plus, FiEdit2 as Edit, FiTrash2 as Trash2, FiSearch as Search } from 'react-icons/fi';
+import { BiSolidUserDetail } from 'react-icons/bi';
 
 export default function AdminMatieres({ userRole = 'admin' }) {
   const [matieres, setMatieres] = useState([]);
@@ -173,7 +174,10 @@ export default function AdminMatieres({ userRole = 'admin' }) {
     <div className="dashboard-content">
       <header className="content-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1>Gestion des Matieres</h1>
+          <h1 className="mt-1 flex items-center gap-2 text-4xl lg:text-5xl font-extrabold italic tracking-tight text-slate-900">
+            <BiSolidUserDetail className="text-blue-600" />
+            Gestion des Matieres
+          </h1>
           <p>Creer, modifier et supprimer les matieres de l'etablissement.</p>
         </div>
         <button

@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FiUsers as Users, FiBookOpen as GraduationCap, FiAlertCircle as AlertCircle, FiFileText as FileText, FiBookOpen as BookOpen } from 'react-icons/fi';
+import { BiSolidUserDetail } from 'react-icons/bi';
 
 export default function AdminDashboardHome() {
   const [stats, setStats] = useState({
@@ -32,7 +33,10 @@ export default function AdminDashboardHome() {
   return (
     <div className="dashboard-content">
       <header className="content-header">
-        <h1>Tableau de bord de l'Administrateur</h1>
+        <h1 className="mt-1 flex items-center gap-2 text-4xl lg:text-5xl font-extrabold italic tracking-tight text-slate-900">
+          <BiSolidUserDetail className="text-blue-600" />
+          Tableau de bord de l'Administrateur
+        </h1>
         <p>Statut global : Le système est opérationnel. {stats.totalStudents} étudiants actifs répartis sur {stats.totalClasses} classes.</p>
       </header>
 

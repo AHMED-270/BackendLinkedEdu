@@ -83,7 +83,7 @@ Route::middleware(['auth:sanctum', 'role:professeur'])->prefix('professeur')->gr
 });
 
 // Secretaire Module Routes
-Route::middleware(['auth:sanctum'])->prefix('secretaire')->group(function () {
+Route::middleware(['auth:sanctum', 'role:secretaire,admin,directeur'])->prefix('secretaire')->group(function () {
     Route::get('/dashboard', [SecretaireController::class, 'dashboard']);
 
     // Students
@@ -107,6 +107,8 @@ Route::middleware(['auth:sanctum'])->prefix('secretaire')->group(function () {
     // Announcements
     Route::get('/annonces', [SecretaireController::class, 'listAnnonces']);
     Route::post('/annonces', [SecretaireController::class, 'createAnnonce']);
+    Route::put('/annonces/{id}', [SecretaireController::class, 'updateAnnonce']);
+    Route::delete('/annonces/{id}', [SecretaireController::class, 'deleteAnnonce']);
 
     // Reclamations
     Route::get('/reclamations', [SecretaireController::class, 'listReclamations']);

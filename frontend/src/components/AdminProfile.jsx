@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FiUser as User, FiMail as Mail, FiLock as Lock, FiSave as Save, FiCamera as Camera, FiTrash2 as Trash2 } from 'react-icons/fi';
+import { BiSolidUserDetail } from 'react-icons/bi';
 import { useAuth } from '../context/AuthContext';
 
 const ADMIN_AVATAR_STORAGE_KEY = 'linkedu_admin_avatar';
@@ -120,7 +121,10 @@ export default function AdminProfile() {
   return (
     <div className="dashboard-content">
       <header className="content-header">
-        <h1>Mon Profil</h1>
+        <h1 className="mt-1 flex items-center gap-2 text-4xl lg:text-5xl font-extrabold italic tracking-tight text-slate-900">
+          <BiSolidUserDetail className="text-blue-600" />
+          Mon Profil
+        </h1>
         <p>Gérez vos informations personnelles et votre mot de passe.</p>
       </header>
 

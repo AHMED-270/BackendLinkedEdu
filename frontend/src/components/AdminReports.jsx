@@ -1,6 +1,7 @@
 ﻿import { useState } from 'react';
 import axios from 'axios';
 import { FiFileText as FileText, FiDownload as Download, FiCheckCircle as CheckCircle } from 'react-icons/fi';
+import { BiSolidUserDetail } from 'react-icons/bi';
 
 export default function AdminReports() {
   const [reportType, setReportType] = useState('attendance');
@@ -39,7 +40,10 @@ export default function AdminReports() {
   return (
     <div className="dashboard-content">
       <header className="content-header">
-        <h1>Générateur de Rapports</h1>
+        <h1 className="mt-1 flex items-center gap-2 text-4xl lg:text-5xl font-extrabold italic tracking-tight text-slate-900">
+          <BiSolidUserDetail className="text-blue-600" />
+          Générateur de Rapports
+        </h1>
         <p>Générez et exportez les rapports statistiques de l'établissement.</p>
       </header>
 

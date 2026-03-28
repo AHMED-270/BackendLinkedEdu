@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FiSearch as Search, FiPlus as Plus, FiEdit2 as Edit, FiTrash2 as Trash2, FiEye as Eye } from 'react-icons/fi';
+import { BiSolidUserDetail } from 'react-icons/bi';
 import AdminClassForm from './AdminClassForm';
 
 export default function AdminClasses({ onCreateClass, onEditClass, userRole = 'admin' }) {
@@ -77,6 +78,7 @@ export default function AdminClasses({ onCreateClass, onEditClass, userRole = 'a
     }
   };
 
+  // Normalized search
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const filteredClasses = classes.filter((cls) => {
     if (!normalizedSearch) return true;
@@ -87,121 +89,157 @@ export default function AdminClasses({ onCreateClass, onEditClass, userRole = 'a
   });
 
   return (
-    <div className="dashboard-content">
-      <header className="content-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="dashboard-content bg-gray-50/50 min-h-screen">
+      <header className="content-header flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1>Gestion des Classes</h1>
-          <p>Liste des classes et leurs effectifs.</p>
+         
+          <h1 className="mt-1 flex items-center gap-3 text-4xl lg:text-5xl font-extrabold italic tracking-tight text-slate-900">
+            <BiSolidUserDetail className="text-blue-600" />
+            Gestion des Classes
+          </h1>
         </div>
         {userRole === 'admin' && (
           <button 
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#0f172a', color: 'white', padding: '10px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '500' }}
             onClick={handleCreateClass}
+            className="flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-slate-200 active:scale-95"
           >
-            <Plus size={18} /> Créer une Classe
+            <Plus size={20} strokeWidth={3} /> Créer une Classe
           </button>
         )}
       </header>
 
-      <div className="card-panel">
-        <div className="card-panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: '600' }}>Toutes les classes ({filteredClasses.length})</h2>
-          <div className="search-bar" style={{ padding: '8px 12px', background: '#f8fafc', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-             <Search size={16} color="#64748b" />
-             <input
-               type="text"
-               value={searchTerm}
-               onChange={(e) => setSearchTerm(e.target.value)}
-               placeholder="Rechercher nom, niveau, effectif, nombre professeurs..."
-               style={{ border: 'none', background: 'transparent', outline: 'none', minWidth: '240px' }}
-             />
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white">
+            
+            
+            <div className="relative group w-full md:w-80">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Rechercher une classe..."
+                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+              />
+            </div>
           </div>
-        </div>
 
         {loading ? (
-          <p>Chargement...</p>
+          <div className="p-12 text-center">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-slate-500 font-semibold italic">Chargement des données...</p>
+          </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid #e2e8f0', textAlign: 'left', color: '#64748b' }}>
-                <th style={{ padding: '12px 0' }}>Nom</th>
-                <th style={{ padding: '12px 0' }}>Niveau</th>
-                <th style={{ padding: '12px 0' }}>Nombre Professeurs</th>
-                <th style={{ padding: '12px 0' }}>Effectif</th>
-                <th style={{ padding: '12px 0' }}>Details</th>
-                  {userRole === 'admin' && <th style={{ padding: '12px 0', textAlign: 'right' }}>Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-                {filteredClasses.length === 0 && <tr><td colSpan={userRole === 'admin' ? 6 : 5} style={{ padding: '20px 0', textAlign: 'center', color: '#64748b' }}>Aucune classe trouvée.</td></tr>}
-              {filteredClasses.map(cls => (
-                <tr key={cls.id_classe} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '12px 0', fontWeight: '500' }}>{cls.nom}</td>
-                  <td style={{ padding: '12px 0', color: '#64748b' }}>{cls.niveau}</td>
-                  <td style={{ padding: '12px 0' }}>
-                    <span
-                      style={{ background: '#f1f5f9', color: '#0f172a', borderRadius: '999px', padding: '4px 12px', fontWeight: '600', display: 'inline-block' }}
-                    >
-                      {cls.professeurs_count || 0}
-                    </span>
-                  </td>
-                  <td style={{ padding: '12px 0' }}>
-                    <span style={{ background: '#f1f5f9', padding: '4px 12px', borderRadius: '16px', color: '#334155' }}>
-                      {cls.students_count}
-                    </span>
-                  </td>
-                  <td style={{ padding: '12px 0' }}>
-                    <button
-                      type="button"
-                      onClick={() => setClassDetailTarget(cls)}
-                      title="Voir les details"
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0f172a' }}
-                    >
-                      <Eye size={18} />
-                    </button>
-                  </td>
-                    {userRole === 'admin' && (
-                      <td style={{ padding: '12px 0', textAlign: 'right' }}>
-                        <button onClick={() => handleEditClass(cls)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6', marginRight: '10px' }}>
-                          <Edit size={18} />
-                        </button>
-                        <button onClick={() => requestDelete(cls)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}>
-                          <Trash2 size={18} />
-                        </button>
-                      </td>
-                    )}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50/50">
+                  <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Détails Classe</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Niveau Scolaire</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-center">Professeurs</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-center">Effectif</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {filteredClasses.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">
+                      Aucune classe ne correspond à votre recherche.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredClasses.map(cls => (
+                    <tr key={cls.id_classe} className="hover:bg-slate-50/80 transition-colors group">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 font-black text-sm group-hover:scale-110 transition-transform">
+                            {cls.nom.substring(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-bold text-slate-900">{cls.nom}</div>
+                            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter italic">ID: #{cls.id_classe}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="px-3 py-1 bg-white border border-slate-200 text-slate-600 rounded-full text-xs font-bold shadow-sm">
+                          {cls.niveau}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 text-xs font-black">
+                          {cls.professeurs_count || 0}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="inline-flex items-center justify-center px-3 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-xs font-black">
+                          {cls.students_count || 0}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => setClassDetailTarget(cls)}
+                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                            title="Voir les détails"
+                          >
+                            <Eye size={18} />
+                          </button>
+                          {userRole === 'admin' && (
+                            <>
+                              <button
+                                onClick={() => handleEditClass(cls)}
+                                className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
+                                title="Modifier"
+                              >
+                                <Edit size={18} />
+                              </button>
+                              <button
+                                onClick={() => requestDelete(cls)}
+                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                title="Supprimer"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
-        {deleteTarget && userRole === 'admin' && (
-        <div className="logout-modal-backdrop">
-          <div className="logout-modal-card">
-            <div className="logout-modal-icon">
-              <Trash2 size={46} color="#f43f5e" />
+      {/* Delete Confirmation Modal */}
+      {deleteTarget && userRole === 'admin' && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setDeleteTarget(null)}></div>
+          <div className="relative bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in zoom-in duration-200">
+            <div className="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Trash2 size={40} strokeWidth={2.5} />
             </div>
-            <h3>Confirmer la suppression</h3>
-            <p>
-              Voulez-vous vraiment supprimer la classe <strong>{deleteTarget.nom}</strong> ?
+            <h3 className="text-2xl font-black text-slate-900 text-center mb-2">Confirmer la suppression</h3>
+            <p className="text-slate-500 text-center px-4 leading-relaxed">
+              Voulez-vous vraiment supprimer la classe <strong className="text-slate-900 font-extrabold">{deleteTarget.nom}</strong> ? Cette action est irréversible.
             </p>
 
-            <div className="logout-modal-actions">
+            <div className="flex gap-3 mt-8">
               <button
-                type="button"
                 onClick={() => setDeleteTarget(null)}
                 disabled={isDeleting}
-                className="btn-cancel"
+                className="flex-1 px-6 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-bold transition-all"
               >
                 Annuler
               </button>
               <button
-                type="button"
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="btn-confirm-logout"
+                className="flex-1 px-6 py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold transition-all shadow-lg shadow-red-200 active:scale-95"
               >
                 {isDeleting ? 'Suppression...' : 'Supprimer'}
               </button>
@@ -210,53 +248,101 @@ export default function AdminClasses({ onCreateClass, onEditClass, userRole = 'a
         </div>
       )}
 
+      {/* Detail Modal */}
       {classDetailTarget && (
-        <div className="logout-modal-backdrop">
-          <div className="logout-modal-card">
-            <h3>Details de la classe - {classDetailTarget.nom}</h3>
-            <div style={{ textAlign: 'left', maxHeight: '380px', overflowY: 'auto', marginTop: '10px', paddingRight: '4px' }}>
-              <div style={{ marginBottom: '14px' }}>
-                <p style={{ margin: '0 0 6px 0', color: '#334155' }}><strong>Niveau:</strong> {classDetailTarget.niveau}</p>
-                <p style={{ margin: 0, color: '#334155' }}><strong>Effectif total:</strong> {classDetailTarget.students_count || 0}</p>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setClassDetailTarget(null)}></div>
+          <div className="relative bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom-8 duration-300">
+            {/* Modal Header */}
+            <div className="px-8 pt-8 pb-6 border-b border-slate-100 bg-gradient-to-br from-blue-50/50 to-white">
+              <div className="flex items-center justify-between mb-2">
+                <span className="px-3 py-1 bg-blue-600 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-full">Détails Classe</span>
+                <button onClick={() => setClassDetailTarget(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                  <Plus size={24} className="rotate-45 text-slate-400" />
+                </button>
+              </div>
+              <h2 className="text-4xl font-black text-slate-900 mt-2">{classDetailTarget.nom}</h2>
+              <p className="text-slate-500 font-semibold italic flex items-center gap-2 mt-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                Niveau Scolaire: {classDetailTarget.niveau}
+              </p>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-8 overflow-y-auto custom-scrollbar">
+              <div className="grid grid-cols-2 gap-4 mb-8">
+                <div className="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100">
+                  <div className="text-[10px] font-black uppercase tracking-wider text-indigo-400 mb-1">Corps Enseignant</div>
+                  <div className="text-2xl font-black text-indigo-600">{classDetailTarget.professeurs_count || 0}</div>
+                </div>
+                <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-100">
+                  <div className="text-[10px] font-black uppercase tracking-wider text-emerald-400 mb-1">Nombre d'élèves</div>
+                  <div className="text-2xl font-black text-emerald-600">{classDetailTarget.students_count || 0}</div>
+                </div>
               </div>
 
-              <div style={{ marginBottom: '14px' }}>
-                <h4 style={{ margin: '0 0 8px 0' }}>Professeurs ({classDetailTarget.professeurs_count || 0})</h4>
-                {(classDetailTarget.professeurs_details || []).length === 0 ? (
-                  <p style={{ color: '#64748b', margin: 0 }}>Aucun professeur affecte.</p>
-                ) : (
-                  <ul style={{ margin: 0, paddingLeft: '18px', color: '#334155' }}>
-                    {(classDetailTarget.professeurs_details || []).map((professeur) => (
-                      <li key={professeur.id} style={{ marginBottom: '6px' }}>
-                        {professeur.name || 'Professeur'}{professeur.telephone ? ` - ${professeur.telephone}` : ''}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
+                    Professeurs Affectés
+                  </h4>
+                  {(classDetailTarget.professeurs_details || []).length === 0 ? (
+                    <div className="p-4 rounded-xl border border-dashed border-slate-200 text-center text-slate-400 text-sm">
+                      Aucun professeur affecté à cette classe.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {(classDetailTarget.professeurs_details || []).map((prof) => (
+                        <div key={prof.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100 group">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs uppercase">
+                              {prof.name.charAt(0)}
+                            </div>
+                            <span className="font-bold text-slate-700">{prof.name}</span>
+                          </div>
+                          {prof.telephone && <span className="text-xs font-bold text-slate-400 group-hover:text-indigo-500">{prof.telephone}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-              <div>
-                <h4 style={{ margin: '0 0 8px 0' }}>Effectifs ({classDetailTarget.students_count || 0})</h4>
-                {(classDetailTarget.effectif_details || []).length === 0 ? (
-                  <p style={{ color: '#64748b', margin: 0 }}>Aucun eleve inscrit.</p>
-                ) : (
-                  <ul style={{ margin: 0, paddingLeft: '18px', color: '#334155' }}>
-                    {(classDetailTarget.effectif_details || []).map((etudiant) => (
-                      <li key={etudiant.id} style={{ marginBottom: '6px' }}>
-                        {etudiant.name || 'Eleve'}{etudiant.matricule ? ` - ${etudiant.matricule}` : ''}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                <div>
+                  <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    Liste des Étudiants
+                  </h4>
+                  {(classDetailTarget.effectif_details || []).length === 0 ? (
+                    <div className="p-4 rounded-xl border border-dashed border-slate-200 text-center text-slate-400 text-sm">
+                      Aucun élève inscrit dans cette classe.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {(classDetailTarget.effectif_details || []).map((student) => (
+                        <div key={student.id} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                          <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center font-bold text-xs text-slate-400 uppercase">
+                            {student.name.charAt(0)}
+                          </div>
+                          <div className="overflow-hidden">
+                            <div className="font-bold text-slate-700 text-sm truncate">{student.name}</div>
+                            {student.matricule && <div className="text-[10px] font-black text-slate-300 uppercase tracking-tighter">MAT-#{student.matricule}</div>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="logout-modal-actions">
+
+            {/* Modal Footer */}
+            <div className="p-6 bg-slate-50 border-t border-slate-100">
               <button
-                type="button"
                 onClick={() => setClassDetailTarget(null)}
-                className="btn-cancel"
+                className="w-full px-6 py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black text-sm transition-all shadow-lg active:scale-[0.98]"
               >
-                Fermer
+                FERMER
               </button>
             </div>
           </div>
@@ -264,8 +350,9 @@ export default function AdminClasses({ onCreateClass, onEditClass, userRole = 'a
       )}
 
       {editTarget && (
-        <div className="logout-modal-backdrop">
-          <div className="logout-modal-card" style={{ maxWidth: '900px', width: '90vw', maxHeight: '90vh', overflowY: 'auto', padding: '16px' }}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setEditTarget(null)}></div>
+          <div className="relative bg-[#f1f5f9] rounded-[2rem] shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto animate-in zoom-in duration-200">
             <AdminClassForm
               mode="edit"
               classToEdit={editTarget}

@@ -209,10 +209,27 @@ class ProfessorController extends Controller
      */
     public function getAnnouncements()
     {
-        $announcements = [
-            ['id' => 1, 'title' => 'Réunion du corps professoral', 'content' => 'Une réunion...', 'author' => 'Directeur', 'date' => 'Aujourd\'hui, 10:30', 'read' => false],
-            ['id' => 2, 'title' => 'Maintenance de la plateforme', 'content' => 'Mise à jour...', 'author' => 'Service IT', 'date' => 'Hier, 14:15', 'read' => true],
-        ];
+        $announcements = DB::table('annonces')
+            ->join('users', 'annonces.id_user', '=', 'users.id')
+            ->select(
+                'annonces.id_annonce as id',
+                'annonces.titre as title',
+                'annonces.contenu as content',
+                'users.nom as author',
+                'annonces.date_publication as date'
+            )
+            ->orderByDesc('annonces.date_publication')
+            ->get()
+            ->map(function($a) {
+                return [
+                    'id' => $a->id,
+                    'title' => $a->title,
+                    'content' => $a->content,
+                    'author' => $a->author,
+                    'date' => $a->date ? \Carbon\Carbon::parse($a->date)->diffForHumans() : 'Date inconnue',
+                    'read' => true // logic for read/unread could be added later
+                ];
+            });
 
         return response()->json(['announcements' => $announcements]);
     }

@@ -17,15 +17,15 @@ class Annonce extends Model
         'titre',
         'contenu',
         'date_publication',
-        'id_professeur',
+        'id_user',
     ];
 
     protected $casts = [
         'date_publication' => 'datetime',
     ];
 
-    public function professeur(): BelongsTo
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(Professeur::class, 'id_professeur', 'id_professeur');
+        return $this->belongsTo(User::class, 'id_user', 'id');
     }
 }

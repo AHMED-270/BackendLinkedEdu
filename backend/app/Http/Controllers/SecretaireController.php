@@ -350,8 +350,7 @@ class SecretaireController extends Controller
     public function listAnnonces(): JsonResponse
     {
         $annonces = DB::table('annonces')
-            ->join('professeurs', 'annonces.id_professeur', '=', 'professeurs.id_professeur')
-            ->join('users', 'professeurs.id_professeur', '=', 'users.id')
+            ->join('users', 'annonces.id_user', '=', 'users.id')
             ->select(
                 'annonces.id_annonce',
                 'annonces.titre',
@@ -369,30 +368,66 @@ class SecretaireController extends Controller
 
     public function createAnnonce(Request $request): JsonResponse
     {
+        try {
+            $validated = $request->validate([
+                'titre' => ['required', 'string', 'max:255'],
+                'contenu' => ['required', 'string'],
+                'cible' => ['nullable', 'string'],
+                'statut' => ['nullable', 'string'],
+            ]);
+
+            $user = $request->user();
+            if (!$user) {
+                return response()->json(['message' => 'Utilisateur non authentifié'], 401);
+            }
+
+            $annonce = Annonce::create([
+                'titre' => $validated['titre'],
+                'contenu' => $validated['contenu'],
+                'date_publication' => now(),
+                'id_user' => $user->id,
+            ]);
+
+            return response()->json([
+                'message' => 'Annonce publiee avec succes.',
+                'annonce' => $annonce,
+                'author' => $user->nom . ' ' . $user->prenom
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Erreur lors de la création',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateAnnonce(Request $request, int $id): JsonResponse
+    {
         $validated = $request->validate([
             'titre' => ['required', 'string', 'max:255'],
             'contenu' => ['required', 'string'],
-            'id_professeur' => ['nullable', 'integer', 'exists:professeurs,id_professeur'],
+            'cible' => ['nullable', 'string'],
+            'statut' => ['nullable', 'string'],
         ]);
 
-        $profId = $validated['id_professeur'] ?? Professeur::query()->value('id_professeur');
-        if (! $profId) {
-            return response()->json([
-                'message' => 'Aucun professeur disponible pour publier cette annonce.',
-            ], 422);
-        }
-
-        $annonce = Annonce::create([
+        $annonce = Annonce::findOrFail($id);
+        $annonce->update([
             'titre' => $validated['titre'],
             'contenu' => $validated['contenu'],
-            'date_publication' => now(),
-            'id_professeur' => $profId,
         ]);
 
         return response()->json([
-            'message' => 'Annonce publiee avec succes.',
+            'message' => 'Annonce mise a jour avec succes.',
             'annonce' => $annonce,
-        ], 201);
+        ]);
+    }
+
+    public function deleteAnnonce(int $id): JsonResponse
+    {
+        $annonce = Annonce::findOrFail($id);
+        $annonce->delete();
+
+        return response()->json(['message' => 'Annonce supprimee avec succes.']);
     }
 
     public function listReclamations(): JsonResponse

@@ -259,7 +259,7 @@ export default function AdminDashboard({ onLogout, userRole = 'admin', user = nu
           </div>
         </header>
 
-        <div className="dashboard-scroll">
+        <div className="dashboard-scroll" style={{ background: '#f8fafc', minHeight: 'calc(100vh - 64px)' }}>
           {currentView === 'home' && <AdminDashboardHome />}
           {currentView === 'users' && userRole === 'admin' && (
             <AdminUsers

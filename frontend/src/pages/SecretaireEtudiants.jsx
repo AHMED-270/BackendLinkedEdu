@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { FiUser, FiCalendar, FiMail, FiPhone, FiMapPin, FiArrowLeft, FiCheckCircle } from 'react-icons/fi';
-import './SecretaireEtudiants.css';
+import { FiUser, FiCalendar, FiMail, FiPhone, FiMapPin, FiArrowLeft, FiCheckCircle, FiSearch, FiEdit2, FiTrash2, FiPlus, FiUsers } from 'react-icons/fi';
 
 const emptyForm = {
   nom: '',
@@ -60,6 +59,20 @@ export default function SecretaireEtudiants() {
         .some((v) => String(v || '').toLowerCase().includes(term));
     });
   }, [students, search, classFilter]);
+
+  const stats = useMemo(() => {
+    const total = students.length;
+    const classesCount = classes.length;
+    const maleCount = students.filter((s) => String(s.genre || '').toUpperCase() === 'M').length;
+    const femaleCount = students.filter((s) => String(s.genre || '').toUpperCase() === 'F').length;
+
+    return {
+      total,
+      classesCount,
+      maleCount,
+      femaleCount,
+    };
+  }, [students, classes]);
 
   const resetForm = () => {
     setEditingId(null);
@@ -142,168 +155,324 @@ export default function SecretaireEtudiants() {
   };
 
   return (
-    <div className="students-page">
-      <div className="students-shell">
+    <div className="min-h-screen p-6 lg:p-10 bg-gray-50/50">
+      <div className="max-w-7xl mx-auto">
         {!isFormPage && (
-          <section className="students-index-card">
-            <div className="students-index-header">
+          <>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
               <div>
-                <h2>Liste des etudiants</h2>
-                <p className="muted-header">Consultez et gerez les inscriptions</p>
+                <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
+                  <FiUsers className="w-8 h-8 text-blue-600" />
+                  Liste des étudiants
+                </h1>
+                
               </div>
-              <button className="btn-open-form" onClick={openCreateFormPage}>Nouvel etudiant</button>
+              <button 
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium rounded-xl shadow-sm hover:bg-blue-700 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20 active:scale-95" 
+                onClick={openCreateFormPage}
+              >
+                <FiPlus className="w-5 h-5" />
+                Nouvel étudiant
+              </button>
             </div>
 
-            <div className="list-section-card">
-              <div className="students-toolbar">
+            <div className="flex flex-col sm:flex-row gap-3 w-full justify-end mb-4 md:mb-6">
+              <div className="relative w-full sm:w-72">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FiSearch className="h-4 w-4 text-gray-400" />
+                </div>
                 <input
-                  className="toolbar-input"
-                  placeholder="Rechercher (nom, prenom, email, matricule)"
+                  className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm shadow-sm"
+                  placeholder="Rechercher un étudiant..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
-                <select className="toolbar-select" value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
-                  <option value="all">Toutes les classes</option>
-                  {classes.map((c) => (
-                    <option key={c.id_classe} value={String(c.id_classe)}>{c.nom} - {c.niveau}</option>
-                  ))}
-                </select>
+              </div>
+              <select 
+                className="block w-full sm:w-48 py-2.5 px-3 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors cursor-pointer shadow-sm font-medium text-gray-700" 
+                value={classFilter} 
+                onChange={(e) => setClassFilter(e.target.value)}
+              >
+                <option value="all">Toutes les classes</option>
+                {classes.map((c) => (
+                  <option key={c.id_classe} value={String(c.id_classe)}>{c.nom} - {c.niveau}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+              <div className="px-6 py-3 border-b border-gray-100 bg-gray-50/50 flex flex-wrap items-center gap-2">
+                
+                {classes.slice(0, 8).map((c) => {
+                  const value = String(c.id_classe);
+                  const isActive = classFilter === value;
+                  return (
+                    
+                    <button
+                      key={c.id_classe}
+                      type="button"
+                      onClick={() => setClassFilter(value)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                        isActive
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      {c.nom}
+                    </button>
+                  );
+                })}
               </div>
 
-              <table className="students-table">
-                <thead>
-                  <tr>
-                    <th>Matricule</th>
-                    <th>Nom et Prenom</th>
-                    <th>Classe</th>
-                    <th>Email</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleStudents.map((student) => (
-                    <tr key={student.id_etudiant}>
-                      <td>{student.matricule || '-'}</td>
-                      <td>{student.nom} {student.prenom}</td>
-                      <td>{student.classe || '-'}</td>
-                      <td>{student.email || '-'}</td>
-                      <td className="actions-cell">
-                        <button className="btn-table" onClick={() => onEdit(student)}>Modifier</button>
-                        <button className="btn-table btn-danger" onClick={() => onDelete(student.id_etudiant)}>Supprimer</button>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Matricule</th>
+                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Nom et Prenom</th>
+                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Classe</th>
+                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
+                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</th>
                     </tr>
-                  ))}
-                  {visibleStudents.length === 0 && (
-                    <tr>
-                      <td colSpan="5" className="empty-state">Aucun etudiant trouve.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {visibleStudents.map((student) => (
+                      <tr key={student.id_etudiant} className="hover:bg-blue-50/50 transition-colors group">
+                        <td className="py-4 px-6">
+                           <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-mono font-medium bg-gray-100 text-gray-800">
+                             {student.matricule || '-'}
+                           </span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm tracking-tight">
+                              {student.nom ? student.nom.substring(0, 1).toUpperCase() : '?'}
+                              {student.prenom ? student.prenom.substring(0, 1).toUpperCase() : ''}
+                            </div>
+                            <span className="font-semibold text-gray-900">{student.nom} {student.prenom}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6 text-sm text-gray-600 font-medium">
+                          {student.classe ? (
+                            <span className="bg-indigo-50 text-indigo-700 py-1 px-2.5 rounded-lg border border-indigo-100">
+                              {student.classe}
+                            </span>
+                          ) : '-'}
+                        </td>
+                        <td className="py-4 px-6 text-sm text-gray-500">{student.email || '-'}</td>
+                        <td className="py-4 px-6">
+                          <div className="flex items-center justify-end gap-2">
+                            <button 
+                              className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors cursor-pointer" 
+                              onClick={() => onEdit(student)}
+                              title="Modifier"
+                            >
+                              <FiEdit2 size={18} />
+                            </button>
+                            <button 
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors cursor-pointer" 
+                              onClick={() => onDelete(student.id_etudiant)}
+                              title="Supprimer"
+                            >
+                              <FiTrash2 size={18} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {visibleStudents.length === 0 && (
+                      <tr>
+                        <td colSpan="5" className="py-12 text-center">
+                          <div className="flex flex-col items-center justify-center text-gray-400">
+                            <FiUsers className="w-12 h-12 mb-3 text-gray-200" />
+                            <p className="text-base font-medium text-gray-500">Aucun étudiant trouvé</p>
+                            <p className="text-sm mt-1">Ajustez vos filtres ou ajoutez un nouvel étudiant.</p>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </section>
+          </>
         )}
 
         {isFormPage && (
-          <section className="student-form-page">
-            <div className="modal-topbar form-page-topbar">
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col p-6 sm:p-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center pb-6 border-b border-gray-100 mb-6 gap-4">
               <div>
-                <h3>{editingId ? 'Modifier Etudiant' : 'Nouvel Etudiant'}</h3>
-                <p>Veuillez renseigner les informations pour creer un nouveau dossier academique.</p>
+                <h3 className="text-xl font-bold text-gray-900">{editingId ? 'Modifier Étudiant' : 'Nouvel Étudiant'}</h3>
+                <p className="text-gray-500 text-sm mt-1">Veuillez renseigner les informations pour {editingId ? 'mettre à jour le' : 'créer un nouveau'} dossier académique.</p>
               </div>
-              <div className="modal-top-actions">
-                <button type="button" className="btn-cancel" onClick={resetForm}><FiArrowLeft size={16} /> Retour a la liste</button>
-                <button type="submit" form="student-form" className="btn-submit"><FiCheckCircle size={16} /> {editingId ? 'Enregistrer' : 'Enregistrer inscription'}</button>
+              <div className="flex items-center gap-3">
+                <button 
+                  type="button" 
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors focus:outline-none" 
+                  onClick={resetForm}
+                >
+                  <FiArrowLeft size={16} /> Retour
+                </button>
+                <button 
+                  type="submit" 
+                  form="student-form" 
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium rounded-xl shadow-sm hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20 active:scale-95"
+                >
+                  <FiCheckCircle size={16} /> {editingId ? 'Enregistrer' : 'Créer l\'inscription'}
+                </button>
               </div>
             </div>
 
-            <form id="student-form" className="student-form" onSubmit={onSubmit}>
-              {errorMessage && <p className="error-message">{errorMessage}</p>}
+            <form id="student-form" className="flex flex-col gap-8" onSubmit={onSubmit}>
+              {errorMessage && (
+                <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium border border-red-100">
+                  {errorMessage}
+                </div>
+              )}
 
-              <section className="form-section">
-                <h4><span className="section-badge">👤</span> Informations Personnelles</h4>
-                <div className="form-grid two-col">
-                  <label>
-                    Nom
-                    <div className="field-with-icon">
-                      <FiUser className="field-icon" size={16} />
-                      <input value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} placeholder="ex: Durand" required />
+              {/* Informations Personnelles */}
+              <section className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+                <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <span className="bg-white p-1.5 rounded-lg shadow-sm border border-gray-100 text-base">👤</span> 
+                  Informations Personnelles
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-gray-700">Nom</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                        <FiUser size={16} />
+                      </div>
+                      <input 
+                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                        value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} placeholder="ex: Durand" required 
+                      />
                     </div>
-                  </label>
-                  <label>
-                    Prenom
-                    <div className="field-with-icon">
-                      <FiUser className="field-icon" size={16} />
-                      <input value={form.prenom} onChange={(e) => setForm({ ...form, prenom: e.target.value })} placeholder="ex: Jean-Luc" required />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-gray-700">Prénom</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                        <FiUser size={16} />
+                      </div>
+                      <input 
+                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                        value={form.prenom} onChange={(e) => setForm({ ...form, prenom: e.target.value })} placeholder="ex: Jean-Luc" required 
+                      />
                     </div>
-                  </label>
-                  <label>
-                    Date de naissance
-                    <div className="field-with-icon">
-                      <FiCalendar className="field-icon" size={16} />
-                      <input type="date" value={form.date_naissance} onChange={(e) => setForm({ ...form, date_naissance: e.target.value })} required />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-gray-700">Date de naissance</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                        <FiCalendar size={16} />
+                      </div>
+                      <input 
+                        type="date" 
+                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                        value={form.date_naissance} onChange={(e) => setForm({ ...form, date_naissance: e.target.value })} required 
+                      />
                     </div>
-                  </label>
-                  <label>
-                    Genre
-                    <div className="radio-row">
-                      <label className="radio-item"><input type="radio" name="genre" value="M" checked={form.genre === 'M'} onChange={(e) => setForm({ ...form, genre: e.target.value })} /> Masculin</label>
-                      <label className="radio-item"><input type="radio" name="genre" value="F" checked={form.genre === 'F'} onChange={(e) => setForm({ ...form, genre: e.target.value })} /> Feminin</label>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-gray-700">Genre</label>
+                    <div className="flex items-center gap-4 mt-2">
+                      <label className="flex items-center gap-2 cursor-pointer text-gray-700">
+                        <input type="radio" className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300" name="genre" value="M" checked={form.genre === 'M'} onChange={(e) => setForm({ ...form, genre: e.target.value })} /> 
+                        Masculin
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer text-gray-700">
+                        <input type="radio" className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300" name="genre" value="F" checked={form.genre === 'F'} onChange={(e) => setForm({ ...form, genre: e.target.value })} /> 
+                        Féminin
+                      </label>
                     </div>
-                  </label>
+                  </div>
                 </div>
               </section>
 
-              <section className="form-section">
-                <h4><span className="section-badge">🎓</span> Informations Academiques</h4>
-                <div className="form-grid two-col">
-                  <label>
-                    Classe / Niveau
-                    <select value={form.id_classe} onChange={(e) => setForm({ ...form, id_classe: e.target.value })}>
-                      <option value="">Selectionner un niveau</option>
+              {/* Informations Académiques */}
+              <section className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+                <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <span className="bg-white p-1.5 rounded-lg shadow-sm border border-gray-100 text-base">🎓</span> 
+                  Informations Académiques
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-gray-700">Classe / Niveau</label>
+                    <select 
+                      className="block w-full py-2 px-3 border border-gray-200 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                      value={form.id_classe} onChange={(e) => setForm({ ...form, id_classe: e.target.value })}
+                    >
+                      <option value="">Sélectionner un niveau</option>
                       {classes.map((c) => (
                         <option key={c.id_classe} value={c.id_classe}>{c.nom} - {c.niveau}</option>
                       ))}
                     </select>
-                  </label>
-                  <label>
-                    Date d'entree
-                    <div className="field-with-icon">
-                      <FiCalendar className="field-icon" size={16} />
-                      <input type="date" value={form.date_entree} onChange={(e) => setForm({ ...form, date_entree: e.target.value })} />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-gray-700">Date d'entrée</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                        <FiCalendar size={16} />
+                      </div>
+                      <input 
+                        type="date" 
+                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                        value={form.date_entree} onChange={(e) => setForm({ ...form, date_entree: e.target.value })} 
+                      />
                     </div>
-                  </label>
+                  </div>
                 </div>
               </section>
 
-              <section className="form-section">
-                <h4><span className="section-badge">📍</span> Coordonnees</h4>
-                <div className="form-grid two-col">
-                  <label>
-                    Email
-                    <div className="field-with-icon">
-                      <FiMail className="field-icon" size={16} />
-                      <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required placeholder="etudiant@exemple.com" />
+              {/* Coordonnées */}
+              <section className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+                <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <span className="bg-white p-1.5 rounded-lg shadow-sm border border-gray-100 text-base">📍</span> 
+                  Coordonnées
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-gray-700">Email</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                        <FiMail size={16} />
+                      </div>
+                      <input 
+                        type="email" 
+                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                        value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required placeholder="etudiant@exemple.com" 
+                      />
                     </div>
-                  </label>
-                  <label>
-                    Telephone
-                    <div className="field-with-icon">
-                      <FiPhone className="field-icon" size={16} />
-                      <input value={form.parent_phone} onChange={(e) => setForm({ ...form, parent_phone: e.target.value })} placeholder="+33 6 00 00 00 00" required />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-gray-700">Téléphone</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                        <FiPhone size={16} />
+                      </div>
+                      <input 
+                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                        value={form.parent_phone} onChange={(e) => setForm({ ...form, parent_phone: e.target.value })} placeholder="+33 6 00 00 00 00" required 
+                      />
                     </div>
-                  </label>
-                  <label className="full-width">
-                    Adresse postale
-                    <div className="field-with-icon field-with-textarea">
-                      <FiMapPin className="field-icon" size={16} />
-                      <textarea value={form.adresse} onChange={(e) => setForm({ ...form, adresse: e.target.value })} rows="3" required placeholder="Numero, rue, code postal et ville" />
+                  </div>
+                  <div className="flex flex-col gap-1.5 md:col-span-2">
+                    <label className="text-sm font-medium text-gray-700">Adresse postale</label>
+                    <div className="relative">
+                      <div className="absolute top-3 left-3 pointer-events-none text-gray-400">
+                        <FiMapPin size={16} />
+                      </div>
+                      <textarea 
+                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors resize-y"
+                        value={form.adresse} onChange={(e) => setForm({ ...form, adresse: e.target.value })} rows="3" required placeholder="Numéro, rue, code postal et ville" 
+                      />
                     </div>
-                  </label>
+                  </div>
                 </div>
               </section>
             </form>
-          </section>
+          </div>
         )}
       </div>
     </div>
