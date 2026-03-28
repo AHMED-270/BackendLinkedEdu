@@ -14,12 +14,20 @@ import Avancement from './pages/Avancement';
 import Reclamation from './pages/Reclamation';
 import Parametres from './pages/Parametres';
 import Login from './pages/Login';
+import SecretaireLayout from './components/SecretaireLayout';
+import SecretaireDashboard from './pages/SecretaireDashboard';
+import SecretaireEtudiants from './pages/SecretaireEtudiants';
+import SecretaireClasses from './pages/SecretaireClasses';
+import SecretaireAbsences from './pages/SecretaireAbsences';
+import SecretaireAnnonces from './pages/SecretaireAnnonces';
+import SecretaireReclamations from './pages/SecretaireReclamations';
 import './App.css';
 
 const getHomeRouteByRole = (role) => {
   const normalizedRole = String(role || '').toLowerCase();
   if (normalizedRole === 'admin' || normalizedRole === 'directeur') return '/admin';
   if (normalizedRole === 'professeur') return '/dashboard';
+  if (normalizedRole === 'secretaire') return '/secretaire/dashboard';
   return '/login';
 };
 
@@ -77,6 +85,14 @@ const AppRoutes = () => {
       <Route path="/reclamation" element={<ProtectedRoute allowedRoles={['professeur']}><Layout title="Réclamation"><Reclamation /></Layout></ProtectedRoute>} />
       <Route path="/profil" element={<ProtectedRoute allowedRoles={['professeur']}><Layout title="Profil"><Parametres /></Layout></ProtectedRoute>} />
       <Route path="/parametres" element={<ProtectedRoute allowedRoles={['professeur']}><Layout title="Paramètres"><Parametres /></Layout></ProtectedRoute>} />
+
+      {/* Secretaire routes */}
+      <Route path="/secretaire/dashboard" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><SecretaireDashboard /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/etudiants" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><SecretaireEtudiants /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/classes" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><SecretaireClasses /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/absences" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><SecretaireAbsences /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/annonces" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><SecretaireAnnonces /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/reclamations" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><SecretaireReclamations /></SecretaireLayout></ProtectedRoute>} />
       
       {/* Fallback */}
       <Route path="*" element={<Navigate to={user ? getHomeRouteByRole(user?.role) : '/login'} replace />} />

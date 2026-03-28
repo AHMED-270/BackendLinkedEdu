@@ -67,6 +67,8 @@ function LoginCard() {
         ? '/admin'
         : role === 'professeur'
           ? '/dashboard'
+          : role === 'secretaire'
+            ? '/secretaire/dashboard'
           : '/login'
 
       navigate(roleHome, { replace: true })

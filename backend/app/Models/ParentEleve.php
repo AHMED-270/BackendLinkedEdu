@@ -19,6 +19,7 @@ class ParentEleve extends Model
     protected $fillable = [
         'id_parent',
         'telephone',
+        'country_code',
     ];
 
     public function user(): BelongsTo

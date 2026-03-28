@@ -21,6 +21,9 @@ class Etudiant extends Model
         'matricule',
         'id_classe',
         'id_parent',
+        'date_naissance',
+        'genre',
+        'adresse',
     ];
 
     public function user(): BelongsTo

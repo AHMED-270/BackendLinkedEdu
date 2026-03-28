@@ -6,12 +6,14 @@ use App\Http\Controllers\ProfessorController;
 use App\Http\Controllers\AdminLoginController;
 use App\Http\Controllers\AdminDashboardController;
 
+use App\Http\Controllers\SecretaireController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
 |
-| Here is where you can register API routes for your application. These
+| Here where you can is register API routes for your application. These
 | routes are loaded by the RouteServiceProvider and all of them will
 | be assigned to the "api" middleware group.
 |
@@ -78,4 +80,35 @@ Route::middleware(['auth:sanctum', 'role:professeur'])->prefix('professeur')->gr
 
     // Réclamations
     Route::post('/reclamations', [ProfessorController::class, 'submitComplaint']);
+});
+
+// Secretaire Module Routes
+Route::middleware(['auth:sanctum'])->prefix('secretaire')->group(function () {
+    Route::get('/dashboard', [SecretaireController::class, 'dashboard']);
+
+    // Students
+    Route::get('/students', [SecretaireController::class, 'listStudents']);
+    Route::post('/students', [SecretaireController::class, 'createStudent']);
+    Route::put('/students/{id}', [SecretaireController::class, 'updateStudent']);
+    Route::delete('/students/{id}', [SecretaireController::class, 'deleteStudent']);
+
+    // Classes
+    Route::get('/classes', [SecretaireController::class, 'listClasses']);
+    Route::post('/classes', [SecretaireController::class, 'createClasse']);
+    Route::put('/classes/{id}', [SecretaireController::class, 'updateClasse']);
+    Route::delete('/classes/{id}', [SecretaireController::class, 'deleteClasse']);
+
+    // Absences
+    Route::get('/absences', [SecretaireController::class, 'listAbsences']);
+    Route::post('/absences', [SecretaireController::class, 'createAbsence']);
+    Route::put('/absences/{id}', [SecretaireController::class, 'updateAbsence']);
+    Route::delete('/absences/{id}', [SecretaireController::class, 'deleteAbsence']);
+
+    // Announcements
+    Route::get('/annonces', [SecretaireController::class, 'listAnnonces']);
+    Route::post('/annonces', [SecretaireController::class, 'createAnnonce']);
+
+    // Reclamations
+    Route::get('/reclamations', [SecretaireController::class, 'listReclamations']);
+    Route::put('/reclamations/{id}/status', [SecretaireController::class, 'updateReclamationStatus']);
 });

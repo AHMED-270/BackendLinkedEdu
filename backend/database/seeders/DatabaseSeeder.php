@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             AdminSeeder::class,
             MatiereSeeder::class,
             ProfesseurTestSeeder::class,
+            SecretaireTestSeeder::class,
         ]);
     }
 }
