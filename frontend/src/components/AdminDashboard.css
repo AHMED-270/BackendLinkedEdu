@@ -126,6 +126,14 @@ body, html {
   color: #dc2626;
 }
 
+/* Remove active/focus visual styles on logout button */
+.logout-btn:active,
+.logout-btn:focus {
+  outline: none;
+  box-shadow: none;
+  transform: none;
+}
+
 /* Main Content area */
 .admin-main {
   flex: 1;
