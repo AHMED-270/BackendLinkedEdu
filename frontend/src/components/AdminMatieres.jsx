@@ -164,150 +164,188 @@ export default function AdminMatieres({ userRole = 'admin' }) {
 
   if (userRole !== 'admin') {
     return (
-      <div className="dashboard-content">
-        <p>Acces reserve a l'administrateur.</p>
+      <div className="min-h-screen p-6 bg-[#f5f7fb]">
+        <div className="max-w-4xl mx-auto bg-white border border-gray-100 rounded-2xl shadow-sm p-8 text-gray-600 font-medium">
+          Acces reserve a l'administrateur.
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="dashboard-content">
-      <header className="content-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h1 className="mt-1 flex items-center gap-2 text-4xl lg:text-5xl font-extrabold italic tracking-tight text-slate-900">
-            <BiSolidUserDetail className="text-blue-600" />
-            Gestion des Matieres
-          </h1>
-          <p>Creer, modifier et supprimer les matieres de l'etablissement.</p>
+    <div className="min-h-screen p-4 lg:p-8 bg-[#f5f7fb]">
+      <div className="max-w-[1400px] mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
+          <div>
+            <h1 className="mt-1 flex items-center gap-2 text-4xl lg:text-5xl font-extrabold italic tracking-tight text-slate-900">
+              <BiSolidUserDetail className="text-blue-600" />
+              Gestion des Matieres
+            </h1>
+            <p className="text-slate-500 mt-2">Creer, modifier et supprimer les matieres de l'etablissement.</p>
+          </div>
+          <button
+            type="button"
+            onClick={openCreateForm}
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#2563eb] text-white font-semibold rounded-xl shadow-sm hover:bg-[#1d4ed8] transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          >
+            <Plus className="w-4 h-4" />
+            Ajouter une Matiere
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={openCreateForm}
-          style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#0f172a', color: 'white', padding: '10px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '500' }}
-        >
-          <Plus size={18} />
-          Ajouter une Matiere
-        </button>
-      </header>
 
-      <div className="card-panel">
-        <div className="card-panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: '600' }}>Toutes les matieres ({filteredMatieres.length})</h2>
-          <div className="search-bar" style={{ padding: '8px 12px', background: '#f8fafc', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Search size={16} color="#64748b" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Rechercher nom ou coefficient..."
-              style={{ border: 'none', background: 'transparent', outline: 'none', minWidth: '240px' }}
-            />
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+          <div className="px-6 py-5 border-b border-gray-100 flex flex-col xl:flex-row xl:items-center justify-between gap-3 bg-gray-50/60">
+            <h2 className="text-sm font-semibold text-gray-700">Toutes les matieres ({filteredMatieres.length})</h2>
+            <div className="relative w-full xl:w-96">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Rechercher nom ou coefficient..."
+                className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[780px]">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Matiere</th>
+                  <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Coefficient</th>
+                  <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {loading ? (
+                  [...Array(4)].map((_, i) => (
+                    <tr key={`skeleton-${i}`} className="animate-pulse">
+                      <td className="py-4 px-6"><div className="h-4 bg-gray-200 rounded w-44"></div></td>
+                      <td className="py-4 px-6"><div className="h-6 bg-gray-200 rounded-full w-20"></div></td>
+                      <td className="py-4 px-6"><div className="h-4 bg-gray-200 rounded w-16 ml-auto"></div></td>
+                    </tr>
+                  ))
+                ) : filteredMatieres.length === 0 ? (
+                  <tr>
+                    <td colSpan="3" className="py-12 text-center text-gray-400">
+                      <p className="text-base font-medium text-gray-500">Aucune matiere trouvee</p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredMatieres.map((matiere) => (
+                    <tr key={matiere.id_matiere} className="hover:bg-blue-50/50 transition-colors group">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                            {(matiere.nom || '?').substring(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900 text-sm">{matiere.nom}</p>
+                            <p className="text-xs text-gray-500">ID #{matiere.id_matiere}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                          {matiere.coefficient}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openEditForm(matiere)}
+                            className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors cursor-pointer"
+                            title="Modifier"
+                          >
+                            <Edit size={18} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => requestDelete(matiere)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors cursor-pointer"
+                            title="Supprimer"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
-
-        {loading ? (
-          <p>Chargement...</p>
-        ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid #e2e8f0', textAlign: 'left', color: '#64748b' }}>
-                <th style={{ padding: '12px 0' }}>Nom</th>
-                <th style={{ padding: '12px 0' }}>Coefficient</th>
-                <th style={{ padding: '12px 0', textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredMatieres.length === 0 && (
-                <tr>
-                  <td colSpan="3" style={{ padding: '20px 0', textAlign: 'center', color: '#64748b' }}>
-                    Aucune matiere trouvee.
-                  </td>
-                </tr>
-              )}
-              {filteredMatieres.map((matiere) => (
-                <tr key={matiere.id_matiere} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '12px 0', fontWeight: '500' }}>{matiere.nom}</td>
-                  <td style={{ padding: '12px 0' }}>
-                    <span style={{ background: '#f1f5f9', padding: '4px 12px', borderRadius: '16px', color: '#334155' }}>
-                      {matiere.coefficient}
-                    </span>
-                  </td>
-                  <td style={{ padding: '12px 0', textAlign: 'right' }}>
-                    <button
-                      type="button"
-                      onClick={() => openEditForm(matiere)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6', marginRight: '10px' }}
-                    >
-                      <Edit size={18} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => requestDelete(matiere)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
       </div>
 
       {deleteTarget && (
-        <div className="logout-modal-backdrop">
-          <div className="logout-modal-card">
-            <div className="logout-modal-icon">
-              <Trash2 size={46} color="#f43f5e" />
-            </div>
-            <h3>Confirmer la suppression</h3>
-            <p>
-              Voulez-vous vraiment supprimer la matiere <strong>{deleteTarget.nom}</strong> ?
-            </p>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
+                <Trash2 size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Confirmer la suppression</h3>
+              <p className="text-gray-500 mb-6">
+                Voulez-vous vraiment supprimer la matiere <strong className="text-gray-900">{deleteTarget.nom}</strong> ? Cette action est irréversible.
+              </p>
 
-            <div className="logout-modal-actions">
-              <button
-                type="button"
-                onClick={() => setDeleteTarget(null)}
-                disabled={isDeleting}
-                className="btn-cancel"
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="btn-confirm-logout"
-              >
-                {isDeleting ? 'Suppression...' : 'Supprimer'}
-              </button>
+              <div className="flex gap-3 justify-center">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(null)}
+                  disabled={isDeleting}
+                  className="px-5 py-2.5 rounded-xl font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="px-5 py-2.5 rounded-xl font-medium text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {isDeleting ? 'Suppression...' : 'Supprimer'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {editTarget && (
-        <div className="logout-modal-backdrop">
-          <div className="logout-modal-card" style={{ maxWidth: '720px', width: '90vw' }}>
-            <h3 style={{ marginTop: 0 }}>Modifier Matiere</h3>
-            {editFormError && <p style={{ color: 'red', marginBottom: '10px' }}>{editFormError}</p>}
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-900">Modifier Matiere</h3>
+              <button
+                type="button"
+                onClick={() => setEditTarget(null)}
+                className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium"
+              >
+                Fermer
+              </button>
+            </div>
+            <div className="p-6">
+              {editFormError && <p className="text-red-600 text-sm mb-4">{editFormError}</p>}
 
-            <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '15px' }}>
-              <div style={{ display: 'flex', gap: '15px' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Nom de la matiere</label>
+              <form onSubmit={handleEditSubmit} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="sm:col-span-2">
+                  <label className="text-sm font-medium text-gray-700">Nom de la matiere</label>
                   <input
                     type="text"
                     value={editFormData.nom}
                     onChange={(e) => setEditFormData((prev) => ({ ...prev, nom: e.target.value }))}
                     required
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                    className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   />
                 </div>
-                <div style={{ width: '220px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Coefficient</label>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Coefficient</label>
                   <input
                     type="number"
                     min="1"
@@ -315,53 +353,62 @@ export default function AdminMatieres({ userRole = 'admin' }) {
                     value={editFormData.coefficient}
                     onChange={(e) => setEditFormData((prev) => ({ ...prev, coefficient: e.target.value }))}
                     required
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                    className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   />
                 </div>
-              </div>
 
-              <div className="logout-modal-actions" style={{ justifyContent: 'flex-end' }}>
-                <button
-                  type="button"
-                  onClick={() => setEditTarget(null)}
-                  disabled={isSavingEdit}
-                  className="btn-cancel"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSavingEdit}
-                  className="btn-confirm-logout"
-                >
-                  {isSavingEdit ? 'Enregistrement...' : 'Enregistrer'}
-                </button>
-              </div>
-            </form>
+                <div className="sm:col-span-3 flex justify-end gap-3 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditTarget(null)}
+                    disabled={isSavingEdit}
+                    className="px-5 py-2.5 rounded-xl font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingEdit}
+                    className="px-5 py-2.5 rounded-xl font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    {isSavingEdit ? 'Enregistrement...' : 'Enregistrer'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
 
       {showForm && (
-        <div className="logout-modal-backdrop">
-          <div className="logout-modal-card" style={{ maxWidth: '720px', width: '90vw' }}>
-            <h3 style={{ marginTop: 0 }}>Nouvelle Matiere</h3>
-            {formError && <p style={{ color: 'red', marginBottom: '10px' }}>{formError}</p>}
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-900">Nouvelle Matiere</h3>
+              <button
+                type="button"
+                onClick={closeCreateForm}
+                className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium"
+              >
+                Fermer
+              </button>
+            </div>
+            <div className="p-6">
+              {formError && <p className="text-red-600 text-sm mb-4">{formError}</p>}
 
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '15px' }}>
-              <div style={{ display: 'flex', gap: '15px' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Nom de la matiere</label>
+              <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="sm:col-span-2">
+                  <label className="text-sm font-medium text-gray-700">Nom de la matiere</label>
                   <input
                     type="text"
                     value={formData.nom}
                     onChange={(e) => setFormData((prev) => ({ ...prev, nom: e.target.value }))}
                     required
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                    className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   />
                 </div>
-                <div style={{ width: '220px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Coefficient</label>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Coefficient</label>
                   <input
                     type="number"
                     min="1"
@@ -369,27 +416,27 @@ export default function AdminMatieres({ userRole = 'admin' }) {
                     value={formData.coefficient}
                     onChange={(e) => setFormData((prev) => ({ ...prev, coefficient: e.target.value }))}
                     required
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                    className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   />
                 </div>
-              </div>
 
-              <div className="logout-modal-actions" style={{ justifyContent: 'flex-end' }}>
-                <button
-                  type="button"
-                  onClick={closeCreateForm}
-                  className="btn-cancel"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="btn-confirm-logout"
-                >
-                  Enregistrer
-                </button>
-              </div>
-            </form>
+                <div className="sm:col-span-3 flex justify-end gap-3 mt-2">
+                  <button
+                    type="button"
+                    onClick={closeCreateForm}
+                    className="px-5 py-2.5 rounded-xl font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 rounded-xl font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                  >
+                    Enregistrer
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

@@ -75,13 +75,17 @@ function LoginCard() {
     } catch (error) {
       const status = error?.response?.status
       let message = 'Echec de connexion.'
+      const backendMessage = error?.response?.data?.message
+      const backendEmailError = error?.response?.data?.errors?.email?.[0]
 
-      if (status === 422 || status === 401) {
+      if (backendEmailError) {
+        message = backendEmailError
+      } else if (backendMessage && backendMessage !== 'The given data was invalid.') {
+        message = backendMessage
+      } else if (status === 422 || status === 401) {
         message = 'Email ou mot de passe incorrect.'
       } else if (status === 419) {
         message = 'Session expiree. Reessayez.'
-      } else if (error?.response?.data?.message) {
-        message = error.response.data.message
       } else if (error?.message) {
         message = error.message
       }

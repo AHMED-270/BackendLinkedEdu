@@ -546,6 +546,33 @@ class SecretaireController extends Controller
         return response()->json(['message' => 'Statut de reclamation mis a jour avec succes.']);
     }
 
+    public function updateReclamation(Request $request, int $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'sujet' => ['required', 'string', 'max:255'],
+            'message' => ['required', 'string'],
+        ]);
+
+        $reclamation = Reclamation::findOrFail($id);
+        $reclamation->update([
+            'sujet' => $validated['sujet'],
+            'message' => $validated['message'],
+        ]);
+
+        return response()->json([
+            'message' => 'Reclamation mise a jour avec succes.',
+            'reclamation' => $reclamation,
+        ]);
+    }
+
+    public function deleteReclamation(int $id): JsonResponse
+    {
+        $reclamation = Reclamation::findOrFail($id);
+        $reclamation->delete();
+
+        return response()->json(['message' => 'Reclamation supprimee avec succes.']);
+    }
+
     public function listParents(): JsonResponse
     {
         $parents = ParentEleve::with('user')

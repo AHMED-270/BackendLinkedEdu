@@ -115,6 +115,8 @@ Route::middleware(['auth:sanctum', 'role:secretaire,admin,directeur'])->prefix('
     // Reclamations
     Route::get('/reclamations', [SecretaireController::class, 'listReclamations']);
     Route::post('/reclamations', [SecretaireController::class, 'createReclamation']);
+    Route::put('/reclamations/{id}', [SecretaireController::class, 'updateReclamation']);
+    Route::delete('/reclamations/{id}', [SecretaireController::class, 'deleteReclamation']);
     Route::put('/reclamations/{id}/status', [SecretaireController::class, 'updateReclamationStatus']);
     Route::get('/parents', [SecretaireController::class, 'listParents']);
 });

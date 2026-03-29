@@ -12,7 +12,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 
-const emptyForm = { titre: '', contenu: '', cible: 'Tous', statut: 'Publié' };
+const emptyForm = { titre: '', contenu: '', cible: 'Tous' };
 
 export default function SecretaireAnnonces() {
   const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000';
@@ -23,7 +23,6 @@ export default function SecretaireAnnonces() {
   const [form, setForm] = useState(emptyForm);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatut, setFilterStatut] = useState('all');
   const [filterCible, setFilterCible] = useState('all');
 
   const loadData = async () => {
@@ -33,11 +32,10 @@ export default function SecretaireAnnonces() {
         withCredentials: true,
         withXSRFToken: true,
       });
-      // Mocking cible & statut if backend doesn't provide them yet to match the UI
+      // Keep a simple target field for UI filtering.
       const data = (res.data?.annonces || []).map(a => ({
         ...a,
-        cible: a.cible || 'Tous',
-        statut: a.statut || 'Publié'
+        cible: a.cible || 'Tous'
       }));
       setAnnonces(data);
     } catch (error) {
@@ -103,11 +101,10 @@ export default function SecretaireAnnonces() {
     return annonces.filter(a => {
       const searchMatch = (a.titre?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
                           (a.contenu?.toLowerCase() || '').includes(searchTerm.toLowerCase());
-      const statutMatch = filterStatut === 'all' || a.statut === filterStatut;
       const cibleMatch = filterCible === 'all' || a.cible === filterCible;
-      return searchMatch && statutMatch && cibleMatch;
+      return searchMatch && cibleMatch;
     });
-  }, [annonces, searchTerm, filterStatut, filterCible]);
+  }, [annonces, searchTerm, filterCible]);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
@@ -148,33 +145,6 @@ export default function SecretaireAnnonces() {
     }
   };
 
-  const getStatutBadge = (statut) => {
-    switch(statut?.toLowerCase()) {
-      case 'brouillon':
-        return (
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
-            <span className="text-xs font-semibold text-gray-600">Brouillon</span>
-          </div>
-        );
-      case 'planifié':
-      case 'planifie':
-        return (
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-            <span className="text-xs font-semibold text-blue-700">Planifié</span>
-          </div>
-        );
-      default:
-        return (
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            <span className="text-xs font-semibold text-emerald-700">Publié</span>
-          </div>
-        );
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#f8fafc] p-4 lg:p-8 font-sans text-gray-900">
       <div className="max-w-[1400px] mx-auto">
@@ -208,16 +178,6 @@ export default function SecretaireAnnonces() {
                 />
               </div>
               <select
-                value={filterStatut}
-                onChange={(e) => setFilterStatut(e.target.value)}
-                className="w-full sm:w-40 px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-gray-700"
-              >
-                <option value="all">Tous les statuts</option>
-                <option value="Publié">Publié</option>
-                <option value="Brouillon">Brouillon</option>
-                <option value="Planifié">Planifié</option>
-              </select>
-              <select
                 value={filterCible}
                 onChange={(e) => setFilterCible(e.target.value)}
                 className="w-full sm:w-40 px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-gray-700"
@@ -238,7 +198,6 @@ export default function SecretaireAnnonces() {
                       <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest w-2/5">Titre de l'annonce</th>
                       <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Date</th>
                       <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cible</th>
-                      <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Statut</th>
                       <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Actions</th>
                     </tr>
                   </thead>
@@ -249,7 +208,6 @@ export default function SecretaireAnnonces() {
                           <td className="py-4 px-6"><div className="h-4 w-56 rounded bg-gray-100"></div></td>
                           <td className="py-4 px-6"><div className="h-9 w-16 rounded bg-gray-100"></div></td>
                           <td className="py-4 px-6"><div className="h-5 w-20 rounded-full bg-gray-100"></div></td>
-                          <td className="py-4 px-6"><div className="h-4 w-16 rounded bg-gray-100"></div></td>
                           <td className="py-4 px-6"><div className="h-4 w-16 ml-auto rounded bg-gray-100"></div></td>
                         </tr>
                       ))
@@ -269,9 +227,6 @@ export default function SecretaireAnnonces() {
                         <td className="py-4 px-6">
                           {getCibleBadge(a.cible)}
                         </td>
-                        <td className="py-4 px-6">
-                          {getStatutBadge(a.statut)}
-                        </td>
                         <td className="py-4 px-6 text-right">
                            <div className="flex items-center justify-end gap-1.5 text-gray-400">
                              <button
@@ -287,8 +242,7 @@ export default function SecretaireAnnonces() {
                                  setForm({
                                    titre: a.titre || '',
                                    contenu: a.contenu || '',
-                                   cible: a.cible || 'Tous',
-                                   statut: a.statut || 'Publié'
+                                   cible: a.cible || 'Tous'
                                  });
                                  window.scrollTo({ top: 0, behavior: 'smooth' });
                                }}
@@ -306,7 +260,7 @@ export default function SecretaireAnnonces() {
                         </td>
                       </tr>
                     )) : (
-                      <tr><td colSpan="5" className="py-8 text-center text-gray-500">Aucune annonce trouvée</td></tr>
+                      <tr><td colSpan="4" className="py-8 text-center text-gray-500">Aucune annonce trouvée</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -352,7 +306,7 @@ export default function SecretaireAnnonces() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3">
                   <div>
                     <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Cible</label>
                     <select
@@ -365,18 +319,6 @@ export default function SecretaireAnnonces() {
                       <option value="Professeurs">Professeurs</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Statut</label>
-                    <select
-                      value={form.statut}
-                      onChange={(e) => setForm({ ...form, statut: e.target.value })}
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white"
-                    >
-                      <option value="Publié">Publié</option>
-                      <option value="Brouillon">Brouillon</option>
-                      <option value="Planifié">Planifié</option>
-                    </select>
-                  </div>
                 </div>
 
                 <div className="flex gap-2 mt-2">
@@ -384,7 +326,7 @@ export default function SecretaireAnnonces() {
                     type="submit"
                     className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-sm transition-colors"
                   >
-                    {editingId ? 'Mettre à jour' : (form.statut === 'Brouillon' ? 'Enregistrer le Brouillon' : 'Publier l\'annonce')}
+                    {editingId ? 'Mettre à jour' : 'Envoyer l\'annonce'}
                   </button>
                   {editingId && (
                     <button
@@ -445,10 +387,6 @@ export default function SecretaireAnnonces() {
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Cible</p>
                   <div>{getCibleBadge(selectedAnnonce.cible)}</div>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Statut</p>
-                  <div>{getStatutBadge(selectedAnnonce.statut)}</div>
                 </div>
               </div>
             </div>

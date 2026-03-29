@@ -3,21 +3,14 @@ import axios from 'axios';
 import {
   MessageSquare,
   Search,
-  Clock,
   CheckCircle,
-  XCircle,
   User,
   Send,
   Loader2,
   AlertCircle,
+  Edit2,
+  Trash2,
 } from 'lucide-react';
-
-const statusOptions = [
-  { value: 'en_attente', label: 'En attente', color: 'bg-yellow-50 text-yellow-700 border-yellow-200', icon: Clock },
-  { value: 'en_cours', label: 'En cours', color: 'bg-blue-50 text-blue-700 border-blue-200', icon: Loader2 },
-  { value: 'resolue', label: 'Resolue', color: 'bg-green-50 text-green-700 border-green-200', icon: CheckCircle },
-  { value: 'rejetee', label: 'Rejetee', color: 'bg-red-50 text-red-700 border-red-200', icon: XCircle },
-];
 
 const emptyForm = { id_etudiant: '', sujet: '', message: '' };
 
@@ -28,6 +21,7 @@ export default function SecretaireReclamations() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitLoading, setIsSubmitLoading] = useState(false);
+  const [editingId, setEditingId] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -105,40 +99,72 @@ export default function SecretaireReclamations() {
     ));
   }, [reclamations, searchTerm]);
 
-  const onStatusChange = async (id, statut) => {
+  const onDelete = async (id) => {
+    if (!window.confirm('Voulez-vous vraiment supprimer cette reclamation ?')) return;
+
     try {
       await axios.get(`${apiBaseUrl}/sanctum/csrf-cookie`, { withCredentials: true, withXSRFToken: true });
-      await axios.put(`${apiBaseUrl}/api/secretaire/reclamations/${id}/status`, { statut }, {
+      await axios.delete(`${apiBaseUrl}/api/secretaire/reclamations/${id}`, {
         withCredentials: true,
         withXSRFToken: true,
       });
       await loadData();
     } catch (error) {
-      console.error('Erreur lors de la mise a jour du statut', error);
+      console.error('Erreur lors de la suppression de la reclamation', error);
     }
+  };
+
+  const onEdit = (reclamation) => {
+    setEditingId(reclamation.id_reclamation);
+    setForm({
+      id_etudiant: '',
+      sujet: reclamation.sujet || '',
+      message: reclamation.message || '',
+    });
+    setStudentQuery('');
+    setShowStudentOptions(false);
+    setFormError('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const onSubmitReclamation = async (event) => {
     event.preventDefault();
     setFormError('');
 
-    if (!form.id_etudiant || !form.sujet.trim() || !form.message.trim()) {
-      setFormError('Veuillez selectionner un eleve et remplir le sujet et le message.');
+    if (!form.sujet.trim() || !form.message.trim()) {
+      setFormError('Veuillez remplir le sujet et le message.');
+      return;
+    }
+
+    if (!editingId && !form.id_etudiant) {
+      setFormError('Veuillez selectionner un eleve.');
       return;
     }
 
     setIsSubmitLoading(true);
     try {
       await axios.get(`${apiBaseUrl}/sanctum/csrf-cookie`, { withCredentials: true, withXSRFToken: true });
-      await axios.post(`${apiBaseUrl}/api/secretaire/reclamations`, {
-        id_etudiant: Number(form.id_etudiant),
-        sujet: form.sujet,
-        message: form.message,
-      }, {
-        withCredentials: true,
-        withXSRFToken: true,
-      });
 
+      if (editingId) {
+        await axios.put(`${apiBaseUrl}/api/secretaire/reclamations/${editingId}`, {
+          sujet: form.sujet,
+          message: form.message,
+        }, {
+          withCredentials: true,
+          withXSRFToken: true,
+        });
+      } else {
+        await axios.post(`${apiBaseUrl}/api/secretaire/reclamations`, {
+          id_etudiant: Number(form.id_etudiant),
+          sujet: form.sujet,
+          message: form.message,
+        }, {
+          withCredentials: true,
+          withXSRFToken: true,
+        });
+      }
+
+      setEditingId(null);
       setForm(emptyForm);
       setStudentQuery('');
       setShowStudentOptions(false);
@@ -191,7 +217,7 @@ export default function SecretaireReclamations() {
                       <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Date</th>
                       <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Parent / Sujet</th>
                       <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Message</th>
-                      <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Statut</th>
+                      <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -201,10 +227,7 @@ export default function SecretaireReclamations() {
                           <td colSpan="4" className="px-6 py-4"><div className="h-4 bg-gray-100 rounded w-full"></div></td>
                         </tr>
                       ))
-                    ) : filteredReclamations.map((r) => {
-                      const status = statusOptions.find((o) => o.value === r.statut) || statusOptions[0];
-
-                      return (
+                    ) : filteredReclamations.map((r) => (
                         <tr key={r.id_reclamation} className="hover:bg-blue-50/30 transition-colors">
                           <td className="py-4 px-6">
                             <div className="text-xs font-semibold text-gray-500">
@@ -229,19 +252,27 @@ export default function SecretaireReclamations() {
                             </div>
                           </td>
                           <td className="py-4 px-6 text-center">
-                            <select
-                              value={r.statut}
-                              onChange={(e) => onStatusChange(r.id_reclamation, e.target.value)}
-                              className={`mx-auto block text-[10px] font-bold px-2 py-1 rounded-full border ${status.color} focus:ring-0 outline-none cursor-pointer`}
-                            >
-                              {statusOptions.map((opt) => (
-                                <option key={opt.value} value={opt.value}>{opt.label.toUpperCase()}</option>
-                              ))}
-                            </select>
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => onEdit(r)}
+                                className="p-2 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Modifier"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => onDelete(r.id_reclamation)}
+                                className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Supprimer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
-                      );
-                    })}
+                    ))}
 
                     {!loading && filteredReclamations.length === 0 && (
                       <tr>
@@ -268,7 +299,7 @@ export default function SecretaireReclamations() {
                 <div className="relative" ref={searchContainerRef}>
                   <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex justify-between">
                     Nom de l eleve
-                    {form.id_etudiant && (
+                    {form.id_etudiant && !editingId && (
                       <span className="text-green-500 flex items-center gap-1">
                         <CheckCircle className="w-3 h-3" /> Selectionne
                       </span>
@@ -280,20 +311,22 @@ export default function SecretaireReclamations() {
                     </div>
                     <input
                       type="text"
-                      placeholder="Rechercher un eleve..."
+                      placeholder={editingId ? 'Parent conserve lors de la modification' : 'Rechercher un eleve...'}
                       className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 outline-none font-semibold text-gray-800"
                       value={studentQuery}
                       onChange={(e) => {
+                        if (editingId) return;
                         setStudentQuery(e.target.value);
                         setShowStudentOptions(true);
                         if (form.id_etudiant) {
                           setForm((prev) => ({ ...prev, id_etudiant: '' }));
                         }
                       }}
-                      onFocus={() => setShowStudentOptions(true)}
+                      onFocus={() => !editingId && setShowStudentOptions(true)}
+                      disabled={!!editingId}
                     />
 
-                    {showStudentOptions && (
+                    {showStudentOptions && !editingId && (
                       <div className="absolute z-20 mt-2 w-full max-h-56 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg py-1">
                         {studentSuggestions.length > 0 ? studentSuggestions.map((student) => (
                           <button
@@ -349,12 +382,28 @@ export default function SecretaireReclamations() {
 
                 <button
                   type="submit"
-                  disabled={isSubmitLoading || !form.id_etudiant}
+                  disabled={isSubmitLoading || (!editingId && !form.id_etudiant)}
                   className="w-full py-3 bg-blue-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 disabled:opacity-50 disabled:shadow-none transition-all flex items-center justify-center gap-2"
                 >
                   {isSubmitLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  Envoyer la reclamation
+                  {editingId ? 'Mettre a jour la reclamation' : 'Envoyer la reclamation'}
                 </button>
+
+                {editingId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingId(null);
+                      setForm(emptyForm);
+                      setStudentQuery('');
+                      setShowStudentOptions(false);
+                      setFormError('');
+                    }}
+                    className="w-full py-2.5 bg-gray-100 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-200 transition-all"
+                  >
+                    Annuler la modification
+                  </button>
+                )}
               </form>
             </div>
           </div>
