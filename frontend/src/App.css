@@ -124,26 +124,6 @@
   box-shadow: 0 0 0 3px rgba(44, 108, 204, 0.15);
 }
 
-.demo-actions {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.demo-button {
-  border: 1px solid #d7dce4;
-  background: #f7f9fc;
-  color: #334155;
-  font-size: 0.78rem;
-  border-radius: 999px;
-  padding: 0.35rem 0.65rem;
-  cursor: pointer;
-}
-
-.demo-button:hover {
-  background: #edf2fb;
-}
-
 .link-small {
   margin-top: 0.2rem;
   color: #2c6ccc;

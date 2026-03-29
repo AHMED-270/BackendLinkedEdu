@@ -1,56 +1,30 @@
-﻿import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import AdminUserForm from './AdminUserForm';
 
-const profData = [
-  {
-    id: 1,
-    name: 'Marie Dupont',
-    email: 'm.dupont@linkedu.edu',
-    avatar: 'https://i.pravatar.cc/150?u=marie',
-    subject: 'MATHÉMATIQUES',
-    subjectClass: 'prof-subj-math',
-    classes: ['T-S1', 'T-S2'],
-    status: 'Actif',
-    statusClass: 'status-actif',
-    progress: 62,
-    progressColor: '#1d4ed8',
-    lastActivityDate: "Aujourd'hui, 08:15",
-    lastActivityDesc: "Appel Terminale S1"
-  },
-  {
-    id: 2,
-    name: 'Jean Martin',
-    email: 'j.martin@linkedu.edu',
-    avatar: 'https://i.pravatar.cc/150?u=jean',
-    subject: 'PHYSIQUE',
-    subjectClass: 'prof-subj-phys',
-    classes: ['T-S3'],
-    status: 'Absent',
-    statusClass: 'status-absent',
-    progress: 45,
-    progressColor: '#f97316',
-    lastActivityDate: "Hier, 16:40",
-    lastActivityDesc: "Saisie des notes"
-  },
-  {
-    id: 3,
-    name: 'Sophie Laurent',
-    email: 's.laurent@linkedu.edu',
-    avatar: 'https://i.pravatar.cc/150?u=sophie',
-    subject: 'LITTÉRATURE',
-    subjectClass: 'prof-subj-lit',
-    classes: ['1-L1', '1-L2'],
-    status: 'Actif',
-    statusClass: 'status-actif',
-    progress: 88,
-    progressColor: '#10b981',
-    lastActivityDate: "Il y a 10 min",
-    lastActivityDesc: "Dépôt de document"
-  }
-];
+axios.defaults.withCredentials = true;
 
 function DirectoryProfessors() {
   const [isAdding, setIsAdding] = useState(false);
+  const [professors, setProfessors] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProfessors();
+  }, []);
+
+  const fetchProfessors = async () => {
+    try {
+      setLoading(true);
+      const host = window.location.hostname;
+      const response = await axios.get(`http://${host}:8000/api/directeur/professeurs`);
+      setProfessors(response.data);
+    } catch (error) {
+      console.error("Error fetching professors:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (isAdding) {
     return (
@@ -59,10 +33,10 @@ function DirectoryProfessors() {
           Portail Directeur &gt; <span onClick={() => setIsAdding(false)} style={{cursor: 'pointer', color: '#1d4ed8', textDecoration: 'underline'}}>Professeurs</span> &gt; <span>Ajouter</span>
         </div>
         <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '8px', marginTop: '20px' }}>
-          <AdminUserForm 
-             mode="create" 
-             onBack={() => setIsAdding(false)} 
-             onSuccess={() => setIsAdding(false)} 
+          <AdminUserForm
+             mode="create"
+             onBack={() => { setIsAdding(false); fetchProfessors(); }}
+             onSuccess={() => { setIsAdding(false); fetchProfessors(); }}
           />
         </div>
       </div>
@@ -76,12 +50,6 @@ function DirectoryProfessors() {
         <div>
           <h1>Liste des Professeurs par Classe</h1>
           <p>Supervisez l'effectif enseignant et l'état d'avancement des programmes.</p>
-        </div>
-        <div className="header-actions">
-          <button className="btn-primary" onClick={() => setIsAdding(true)}>
-             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle><line x1="20" y1="8" x2="24" y2="8"></line><line x1="22" y1="6" x2="22" y2="10"></line></svg>
-             Ajouter un Professeur
-          </button>
         </div>
       </header>
 
@@ -99,73 +67,79 @@ function DirectoryProfessors() {
         </button>
       </section>
 
-      <section className="prof-table-container">
-        <table className="prof-table">
-          <thead>
-            <tr>
-              <th>AVATAR & NOM</th>
-              <th>MATIÈRE</th>
-              <th>CLASSE(S) ASSIGNÉE(S)</th>
-              <th>STATUT</th>
-              <th>AVANCEMENT</th>
-              <th>DERNIÈRE ACTIVITÉ</th>
-            </tr>
-          </thead>
-          <tbody>
-            {profData.map(prof => (
-              <tr key={prof.id}>
-                <td>
-                  <div className="prof-user-info">
-                    <img src={prof.avatar} alt="Avatar" className="prof-avatar" />
-                    <div>
-                      <strong>{prof.name}</strong>
-                      <span>{prof.email}</span>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <span className={`prof-badge ${prof.subjectClass}`}>{prof.subject}</span>
-                </td>
-                <td>
-                  <div className="prof-classes">
-                    {prof.classes.map((cls, i) => <span key={i} className="prof-class-tag">{cls}</span>)}
-                  </div>
-                </td>
-                <td>
-                  <div className={`prof-status ${prof.statusClass}`}>
-                    <span className="dot"></span> {prof.status}
-                  </div>
-                </td>
-                <td>
-                  <div className="prof-progress-wrapper">
-                    <div className="prof-progress-text">{prof.progress}%</div>
-                    <div className="prof-progress-bar">
-                       <div className="prof-progress-fill" style={{ width: `${prof.progress}%`, backgroundColor: prof.progressColor }}></div>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <div className="prof-activity">
-                    <strong>{prof.lastActivityDate}</strong>
-                    <span>{prof.lastActivityDesc}</span>
-                  </div>
-                </td>
+      {loading ? (
+        <div style={{padding: '2rem'}}>Chargement des professeurs...</div>
+      ) : (
+        <section className="prof-table-container">
+          <table className="prof-table">
+            <thead>
+              <tr>
+                <th>AVATAR & NOM</th>
+                <th>MATIÈRE</th>
+                <th>CLASSE(S) ASSIGNÉE(S)</th>
+                <th>STATUT</th>
+                <th>AVANCEMENT</th>
+                <th>DERNIÈRE ACTIVITÉ</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        
-        <div className="prof-pagination">
-          <span>Affichage de <strong>3</strong> sur <strong>42</strong> professeurs</span>
-          <div className="prof-pages">
-            <button>&lt;</button>
-            <button className="active">1</button>
-            <button>2</button>
-            <button>3</button>
-            <button>&gt;</button>
+            </thead>
+            <tbody>
+              {professors.length === 0 && (
+                <tr>
+                  <td colSpan="6" style={{textAlign: 'center', padding: '2rem'}}>Aucun professeur trouvé.</td>
+                </tr>
+              )}
+              {professors.map(prof => (
+                <tr key={prof.id}>
+                  <td>
+                    <div className="prof-user-info">
+                      <img src={prof.avatar} alt="Avatar" className="prof-avatar" />
+                      <div>
+                        <strong>{prof.name}</strong>
+                        <span>{prof.email}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span className="prof-badge prof-subj-math">{prof.subject}</span>
+                  </td>
+                  <td>
+                    <div className="prof-classes">
+                      {prof.classes && prof.classes.length > 0 ? (
+                        prof.classes.map((cls, i) => <span key={i} className="prof-class-tag">{cls}</span>)
+                      ) : (
+                        <span className="prof-class-tag" style={{backgroundColor: '#e2e8f0', color: '#4a5568'}}>Non assigné</span>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    <div className={`prof-status status-actif`}>
+                      <span className="dot"></span> {prof.status}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="prof-progress-wrapper">
+                      <div className="prof-progress-text">{prof.progress}%</div>  
+                      <div className="prof-progress-bar">
+                         <div className="prof-progress-fill" style={{ width: `${prof.progress}%`, backgroundColor: prof.progress > 70 ? '#10b981' : '#f97316' }}></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="prof-activity">
+                      <strong>{prof.lastActivityDate}</strong>
+                      <span>{prof.lastActivityDesc}</span>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="prof-pagination">
+            <span>Affichage de <strong>{professors.length}</strong> professeurs</span>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <section className="prof-kpi-container">
         <article className="prof-kpi-card kpi-presence">
@@ -190,11 +164,11 @@ function DirectoryProfessors() {
 
         <article className="prof-kpi-card kpi-postes">
           <div className="prof-kpi-top">
-            <span>POSTES À POURVOIR</span>
+            <span>EFFECTIF GLOBAL</span>
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#6b7280" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5c-1.1 0-2 .9-2 2v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
           </div>
-          <h3>2</h3>
-          <p className="kpi-subtext">SVT & Anglais (Session 2024)</p>
+          <h3>{professors.length}</h3>
+          <p className="kpi-subtext">Professeurs Actifs</p>
         </article>
       </section>
     </div>

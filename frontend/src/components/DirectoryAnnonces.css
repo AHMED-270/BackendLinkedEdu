@@ -1,139 +1,139 @@
 .directory-annonces-container {
-  padding: 2rem;
-  background-color: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  font-family: inherit;
+  padding: 20px;
 }
 
 .annonces-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-}
-
-.annonces-header h1 {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #1a202c;
-  margin: 0 0 0.5rem 0;
-}
-
-.annonces-header p {
-  color: #718096;
-  margin: 0;
-  font-size: 0.95rem;
+  margin-bottom: 20px;
 }
 
 .btn-new-annonce {
-  background-color: #3182ce;
+  background-color: #4CAF50;
   color: white;
+  padding: 10px 15px;
   border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-weight: 600;
+  border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.btn-new-annonce:hover {
-  background-color: #2b6cb0;
 }
 
 .annonces-list {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 15px;
 }
 
 .annonce-card {
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 1.5rem;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.annonce-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+  border: 1px solid #ddd;
+  padding: 15px;
+  border-radius: 5px;
 }
 
 .annonce-card-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 10px;
 }
 
 .annonce-badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 0.8em;
+  color: white;
 }
 
-.badge-important {
-  background-color: #fed7d7;
-  color: #c53030;
-}
-
-.badge-info {
-  background-color: #ebf8ff;
-  color: #2b6cb0;
-}
-
-.badge-nouveau {
-  background-color: #f0fff4;
-  color: #2f855a;
-}
-
-.annonce-date {
-  color: #a0aec0;
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
-.annonce-title {
-  margin: 0 0 1rem 0;
-  color: #2d3748;
-  font-size: 1.25rem;
-}
-
-.annonce-content {
-  color: #4a5568;
-  line-height: 1.6;
-  margin: 0 0 1.5rem 0;
-}
+.badge-info { background-color: #2196F3; }
+.badge-important { background-color: #F44336; }
+.badge-nouveau { background-color: #FF9800; }
 
 .annonce-footer {
   display: flex;
   justify-content: space-between;
+  margin-top: 10px;
   align-items: center;
-  padding-top: 1rem;
-  border-top: 1px solid #edf2f7;
 }
 
-.annonce-author {
-  font-size: 0.85rem;
-  color: #718096;
-  font-weight: 500;
+.annonce-actions {
+  display: flex;
+  gap: 10px;
 }
 
 .btn-edit-annonce {
-  background: transparent;
-  color: #3182ce;
-  border: 1px solid #3182ce;
-  padding: 0.4rem 1rem;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
   cursor: pointer;
-  transition: all 0.2s;
 }
 
-.btn-edit-annonce:hover {
-  background: #3182ce;
+.btn-delete-annonce {
+  background-color: #F44336;
   color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+/* Modal styles */
+.annonce-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.annonce-modal {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 400px;
+  max-width: 90%;
+}
+
+.annonce-form-group {
+  margin-bottom: 15px;
+}
+
+.annonce-form-group label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.annonce-form-group input,
+.annonce-form-group select,
+.annonce-form-group textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.annonce-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.btn-cancel {
+  background: #ccc;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-save {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
 }

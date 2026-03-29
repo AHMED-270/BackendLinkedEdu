@@ -1,8 +1,16 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
+import axios from 'axios'
 import './index.css'
 import App from './App.jsx'
+
+axios.defaults.withCredentials = true;
+axios.defaults.withXSRFToken = true;
+// Dynamically use the same hostname (localhost vs 127.0.0.1) as the browser to prevent CORS/cookie drops
+const host = window.location.hostname;
+axios.defaults.baseURL = import.meta.env.VITE_API_URL ?? `http://${host}:8000`;
+axios.defaults.headers.common['Accept'] = 'application/json';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
