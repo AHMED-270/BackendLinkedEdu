@@ -1,8 +1,9 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+﻿import { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext(null);
 const STORAGE_KEY = 'linkedu_user';
 const PROFILE_CACHE_KEY = 'linkedu_profile_cache';
+const AUTH_TOKEN_KEY = 'linkedu_token';
 
 const safeStorage = {
   get() {
@@ -22,6 +23,16 @@ const safeStorage = {
   remove() {
     try {
       localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // Ignore storage failures in restricted browser modes.
+    }
+  }
+};
+
+const safeTokenStorage = {
+  remove() {
+    try {
+      localStorage.removeItem(AUTH_TOKEN_KEY);
     } catch {
       // Ignore storage failures in restricted browser modes.
     }
@@ -68,10 +79,15 @@ export function AuthProvider({ children }) {
 
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
+        const u = JSON.parse(storedUser);
+        setUser(u);
+        document.body.className = `theme-${u.role}`;
       } catch {
         safeStorage.remove();
+        document.body.className = '';
       }
+    } else {
+      document.body.className = '';
     }
 
     setLoading(false);
@@ -82,6 +98,7 @@ export function AuthProvider({ children }) {
     const mergedUser = cachedProfile ? { ...userData, ...cachedProfile } : userData;
     setUser(mergedUser);
     safeStorage.set(JSON.stringify(mergedUser));
+    document.body.className = `theme-${mergedUser.role}`;
   };
 
   const updateAuthenticatedUser = (patch) => {
@@ -95,6 +112,7 @@ export function AuthProvider({ children }) {
         profilePhoto: nextUser.profilePhoto ?? null,
       });
       safeStorage.set(JSON.stringify(nextUser));
+      document.body.className = `theme-${nextUser.role}`;
       return nextUser;
     });
   };
@@ -102,6 +120,8 @@ export function AuthProvider({ children }) {
   const logout = () => {
     setUser(null);
     safeStorage.remove();
+    safeTokenStorage.remove();
+    document.body.className = '';
   };
 
   return (

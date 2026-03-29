@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfessorController;
 use App\Http\Controllers\AdminLoginController;
 use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\StudentParentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -63,6 +64,7 @@ Route::middleware(['auth:sanctum', 'role:professeur'])->prefix('professeur')->gr
 
     // Dashboard
     Route::get('/dashboard', [ProfessorController::class, 'getDashboard']);
+    Route::get('/emploi-du-temps', [ProfessorController::class, 'getSchedule']);
 
     // Devoirs et Ressources
     Route::get('/publications', [ProfessorController::class, 'getDevoirsEtRessources']);
@@ -75,7 +77,47 @@ Route::middleware(['auth:sanctum', 'role:professeur'])->prefix('professeur')->gr
 
     // Annonces
     Route::get('/annonces', [ProfessorController::class, 'getAnnouncements']);
+    Route::post('/annonces', [ProfessorController::class, 'publishAnnouncement']);
+
+    // Notes
+    Route::get('/notes', [ProfessorController::class, 'getNotes']);
+    Route::post('/notes', [ProfessorController::class, 'saveNotes']);
+
+    // Appel
+    Route::get('/appel', [ProfessorController::class, 'getAttendance']);
+    Route::post('/appel', [ProfessorController::class, 'saveAttendance']);
+
+    // Avancement
+    Route::get('/avancement', [ProfessorController::class, 'getProgress']);
+    Route::post('/avancement', [ProfessorController::class, 'updateProgress']);
 
     // Réclamations
+    Route::get('/reclamations', [ProfessorController::class, 'getComplaints']);
     Route::post('/reclamations', [ProfessorController::class, 'submitComplaint']);
+});
+
+// Student Module Routes
+Route::middleware(['auth:sanctum', 'role:etudiant'])->prefix('etudiant')->group(function () {
+    Route::get('/dashboard', [StudentParentController::class, 'studentDashboard']);
+    Route::get('/notes', [StudentParentController::class, 'studentNotes']);
+    Route::get('/devoirs', [StudentParentController::class, 'studentAssignments']);
+    Route::post('/devoirs/{devoirId}/soumettre', [StudentParentController::class, 'submitStudentAssignment']);
+    Route::get('/emploi-du-temps', [StudentParentController::class, 'studentSchedule']);
+    Route::get('/annonces', [StudentParentController::class, 'studentAnnouncements']);
+    Route::get('/lecons', [StudentParentController::class, 'studentLessons']);
+    Route::get('/ressources', [StudentParentController::class, 'studentResources']);
+});
+
+// Parent Module Routes
+Route::middleware(['auth:sanctum', 'role:parent'])->prefix('parent')->group(function () {
+    Route::get('/dashboard', [StudentParentController::class, 'parentDashboard']);
+    Route::get('/enfants', [StudentParentController::class, 'parentChildren']);
+    Route::get('/notes', [StudentParentController::class, 'parentNotes']);
+    Route::get('/devoirs', [StudentParentController::class, 'parentAssignments']);
+    Route::get('/absences', [StudentParentController::class, 'parentAbsences']);
+    Route::get('/emploi-du-temps', [StudentParentController::class, 'parentSchedule']);
+    Route::get('/annonces', [StudentParentController::class, 'parentAnnouncements']);
+    Route::get('/professeurs', [StudentParentController::class, 'parentProfessors']);
+    Route::get('/reclamations', [StudentParentController::class, 'parentComplaints']);
+    Route::post('/reclamations', [StudentParentController::class, 'submitParentComplaint']);
 });

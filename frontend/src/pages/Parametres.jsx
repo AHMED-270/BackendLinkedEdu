@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { User, Mail, Save, Camera, Trash2 } from 'lucide-react';
+import { User, Mail, Save, Camera, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import './Parametres.css';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Parametres() {
   const { user, updateAuthenticatedUser } = useAuth();
@@ -14,8 +14,7 @@ export default function Parametres() {
   const [avatarPreview, setAvatarPreview] = useState(user?.profilePhoto || '');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState(null);
-  const [error, setError] = useState(null);
+  const [statusMsg, setStatusMsg] = useState({ type: '', text: '' });
 
   const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000';
 
@@ -33,7 +32,7 @@ export default function Parametres() {
         });
         setAvatarPreview(user?.profilePhoto || '');
       } catch (fetchError) {
-        setError('Erreur lors du chargement du profil.');
+        setStatusMsg({ type: 'error', text: 'Erreur lors du chargement du profil.' });
       } finally {
         setLoading(false);
       }
@@ -53,12 +52,17 @@ export default function Parametres() {
     fileInputRef.current?.click();
   };
 
+  const showToast = (type, message) => {
+    setStatusMsg({ type, text: message });
+    setTimeout(() => setStatusMsg({ type: '', text: '' }), 3500);
+  };
+
   const handlePhotoChange = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const isImage = file.type.startsWith('image/');
-    if (!isImage) {
+    if (!file.type.startsWith('image/')) {
+      showToast('error', 'Veuillez sÃ©lectionner une image valide.');
       return;
     }
 
@@ -69,27 +73,22 @@ export default function Parametres() {
 
       setAvatarPreview(result);
       updateAuthenticatedUser({ profilePhoto: result });
-      setMessage('Photo de profil mise à jour.');
-      setError(null);
+      showToast('success', 'Photo de profil mise Ã  jour.');
     };
     reader.readAsDataURL(file);
-
-    // Reset input to allow selecting the same file again.
     event.target.value = '';
   };
 
   const handleRemovePhoto = () => {
     setAvatarPreview('');
     updateAuthenticatedUser({ profilePhoto: null });
-    setMessage('Photo de profil supprimée.');
-    setError(null);
+    showToast('success', 'Photo de profil supprimÃ©e.');
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setSaving(true);
-    setMessage(null);
-    setError(null);
+    setStatusMsg({ type: '', text: '' });
 
     try {
       const res = await axios.put(apiBaseUrl + '/api/professeur/profile', formData, {
@@ -98,110 +97,172 @@ export default function Parametres() {
       });
 
       updateAuthenticatedUser({ name: formData.name, email: formData.email });
-      setMessage(res.data?.message || 'Profil mis à jour avec succès.');
+      showToast('success', res.data?.message || 'Profil mis Ã  jour avec succÃ¨s.');
     } catch (submitError) {
-      setError(submitError?.response?.data?.message || 'Erreur lors de la mise à jour du profil.');
+      showToast('error', submitError?.response?.data?.message || 'Erreur lors de la mise Ã  jour du profil.');
     } finally {
       setSaving(false);
     }
   };
   
+  // Framer Motion Variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } }
+  };
+
   return (
-    <div className="dashboard-content">
-      <header className="content-header">
-        <h1>Mon Profil</h1>
-        <p>Gérez vos informations personnelles.</p>
+    <div className="layout-content relative">
+      {/* Floating Success/Error Toast */}
+      <AnimatePresence>
+        {statusMsg.text && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            className={`fixed top-8 right-8 z-50 flex items-center gap-3 px-4 py-3 bg-white border rounded-xl shadow-lg ${
+              statusMsg.type === 'error' ? 'border-red-100' : 'border-emerald-100'
+            }`}
+          >
+            {statusMsg.type === 'error' ? (
+              <AlertCircle size={20} className="text-red-500" />
+            ) : (
+              <CheckCircle2 size={20} className="text-emerald-500" />
+            )}
+            <span className="text-sm font-bold text-slate-700">{statusMsg.text}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <header className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">Mon Profil</h1>
+          <p className="text-slate-500 text-sm mt-1">GÃ©rez vos informations personnelles de professeur.</p>
+        </div>
       </header>
 
-      <div className="card-panel" style={{ maxWidth: '600px', margin: '0 auto', padding: '30px' }}>
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
+        className="card p-8 max-w-2xl mx-auto"
+      >
         {loading ? (
-          <p>Chargement...</p>
+          <div className="flex flex-col items-center justify-center py-12">
+            <span className="loading-spinner border-blue-500 mb-4"></span>
+            <p className="text-slate-500 font-medium">Chargement du profil...</p>
+          </div>
         ) : (
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {message && <div style={{ padding: '10px', backgroundColor: '#dcfce7', color: '#166534', borderRadius: '8px' }}>{message}</div>}
-            {error && <div style={{ padding: '10px', backgroundColor: '#fee2e2', color: '#9f1239', borderRadius: '8px' }}>{error}</div>}
-
-            <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', fontWeight: '500', color: '#475569' }}>
-                <Camera size={18} /> Photo de Profil
+          <motion.form 
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            onSubmit={handleSubmit} 
+            className="flex flex-col gap-6"
+          >
+            {/* Avatar Section */}
+            <motion.div variants={itemVariants} className="p-6 border border-slate-100 rounded-2xl bg-slate-50">
+              <label className="flex items-center gap-2 mb-4 font-semibold text-slate-700">
+                <Camera size={18} className="text-slate-400" /> Photo de Profil
               </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-                <div style={{ width: '84px', height: '84px', borderRadius: '9999px', overflow: 'hidden', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              
+              <div className="flex items-center gap-6 flex-wrap">
+                {/* Avatar Preview */}
+                <motion.div 
+                  whileHover={{ scale: 1.05 }}
+                  className="w-24 h-24 rounded-full overflow-hidden bg-white border-4 border-white shadow-md flex items-center justify-center flex-shrink-0 relative group"
+                >
                   {avatarPreview ? (
-                    <img src={avatarPreview} alt="Profil professeur" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={avatarPreview} alt="Profil professeur" className="w-full h-full object-cover" />
                   ) : (
-                    <span style={{ fontSize: '1.6rem', fontWeight: '700', color: '#475569' }}>{initials}</span>
+                    <span className="text-3xl font-extrabold text-slate-400">{initials}</span>
                   )}
-                </div>
+                  {/* Subtle hover overlay to hint at clicking */}
+                  <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                </motion.div>
 
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  <label style={{ padding: '9px 12px', borderRadius: '8px', background: '#0f172a', color: '#fff', cursor: 'pointer', fontWeight: '500' }}>
+                {/* Avatar Actions */}
+                <div className="flex gap-3 flex-wrap">
+                  <motion.label 
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="btn btn-primary cursor-pointer shadow-sm"
+                  >
                     Choisir une photo
-                    <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: 'none' }} />
-                  </label>
+                    <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+                  </motion.label>
+                  
                   {avatarPreview && (
-                    <button type="button" onClick={handleRemovePhoto} style={{ padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', color: '#334155', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <motion.button 
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      type="button" 
+                      onClick={handleRemovePhoto} 
+                      className="btn btn-outline text-red-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200"
+                    >
                       <Trash2 size={16} /> Supprimer
-                    </button>
+                    </motion.button>
                   )}
                 </div>
               </div>
+            </motion.div>
+
+            {/* Identity Fields */}
+            <div className="grid-2">
+              <motion.div variants={itemVariants} className="form-group">
+                <label className="form-label flex items-center gap-2">
+                  <User size={16} className="text-slate-400" /> Nom / PrÃ©nom
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                  className="form-input"
+                />
+              </motion.div>
+
+              <motion.div variants={itemVariants} className="form-group">
+                <label className="form-label flex items-center gap-2">
+                  <Mail size={16} className="text-slate-400" /> Adresse Email
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                  className="form-input"
+                />
+              </motion.div>
             </div>
 
-            <div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontWeight: '500', color: '#475569' }}>
-                <User size={18} /> Nom / Prénom
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                required
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1rem' }}
-              />
-            </div>
+            {/* Submit Action */}
+            <motion.div variants={itemVariants} className="pt-4 border-t border-slate-100 mt-2">
+              <motion.button 
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="submit" 
+                disabled={saving}
+                className="btn btn-primary w-full md:w-auto px-8 py-3 text-base shadow-[0_4px_14px_rgba(59,130,246,0.3)]"
+              >
+                {saving ? (
+                  <><span className="loading-spinner w-5 h-5 border-white mr-2"></span> Enregistrement...</>
+                ) : (
+                  <><Save size={18} className="mr-2"/> Enregistrer les modifications</>
+                )}
+              </motion.button>
+            </motion.div>
 
-            <div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontWeight: '500', color: '#475569' }}>
-                <Mail size={18} /> Adresse Email
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                required
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1rem' }}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={saving}
-              style={{
-                marginTop: '15px',
-                padding: '12px',
-                background: '#3b82f6',
-                color: 'white',
-                borderRadius: '8px',
-                border: 'none',
-                cursor: saving ? 'not-allowed' : 'pointer',
-                fontWeight: '600',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                fontSize: '1rem',
-                opacity: saving ? 0.7 : 1
-              }}
-            >
-              <Save size={20} />
-              {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
-            </button>
-          </form>
+          </motion.form>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 }
