@@ -49,51 +49,45 @@ export default function SecretaireClasses() {
   return (
     <div className="min-h-screen p-6 lg:p-10 bg-gray-50/50">
       <div className="max-w-6xl mx-auto space-y-4">
-                <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
-              <School className="w-8 h-8 text-blue-600" />
-              Liste des Classes
-            </h1>
-        {/* Barre de recherche et filtre */}
-        <div className="flex flex-col sm:flex-row gap-3 w-full justify-end mb-4 md:mb-6">
-          <div className="relative w-full sm:w-72">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-gray-400" />
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
+            <School className="w-8 h-8 text-blue-600" />
+            Liste des Classes
+          </h1>
+          
+          {/* Barre de recherche et filtre */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative w-full sm:w-72">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm shadow-sm"
+                placeholder="Rechercher une classe..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-            <input
-              type="text"
-              className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm shadow-sm"
-              placeholder="Rechercher une classe..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <div className="relative w-full sm:w-48">
-            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-              <Filter className="h-4 w-4 text-gray-400" />
+            <div className="relative w-full sm:w-48">
+              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                <Filter className="h-4 w-4 text-gray-400" />
+              </div>
+              <select 
+                className="block w-full py-2.5 pl-10 pr-3 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors cursor-pointer shadow-sm font-medium text-gray-700" 
+                value={levelFilter} 
+                onChange={(e) => setLevelFilter(e.target.value)}
+              >
+                <option value="all">Tous les niveaux</option>
+                {levels.map((level) => (
+                  <option key={level} value={level}>{level}</option>
+                ))}
+              </select>
             </div>
-            <select 
-              className="block w-full py-2.5 pl-10 pr-3 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors cursor-pointer shadow-sm font-medium text-gray-700" 
-              value={levelFilter} 
-              onChange={(e) => setLevelFilter(e.target.value)}
-            >
-              <option value="all">Tous les niveaux</option>
-              {levels.map((level) => (
-                <option key={level} value={level}>{level}</option>
-              ))}
-            </select>
           </div>
         </div>
 
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-          <div className="px-6 py-5 border-b border-gray-100 bg-gray-50/60 flex justify-between items-center">
-            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 flex items-center gap-2">
-              
-            </h1>
-            
-              
-            
-          </div>
-
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>

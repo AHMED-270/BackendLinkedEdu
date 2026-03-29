@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { 
   Calendar, 
@@ -13,23 +13,50 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  MoreVertical
+  MoreVertical,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 const emptyForm = { id_etudiant: '', date_abs: '', motif: 'Medical' };
+const allowedJustificationTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
+const maxJustificationSize = 5 * 1024 * 1024;
 
 export default function SecretaireAbsences() {
   const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000';
+  const toLocalISODate = (date) => {
+    const d = new Date(date);
+    const tzOffsetMs = d.getTimezoneOffset() * 60 * 1000;
+    return new Date(d.getTime() - tzOffsetMs).toISOString().slice(0, 10);
+  };
+
+  const shiftISODate = (isoDate, daysDelta) => {
+    if (!isoDate) return toLocalISODate(new Date());
+    const [year, month, day] = isoDate.split('-').map(Number);
+    const baseDate = new Date(year, month - 1, day);
+    baseDate.setDate(baseDate.getDate() + daysDelta);
+    return toLocalISODate(baseDate);
+  };
+
   const [absences, setAbsences] = useState([]);
   const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [studentQuery, setStudentQuery] = useState('');
+  const [showStudentOptions, setShowStudentOptions] = useState(false);
+  const [justificationFile, setJustificationFile] = useState(null);
+  const [fileError, setFileError] = useState('');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterClasse, setFilterClasse] = useState('all');
   const [filterStatut, setFilterStatut] = useState('all');
+  const [selectedDate, setSelectedDate] = useState(() => toLocalISODate(new Date()));
+
+  const searchContainerRef = useRef(null);
 
   const loadData = async () => {
+    setLoading(true);
     try {
       const [absencesRes, studentsRes] = await Promise.all([
         axios.get(apiBaseUrl + '/api/secretaire/absences', {
@@ -45,6 +72,10 @@ export default function SecretaireAbsences() {
       setStudents(studentsRes.data?.students || []);
     } catch (error) {
       console.error(error);
+      setAbsences([]);
+      setStudents([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -52,9 +83,72 @@ export default function SecretaireAbsences() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+        setShowStudentOptions(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const resetForm = () => {
     setEditingId(null);
     setForm(emptyForm);
+    setStudentQuery('');
+    setShowStudentOptions(false);
+    setJustificationFile(null);
+    setFileError('');
+  };
+
+  const selectedStudent = useMemo(
+    () => students.find((s) => String(s.id_etudiant) === String(form.id_etudiant)) || null,
+    [students, form.id_etudiant]
+  );
+
+  const studentSuggestions = useMemo(() => {
+    const term = studentQuery.trim().toLowerCase();
+    if (!term) return students.slice(0, 8);
+
+    return students
+      .filter((s) => {
+        const fullName = `${s.nom || ''} ${s.prenom || ''}`.toLowerCase();
+        return fullName.includes(term) || String(s.id_etudiant).includes(term) || (s.classe || '').toLowerCase().includes(term);
+      })
+      .slice(0, 8);
+  }, [students, studentQuery]);
+
+  const selectStudent = (student) => {
+    setForm((prev) => ({ ...prev, id_etudiant: String(student.id_etudiant) }));
+    setStudentQuery(`${student.nom || ''} ${student.prenom || ''}`.trim());
+    setShowStudentOptions(false);
+  };
+
+  const handleJustificationChange = (event) => {
+    const file = event.target.files?.[0] ?? null;
+    setFileError('');
+
+    if (!file) {
+      setJustificationFile(null);
+      return;
+    }
+
+    if (!allowedJustificationTypes.includes(file.type)) {
+      setJustificationFile(null);
+      setFileError('Format non valide. Autorise: PDF, PNG, JPG.');
+      event.target.value = '';
+      return;
+    }
+
+    if (file.size > maxJustificationSize) {
+      setJustificationFile(null);
+      setFileError('Fichier trop volumineux (max 5MB).');
+      event.target.value = '';
+      return;
+    }
+
+    setJustificationFile(file);
   };
 
   const onSubmit = async (e) => {
@@ -71,6 +165,10 @@ export default function SecretaireAbsences() {
           withXSRFToken: true,
         });
       } else {
+        if (!form.id_etudiant) {
+          return;
+        }
+
         await axios.post(apiBaseUrl + '/api/secretaire/absences', {
           id_etudiant: Number(form.id_etudiant),
           date_abs: form.date_abs,
@@ -122,11 +220,75 @@ export default function SecretaireAbsences() {
       const searchMatch = nomComplet.includes(searchTerm.toLowerCase());
       const classMatch = filterClasse === 'all' || a.classe_nom === filterClasse;
       const statusMatch = filterStatut === 'all' || getStatus(a.motif) === filterStatut;
-      return searchMatch && classMatch && statusMatch;
+      const absenceDate = String(a.date_abs || '').slice(0, 10);
+      const dateMatch = !selectedDate || absenceDate === selectedDate;
+      return searchMatch && classMatch && statusMatch && dateMatch;
     });
-  }, [absences, searchTerm, filterClasse, filterStatut]);
+  }, [absences, searchTerm, filterClasse, filterStatut, selectedDate]);
 
   const motifsType = ["Medical", "Familial", "Transport", "Autre"];
+
+  const toStatusLabel = (motif) => {
+    const status = getStatus(motif);
+    if (status === 'justifiee') return 'Justifiee';
+    if (status === 'en-attente') return 'En attente';
+    return 'Non justifiee';
+  };
+
+  const escapeCsvValue = (value) => {
+    const raw = String(value ?? '');
+    if (!/[;"\n\r]/.test(raw)) return raw;
+    return `"${raw.replace(/"/g, '""')}"`;
+  };
+
+  const handleExportCsv = () => {
+    if (filteredAbsences.length === 0) {
+      window.alert('Aucune absence a exporter pour les filtres actuels.');
+      return;
+    }
+
+    const headers = ['Etudiant', 'ID Etudiant', 'Classe', 'Niveau', 'Date ISO', 'Date', 'Statut', 'Motif'];
+
+    const rows = filteredAbsences.map((a) => {
+      const fullName = `${a.etu_nom || ''} ${a.etu_prenom || ''}`.trim();
+      const isoDate = String(a.date_abs || '').slice(0, 10);
+      const displayDate = a.date_abs
+        ? new Date(a.date_abs).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        : '';
+
+      return [
+        fullName,
+        a.id_etudiant ?? '',
+        a.classe_nom ?? '',
+        a.classe_niveau ?? '',
+        isoDate,
+        displayDate,
+        toStatusLabel(a.motif),
+        a.motif ?? '',
+      ];
+    });
+
+    const csv = [headers, ...rows]
+      .map((row) => row.map(escapeCsvValue).join(';'))
+      .join('\n');
+
+    const datePart = selectedDate || 'toutes-dates';
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `absences-${datePart}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
+  useEffect(() => {
+    if (editingId && selectedStudent) {
+      setStudentQuery(`${selectedStudent.nom || ''} ${selectedStudent.prenom || ''}`.trim());
+    }
+  }, [editingId, selectedStudent]);
 
   const renderStatusBadge = (motif) => {
     const status = getStatus(motif);
@@ -157,17 +319,21 @@ export default function SecretaireAbsences() {
         
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
-          <div>
-            
+          <div className="w-full md:w-auto">
             <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Registre des Absences</h1>
           </div>
-          <button 
-            onClick={() => {resetForm(); document.getElementById('id_etudiant_select')?.focus();}}
-            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-medium rounded-xl shadow-sm hover:bg-blue-700 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-          >
-            <Plus className="w-5 h-5" />
-            Nouveau Relevé
-          </button>
+          <div className="relative w-full md:w-80">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="w-4 h-4 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Rechercher un étudiant..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            />
+          </div>
         </div>
 
         {/* KPI Cards */}
@@ -179,17 +345,29 @@ export default function SecretaireAbsences() {
           <div className="lg:col-span-8 flex flex-col gap-5">
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="w-4 h-4 text-gray-400" />
-                </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate((prev) => shiftISODate(prev, -1))}
+                  className="px-3 py-2.5 rounded-xl text-xs font-semibold border bg-white text-gray-600 border-gray-200 hover:bg-gray-50 transition-colors"
+                  aria-label="Jour précédent"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
                 <input
-                  type="text"
-                  placeholder="Rechercher un étudiant..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="w-full sm:w-44 px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-gray-700"
                 />
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate((prev) => shiftISODate(prev, 1))}
+                  className="px-3 py-2.5 rounded-xl text-xs font-semibold border bg-white text-gray-600 border-gray-200 hover:bg-gray-50 transition-colors"
+                  aria-label="Jour suivant"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
@@ -213,7 +391,12 @@ export default function SecretaireAbsences() {
                 <option value="non-justifiee">Non-justifiés</option>
                 <option value="justifiee">Justifiés</option>
               </select>
-              <button className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors text-sm font-semibold whitespace-nowrap">
+              <button
+                type="button"
+                onClick={handleExportCsv}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors text-sm font-semibold whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={filteredAbsences.length === 0}
+              >
                 <Download className="w-4 h-4" />
                 Exporter
               </button>
@@ -225,7 +408,7 @@ export default function SecretaireAbsences() {
                 <h2 className="text-lg font-bold text-gray-900">Liste des Absences Récentes</h2>
                 <div className="flex items-center gap-2 text-sm text-gray-500">
                   <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                  Mis à jour aujourd'hui
+                  {selectedDate ? `Jour sélectionné: ${new Date(selectedDate).toLocaleDateString('fr-FR')}` : "Tous les jours"}
                 </div>
               </div>
               <div className="overflow-x-auto">
@@ -240,7 +423,17 @@ export default function SecretaireAbsences() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {filteredAbsences.length > 0 ? filteredAbsences.map((a) => (
+                    {loading ? (
+                      [...Array(6)].map((_, i) => (
+                        <tr key={`absence-skeleton-${i}`} className="animate-pulse">
+                          <td className="py-4 px-6"><div className="h-10 w-40 rounded bg-gray-100"></div></td>
+                          <td className="py-4 px-6"><div className="h-4 w-28 rounded bg-gray-100"></div></td>
+                          <td className="py-4 px-6"><div className="h-4 w-24 rounded bg-gray-100"></div></td>
+                          <td className="py-4 px-6"><div className="h-6 w-24 rounded-full bg-gray-100"></div></td>
+                          <td className="py-4 px-6"><div className="h-4 w-16 ml-auto rounded bg-gray-100"></div></td>
+                        </tr>
+                      ))
+                    ) : filteredAbsences.length > 0 ? filteredAbsences.map((a) => (
                       <tr key={a.id_absence} className="hover:bg-gray-50/50 transition-colors group">
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-3">
@@ -319,21 +512,52 @@ export default function SecretaireAbsences() {
                 <form onSubmit={onSubmit} className="flex flex-col gap-5">
                   <div>
                     <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Sélectionner L'étudiant</label>
-                    <select
-                      id="id_etudiant_select"
-                      value={form.id_etudiant}
-                      onChange={(e) => setForm({ ...form, id_etudiant: e.target.value })}
-                      required
-                      disabled={!!editingId}
-                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50"
-                    >
-                      <option value="">Choisir un étudiant...</option>
-                      {students.map((s) => (
-                        <option key={s.id_etudiant} value={s.id_etudiant}>
-                          {s.nom} {s.prenom} ({s.classe || '-'})
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative" ref={searchContainerRef}>
+                      <input
+                        id="student_search_input"
+                        type="text"
+                        placeholder="Tapez le nom de l'étudiant..."
+                        value={studentQuery}
+                        onFocus={() => !editingId && setShowStudentOptions(true)}
+                        onChange={(e) => {
+                          if (editingId) return;
+                          setStudentQuery(e.target.value);
+                          setForm((prev) => ({ ...prev, id_etudiant: '' }));
+                          setShowStudentOptions(true);
+                        }}
+                        required
+                        disabled={!!editingId}
+                        className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50"
+                      />
+
+                      {!editingId && showStudentOptions && (
+                        <div className="absolute z-20 mt-2 w-full max-h-56 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg">
+                          {studentSuggestions.length > 0 ? (
+                            studentSuggestions.map((s) => (
+                              <button
+                                key={s.id_etudiant}
+                                type="button"
+                                onClick={() => selectStudent(s)}
+                                className="w-full px-3 py-2.5 text-left hover:bg-blue-50 transition-colors border-b last:border-b-0 border-gray-100"
+                              >
+                                <div className="text-sm font-semibold text-gray-800">{s.nom} {s.prenom}</div>
+                                <div className="text-xs text-gray-500">ID #{s.id_etudiant} - {s.classe || '-'}</div>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="px-3 py-3 text-xs text-gray-500">Aucun étudiant trouvé</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {!editingId && !form.id_etudiant && studentQuery.trim() !== '' && (
+                      <p className="mt-1 text-[11px] text-amber-600">Choisissez un étudiant depuis la liste pour valider.</p>
+                    )}
+
+                    {!!editingId && selectedStudent && (
+                      <p className="mt-1 text-[11px] text-gray-500">Étudiant verrouillé en mode modification: {selectedStudent.nom} {selectedStudent.prenom}</p>
+                    )}
                   </div>
 
                   <div>
@@ -369,13 +593,23 @@ export default function SecretaireAbsences() {
 
                   <div>
                     <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Pièce justificative</label>
-                    <div className="border-2 border-dashed border-gray-200 rounded-xl p-5 flex flex-col items-center justify-center text-center hover:bg-gray-50 transition-colors cursor-pointer group">
+                    <label className="border-2 border-dashed border-gray-200 rounded-xl p-5 flex flex-col items-center justify-center text-center hover:bg-gray-50 transition-colors cursor-pointer group">
+                      <input
+                        type="file"
+                        accept=".pdf,image/png,image/jpeg"
+                        className="hidden"
+                        onChange={handleJustificationChange}
+                      />
                       <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                         <UploadCloud className="w-5 h-5" />
                       </div>
-                      <span className="text-xs font-semibold text-blue-600">Glissez le certificat médical ici</span>
+                      <span className="text-xs font-semibold text-blue-600">Importer la pièce justificative</span>
                       <span className="text-[10px] text-gray-400 mt-1">PDF, PNG, JPG (Max 5MB)</span>
-                    </div>
+                      {justificationFile && (
+                        <span className="text-[11px] text-emerald-700 mt-2 font-semibold">{justificationFile.name}</span>
+                      )}
+                    </label>
+                    {fileError && <p className="mt-1 text-[11px] text-red-600">{fileError}</p>}
                   </div>
 
                   <div className="flex gap-2">

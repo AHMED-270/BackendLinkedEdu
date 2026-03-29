@@ -49,6 +49,8 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::post('/admin/users', [AdminDashboardController::class, 'createUser']);
     Route::put('/admin/users/{id}', [AdminDashboardController::class, 'updateUser']);
     Route::delete('/admin/users/{id}', [AdminDashboardController::class, 'deleteUser']);
+    Route::post('/admin/users/{id}/activate', [AdminDashboardController::class, 'activateUser']);
+    Route::post('/admin/users/{id}/deactivate', [AdminDashboardController::class, 'deactivateUser']);
     Route::post('/admin/classes', [AdminDashboardController::class, 'createClass']);
     Route::put('/admin/classes/{id}', [AdminDashboardController::class, 'updateClass']);
     Route::delete('/admin/classes/{id}', [AdminDashboardController::class, 'deleteClass']);
@@ -112,5 +114,7 @@ Route::middleware(['auth:sanctum', 'role:secretaire,admin,directeur'])->prefix('
 
     // Reclamations
     Route::get('/reclamations', [SecretaireController::class, 'listReclamations']);
+    Route::post('/reclamations', [SecretaireController::class, 'createReclamation']);
     Route::put('/reclamations/{id}/status', [SecretaireController::class, 'updateReclamationStatus']);
+    Route::get('/parents', [SecretaireController::class, 'listParents']);
 });

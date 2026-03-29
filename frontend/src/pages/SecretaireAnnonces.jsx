@@ -17,6 +17,7 @@ const emptyForm = { titre: '', contenu: '', cible: 'Tous', statut: 'Publié' };
 export default function SecretaireAnnonces() {
   const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000';
   const [annonces, setAnnonces] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [selectedAnnonce, setSelectedAnnonce] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -26,6 +27,7 @@ export default function SecretaireAnnonces() {
   const [filterCible, setFilterCible] = useState('all');
 
   const loadData = async () => {
+    setLoading(true);
     try {
       const res = await axios.get(apiBaseUrl + '/api/secretaire/annonces', {
         withCredentials: true,
@@ -41,6 +43,8 @@ export default function SecretaireAnnonces() {
     } catch (error) {
       console.error(error);
       setAnnonces([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -179,7 +183,6 @@ export default function SecretaireAnnonces() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Gestion des Annonces</h1>
-            <p className="text-gray-500 mt-1 text-sm">Publiez et gérez les communications officielles du portail.</p>
           </div>
       
         </div>
@@ -240,7 +243,17 @@ export default function SecretaireAnnonces() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {filteredAnnonces.length > 0 ? filteredAnnonces.map((a) => (
+                    {loading ? (
+                      [...Array(6)].map((_, i) => (
+                        <tr key={`annonce-skeleton-${i}`} className="animate-pulse">
+                          <td className="py-4 px-6"><div className="h-4 w-56 rounded bg-gray-100"></div></td>
+                          <td className="py-4 px-6"><div className="h-9 w-16 rounded bg-gray-100"></div></td>
+                          <td className="py-4 px-6"><div className="h-5 w-20 rounded-full bg-gray-100"></div></td>
+                          <td className="py-4 px-6"><div className="h-4 w-16 rounded bg-gray-100"></div></td>
+                          <td className="py-4 px-6"><div className="h-4 w-16 ml-auto rounded bg-gray-100"></div></td>
+                        </tr>
+                      ))
+                    ) : filteredAnnonces.length > 0 ? filteredAnnonces.map((a) => (
                       <tr key={a.id_annonce} className="hover:bg-gray-50/50 transition-colors group">
                         <td className="py-4 px-6">
                           <div className="pr-4">

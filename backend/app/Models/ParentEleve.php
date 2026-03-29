@@ -19,6 +19,8 @@ class ParentEleve extends Model
     protected $fillable = [
         'id_parent',
         'telephone',
+        'cin',
+        'urgence_phone',
         'country_code',
     ];
 

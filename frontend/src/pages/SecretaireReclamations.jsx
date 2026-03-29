@@ -1,70 +1,365 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import './Reclamation.css';
+import {
+  MessageSquare,
+  Search,
+  Clock,
+  CheckCircle,
+  XCircle,
+  User,
+  Send,
+  Loader2,
+  AlertCircle,
+} from 'lucide-react';
 
-const statusOptions = ['en_attente', 'en_cours', 'resolue', 'rejetee'];
+const statusOptions = [
+  { value: 'en_attente', label: 'En attente', color: 'bg-yellow-50 text-yellow-700 border-yellow-200', icon: Clock },
+  { value: 'en_cours', label: 'En cours', color: 'bg-blue-50 text-blue-700 border-blue-200', icon: Loader2 },
+  { value: 'resolue', label: 'Resolue', color: 'bg-green-50 text-green-700 border-green-200', icon: CheckCircle },
+  { value: 'rejetee', label: 'Rejetee', color: 'bg-red-50 text-red-700 border-red-200', icon: XCircle },
+];
+
+const emptyForm = { id_etudiant: '', sujet: '', message: '' };
 
 export default function SecretaireReclamations() {
   const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000';
+
   const [reclamations, setReclamations] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isSubmitLoading, setIsSubmitLoading] = useState(false);
+
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const [form, setForm] = useState(emptyForm);
+  const [studentQuery, setStudentQuery] = useState('');
+  const [showStudentOptions, setShowStudentOptions] = useState(false);
+  const [formError, setFormError] = useState('');
+
+  const searchContainerRef = useRef(null);
 
   const loadData = async () => {
-    const res = await axios.get(apiBaseUrl + '/api/secretaire/reclamations', {
-      withCredentials: true,
-      withXSRFToken: true,
-    });
-    setReclamations(res.data?.reclamations || []);
+    setLoading(true);
+    try {
+      const [recRes, studentsRes] = await Promise.all([
+        axios.get(`${apiBaseUrl}/api/secretaire/reclamations`, { withCredentials: true, withXSRFToken: true }),
+        axios.get(`${apiBaseUrl}/api/secretaire/students`, { withCredentials: true, withXSRFToken: true }),
+      ]);
+      setReclamations(recRes.data?.reclamations || []);
+      setStudents(studentsRes.data?.students || []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des donnees', error);
+      setReclamations([]);
+      setStudents([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    loadData().catch(() => setReclamations([]));
+    loadData();
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+        setShowStudentOptions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedStudent = useMemo(
+    () => students.find((s) => String(s.id_etudiant) === String(form.id_etudiant)) || null,
+    [students, form.id_etudiant]
+  );
+
+  const studentSuggestions = useMemo(() => {
+    const term = studentQuery.trim().toLowerCase();
+    if (!term) return students.slice(0, 8);
+
+    return students
+      .filter((s) => {
+        const fullName = `${s.nom || ''} ${s.prenom || ''}`.toLowerCase();
+        return (
+          fullName.includes(term)
+          || String(s.id_etudiant || '').includes(term)
+          || String(s.classe || '').toLowerCase().includes(term)
+          || String(s.parent_email || '').toLowerCase().includes(term)
+        );
+      })
+      .slice(0, 8);
+  }, [students, studentQuery]);
+
+  const filteredReclamations = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return reclamations;
+
+    return reclamations.filter((r) => (
+      String(r.sujet || '').toLowerCase().includes(term)
+      || String(r.message || '').toLowerCase().includes(term)
+      || `${r.parent_nom || ''} ${r.parent_prenom || ''}`.toLowerCase().includes(term)
+      || String(r.parent_email || '').toLowerCase().includes(term)
+    ));
+  }, [reclamations, searchTerm]);
+
   const onStatusChange = async (id, statut) => {
-    await axios.get(apiBaseUrl + '/sanctum/csrf-cookie', { withCredentials: true, withXSRFToken: true });
-    await axios.put(`${apiBaseUrl}/api/secretaire/reclamations/${id}/status`, { statut }, {
-      withCredentials: true,
-      withXSRFToken: true,
-    });
-    await loadData();
+    try {
+      await axios.get(`${apiBaseUrl}/sanctum/csrf-cookie`, { withCredentials: true, withXSRFToken: true });
+      await axios.put(`${apiBaseUrl}/api/secretaire/reclamations/${id}/status`, { statut }, {
+        withCredentials: true,
+        withXSRFToken: true,
+      });
+      await loadData();
+    } catch (error) {
+      console.error('Erreur lors de la mise a jour du statut', error);
+    }
+  };
+
+  const onSubmitReclamation = async (event) => {
+    event.preventDefault();
+    setFormError('');
+
+    if (!form.id_etudiant || !form.sujet.trim() || !form.message.trim()) {
+      setFormError('Veuillez selectionner un eleve et remplir le sujet et le message.');
+      return;
+    }
+
+    setIsSubmitLoading(true);
+    try {
+      await axios.get(`${apiBaseUrl}/sanctum/csrf-cookie`, { withCredentials: true, withXSRFToken: true });
+      await axios.post(`${apiBaseUrl}/api/secretaire/reclamations`, {
+        id_etudiant: Number(form.id_etudiant),
+        sujet: form.sujet,
+        message: form.message,
+      }, {
+        withCredentials: true,
+        withXSRFToken: true,
+      });
+
+      setForm(emptyForm);
+      setStudentQuery('');
+      setShowStudentOptions(false);
+      await loadData();
+    } catch (error) {
+      setFormError(error?.response?.data?.message || 'Erreur lors de l envoi de la reclamation.');
+    } finally {
+      setIsSubmitLoading(false);
+    }
+  };
+
+  const selectStudent = (student) => {
+    setForm((prev) => ({ ...prev, id_etudiant: String(student.id_etudiant) }));
+    setStudentQuery(`${student.nom || ''} ${student.prenom || ''}`.trim());
+    setShowStudentOptions(false);
   };
 
   return (
-    <div className="reclamation-page">
-      <section className="reclamation-panel">
-        <div className="reclamation-header"><h3>Suivi des reclamations</h3></div>
+    <div className="min-h-screen bg-gray-50/50 p-6 lg:p-10">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
+              <MessageSquare className="w-8 h-8 text-blue-600" />
+              Gestion des Reclamations
+            </h1>
+          </div>
+          <div className="relative w-full md:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Rechercher une reclamation..."
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
 
-        <table className="reclamation-table">
-          <thead>
-            <tr>
-              <th>Sujet</th>
-              <th>Parent</th>
-              <th>Email</th>
-              <th>Date</th>
-              <th>Message</th>
-              <th>Statut</th>
-            </tr>
-          </thead>
-          <tbody>
-            {reclamations.map((r) => (
-              <tr key={r.id_reclamation}>
-                <td>{r.sujet}</td>
-                <td>{r.parent_nom} {r.parent_prenom}</td>
-                <td>{r.parent_email}</td>
-                <td>{r.date_soumission ? String(r.date_soumission).slice(0, 16).replace('T', ' ') : '-'}</td>
-                <td>{r.message}</td>
-                <td>
-                  <select value={r.statut} onChange={(e) => onStatusChange(r.id_reclamation, e.target.value)}>
-                    {statusOptions.map((status) => (
-                      <option key={status} value={status}>{status}</option>
-                    ))}
-                  </select>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="lg:col-span-8">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50/50 border-b border-gray-100">
+                      <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Date</th>
+                      <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Parent / Sujet</th>
+                      <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Message</th>
+                      <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Statut</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {loading ? (
+                      [...Array(5)].map((_, i) => (
+                        <tr key={`reclamation-skeleton-${i}`} className="animate-pulse">
+                          <td colSpan="4" className="px-6 py-4"><div className="h-4 bg-gray-100 rounded w-full"></div></td>
+                        </tr>
+                      ))
+                    ) : filteredReclamations.map((r) => {
+                      const status = statusOptions.find((o) => o.value === r.statut) || statusOptions[0];
+
+                      return (
+                        <tr key={r.id_reclamation} className="hover:bg-blue-50/30 transition-colors">
+                          <td className="py-4 px-6">
+                            <div className="text-xs font-semibold text-gray-500">
+                              {r.date_soumission
+                                ? new Date(r.date_soumission).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
+                                : '-'}
+                            </div>
+                            <div className="text-[10px] text-gray-400 mt-1">
+                              {r.date_soumission
+                                ? new Date(r.date_soumission).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+                                : '-'}
+                            </div>
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="font-bold text-gray-900 text-sm truncate max-w-[160px]">{r.sujet}</div>
+                            <div className="text-xs text-gray-500 mt-0.5">{r.parent_nom} {r.parent_prenom}</div>
+                            <div className="text-[10px] text-gray-400 mt-0.5">{r.parent_email || '-'}</div>
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="text-xs text-gray-600 line-clamp-2 max-w-[280px] italic">
+                              "{r.message}"
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 text-center">
+                            <select
+                              value={r.statut}
+                              onChange={(e) => onStatusChange(r.id_reclamation, e.target.value)}
+                              className={`mx-auto block text-[10px] font-bold px-2 py-1 rounded-full border ${status.color} focus:ring-0 outline-none cursor-pointer`}
+                            >
+                              {statusOptions.map((opt) => (
+                                <option key={opt.value} value={opt.value}>{opt.label.toUpperCase()}</option>
+                              ))}
+                            </select>
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                    {!loading && filteredReclamations.length === 0 && (
+                      <tr>
+                        <td colSpan="4" className="py-20 text-center">
+                          <AlertCircle className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                          <p className="text-gray-400 font-medium">Aucune reclamation trouvee</p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-4">
+            <div className="bg-white rounded-2xl border border-blue-100 shadow-xl shadow-blue-900/5 overflow-hidden sticky top-8">
+              <div className="bg-blue-600 p-6 text-white">
+                <h3 className="font-bold text-lg">Nouvelle Reclamation</h3>
+                <p className="text-blue-100 text-xs mt-1">Selectionnez un eleve. Le message sera envoye a son parent.</p>
+              </div>
+
+              <form onSubmit={onSubmitReclamation} className="p-6 space-y-5">
+                <div className="relative" ref={searchContainerRef}>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex justify-between">
+                    Nom de l eleve
+                    {form.id_etudiant && (
+                      <span className="text-green-500 flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" /> Selectionne
+                      </span>
+                    )}
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                      <User className="w-4 h-4 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Rechercher un eleve..."
+                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 outline-none font-semibold text-gray-800"
+                      value={studentQuery}
+                      onChange={(e) => {
+                        setStudentQuery(e.target.value);
+                        setShowStudentOptions(true);
+                        if (form.id_etudiant) {
+                          setForm((prev) => ({ ...prev, id_etudiant: '' }));
+                        }
+                      }}
+                      onFocus={() => setShowStudentOptions(true)}
+                    />
+
+                    {showStudentOptions && (
+                      <div className="absolute z-20 mt-2 w-full max-h-56 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg py-1">
+                        {studentSuggestions.length > 0 ? studentSuggestions.map((student) => (
+                          <button
+                            key={student.id_etudiant}
+                            type="button"
+                            onClick={() => selectStudent(student)}
+                            className="w-full px-4 py-2.5 text-left hover:bg-blue-50 transition-colors border-b border-gray-50 last:border-0"
+                          >
+                            <span className="text-sm font-bold text-gray-900 block">{student.nom} {student.prenom}</span>
+                            <span className="text-[10px] text-gray-400 block">{student.classe || '-'} - Parent: {student.parent_email || 'N/A'}</span>
+                          </button>
+                        )) : (
+                          <div className="px-4 py-3 text-xs text-gray-500">Aucun eleve trouve</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {selectedStudent && (
+                  <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-3">
+                    <p className="text-[10px] uppercase tracking-wider font-bold text-blue-700">Parent destinataire</p>
+                    <p className="text-sm font-semibold text-blue-900 mt-1">{selectedStudent.parent_email || 'Email parent non disponible'}</p>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Sujet du message</label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 outline-none font-semibold text-gray-800"
+                    placeholder="Ex: Absence non justifiee"
+                    value={form.sujet}
+                    onChange={(e) => setForm((prev) => ({ ...prev, sujet: e.target.value }))}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Message detaille</label>
+                  <textarea
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 outline-none font-medium text-gray-700 min-h-[120px] resize-none"
+                    placeholder="Saisissez votre message ici..."
+                    value={form.message}
+                    onChange={(e) => setForm((prev) => ({ ...prev, message: e.target.value }))}
+                    required
+                  />
+                </div>
+
+                {formError && (
+                  <p className="text-xs text-red-600 font-medium">{formError}</p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isSubmitLoading || !form.id_etudiant}
+                  className="w-full py-3 bg-blue-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 disabled:opacity-50 disabled:shadow-none transition-all flex items-center justify-center gap-2"
+                >
+                  {isSubmitLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  Envoyer la reclamation
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

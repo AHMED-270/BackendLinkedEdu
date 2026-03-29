@@ -17,7 +17,7 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
     name: '',
     email: '',
     password: '',
-    role: 'etudiant',
+    role: 'secretaire',
     id_classe: '',
     id_parent: '',
     telephone: ''
@@ -61,7 +61,7 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
             name: userToEdit.name || '',
             email: userToEdit.email || '',
             password: '',
-            role: userToEdit.role || 'etudiant',
+            role: userToEdit.role || 'secretaire',
             id_classe: userToEdit.id_classe || (classesData[0]?.id_classe ?? ''),
             id_parent: userToEdit.id_parent || '',
             telephone: userToEdit.telephone || ''
@@ -135,11 +135,8 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
   };
 
   const roles = [
-    { value: 'etudiant', label: 'Etudiant' },
     { value: 'professeur', label: 'Professeur' },
-    { value: 'parent', label: 'Parent' },
     { value: 'secretaire', label: 'Secretariat' },
-    { value: 'admin', label: 'Administrateur' },
     { value: 'directeur', label: 'Directeur' }
   ];
 
@@ -178,7 +175,7 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
           <div className="px-6 pt-6 pb-4 border-b border-gray-100 bg-gray-50/70">
             <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">Users / {isEditing ? 'Modifier' : 'Ajouter'}</p>
             <h2 className="text-3xl font-extrabold text-gray-900 mt-1">{isEditing ? 'Modifier un Utilisateur' : 'Ajouter un Utilisateur'}</h2>
-            <p className="text-sm text-gray-500 mt-1">Creez un nouveau profil et definissez ses permissions d'acces.</p>
+            <p className="text-sm text-gray-500 mt-1">Creation manuelle reservee aux cadres: secretaire, professeur, directeur.</p>
           </div>
         )}
 
@@ -267,55 +264,14 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
               </div>
             </section>
 
-            {formData.role === 'etudiant' && (
-              <section className="border border-gray-200 rounded-xl p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">Classe de l'etudiant</label>
-                  <select
-                    name="id_classe"
-                    value={formData.id_classe}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
-                  >
-                    <option value="">-- Selectionner une classe --</option>
-                    {classes.map((c) => (
-                      <option key={c.id_classe} value={c.id_classe}>{c.nom} ({c.niveau})</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">Parent de l'etudiant</label>
-                  <select
-                    name="id_parent"
-                    value={formData.id_parent}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
-                  >
-                    <option value="">-- Selectionner un parent --</option>
-                    {parentUsers.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} {p.telephone ? `(${p.telephone})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                  <small className="block mt-1 text-xs text-gray-500">
-                    Telephone du parent: {selectedParent?.telephone || 'Non renseigne'}
-                  </small>
-                </div>
-              </section>
-            )}
-
-            {(formData.role === 'parent' || formData.role === 'directeur' || formData.role === 'professeur') && (
+            {(formData.role === 'directeur' || formData.role === 'professeur') && (
               <section className="border border-gray-200 rounded-xl p-4">
                 <label className="block text-xs font-semibold text-gray-500 mb-1">
                   {formData.role === 'directeur'
                     ? 'Telephone du directeur'
                     : formData.role === 'professeur'
                       ? 'Telephone du professeur'
-                      : 'Telephone du parent'}
+                      : 'Telephone'}
                 </label>
                 <input
                   type="tel"

@@ -26,6 +26,12 @@ class AdminLoginController extends Controller
             ]);
         }
 
+        if (($user->account_status ?? 'active') !== 'active') {
+            throw ValidationException::withMessages([
+                'email' => ['Compte en attente d activation par l administration.'],
+            ]);
+        }
+
         // Au lieu de tokens, on connecte toujours l'utilisateur pour l'application SPA (React via Sanctum)
         Auth::login($user);
 

@@ -12,7 +12,10 @@ use App\Models\Classe;
 use App\Models\Matiere;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class AdminDashboardController extends Controller
 {
@@ -53,10 +56,8 @@ class AdminDashboardController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6',
-            'role' => 'required|string|in:etudiant,parent,secretaire,admin,directeur,professeur',
-            'id_classe' => 'required_if:role,etudiant|nullable|integer|exists:classes,id_classe',
-            'id_parent' => 'required_if:role,etudiant|nullable|integer|exists:parents,id_parent',
-            'telephone' => 'required_if:role,parent,directeur,professeur|string|max:30'
+            'role' => 'required|string|in:secretaire,directeur,professeur',
+            'telephone' => 'required_if:role,directeur,professeur|string|max:30'
         ]);
 
         try {
@@ -67,23 +68,9 @@ class AdminDashboardController extends Controller
                 'email' => $validated['email'],
                 'password' => bcrypt($validated['password']),
                 'role' => $validated['role'],
+                'account_status' => 'active',
+                'activated_at' => now(),
             ]);
-
-            if ($validated['role'] === 'etudiant') {
-                Etudiant::create([
-                    'id_etudiant' => $user->id,
-                    'matricule' => 'MAT-' . str_pad($user->id, 4, '0', STR_PAD_LEFT),
-                    'id_classe' => $validated['id_classe'],
-                    'id_parent' => $validated['id_parent'],
-                ]);
-            }
-
-            if ($validated['role'] === 'parent') {
-                ParentEleve::create([
-                    'id_parent' => $user->id,
-                    'telephone' => $validated['telephone'] ?? null,
-                ]);
-            }
 
             if ($validated['role'] === 'directeur') {
                 Directeur::create([
@@ -102,9 +89,41 @@ class AdminDashboardController extends Controller
 
             DB::commit();
 
+            $mailWarnings = [];
+            try {
+                if (! $user->email) {
+                    throw new \RuntimeException('Email cadre manquant.');
+                }
+
+                $roleLabel = match ($validated['role']) {
+                    'secretaire' => 'Secretaire',
+                    'professeur' => 'Professeur',
+                    'directeur' => 'Directeur',
+                    default => ucfirst((string) $validated['role']),
+                };
+
+                $mailBody = "Bonjour {$user->name},\n\n"
+                    . "Votre compte {$roleLabel} LinkEdu a ete cree avec succes.\n"
+                    . "Email: {$user->email}\n"
+                    . "Mot de passe: {$validated['password']}\n\n"
+                    . "Lien de connexion: " . (env('FRONTEND_URL') ?: 'http://localhost:5173') . "/login\n";
+
+                Mail::raw(
+                    $mailBody,
+                    function ($message) use ($user, $roleLabel) {
+                        $message->to($user->email)
+                            ->subject("Identifiants {$roleLabel} - LinkEdu")
+                            ->from(config('mail.from.address'), config('mail.from.name'));
+                    }
+                );
+            } catch (\Throwable $e) {
+                $mailWarnings[] = 'Email cadre non envoye: ' . $e->getMessage();
+            }
+
             return response()->json([
                 'message' => 'Utilisateur créé avec succès !',
-                'user' => $user
+                'user' => $user,
+                'warnings' => $mailWarnings,
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -277,7 +296,7 @@ class AdminDashboardController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
         
-        $usersQuery = User::select('users.id', 'users.name', 'users.email', 'users.role', 'users.created_at', 'etudiants.id_classe')
+        $usersQuery = User::select('users.id', 'users.name', 'users.email', 'users.role', 'users.created_at', 'users.account_status', 'users.activated_at', 'etudiants.id_classe')
             ->leftJoin('etudiants', 'users.id', '=', 'etudiants.id_etudiant')
             ->leftJoin('parents as own_parent', 'users.id', '=', 'own_parent.id_parent')
             ->leftJoin('parents as linked_parent', 'etudiants.id_parent', '=', 'linked_parent.id_parent')
@@ -297,6 +316,199 @@ class AdminDashboardController extends Controller
             ->get();
 
         return response()->json($users);
+    }
+
+    public function activateUser(Request $request, int $id)
+    {
+        if (!$request->user() || $request->user()->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $user = User::findOrFail($id);
+
+        if ($user->role !== 'etudiant') {
+            return response()->json([
+                'message' => 'Seul un compte etudiant peut etre active depuis ce flux.',
+            ], 422);
+        }
+
+        $student = Etudiant::with(['user', 'parentEleve.user'])->find($user->id);
+        if (! $student) {
+            return response()->json(['message' => 'Profil etudiant introuvable.'], 404);
+        }
+
+        $studentUser = $student->user;
+        $parentUser = $student->parentEleve?->user;
+
+        if (! $studentUser || ! $parentUser) {
+            return response()->json([
+                'message' => 'Etudiant ou parent associe introuvable. Verifiez l inscription.',
+            ], 422);
+        }
+
+        $studentPassword = $this->buildStudentPassword($studentUser->prenom ?: $studentUser->nom ?: $studentUser->name, $student->date_naissance);
+        $parentCinRaw = (string) ($student->parentEleve?->cin ?? '');
+        $parentPassword = Str::of($parentCinRaw)
+            ->upper()
+            ->replaceMatches('/\s+/', '')
+            ->value();
+
+        if ($parentPassword === '') {
+            $parentPassword = $this->generateRandomPassword(12);
+        }
+
+        DB::transaction(function () use ($studentUser, $parentUser, $studentPassword, $parentPassword) {
+            $studentUser->update([
+                'password' => Hash::make($studentPassword),
+                'account_status' => 'active',
+                'activated_at' => now(),
+            ]);
+
+            $parentUser->update([
+                'password' => Hash::make($parentPassword),
+                'account_status' => 'active',
+                'activated_at' => now(),
+            ]);
+        });
+
+        $studentFullName = trim(($studentUser->prenom ?? '') . ' ' . ($studentUser->nom ?? ''));
+        $parentFullName = trim(($parentUser->prenom ?? '') . ' ' . ($parentUser->nom ?? ''));
+
+        $mailWarnings = [];
+
+        try {
+            if (! $studentUser->email) {
+                throw new \RuntimeException('Email eleve manquant.');
+            }
+
+            $studentMailBody = "Bonjour {$studentFullName},\n\n"
+                . "Votre compte eleve LinkEdu est active.\n"
+                . "Email: {$studentUser->email}\n"
+                . "Mot de passe: {$studentPassword}\n\n"
+                . "Lien de connexion: " . (config('app.frontend_url') ?: 'http://localhost:5173') . "/login\n\n";
+
+            Mail::raw(
+                $studentMailBody,
+                function ($message) use ($studentUser) {
+                    $message->to($studentUser->email)
+                        ->subject('Activation compte Eleve - LinkEdu')
+                        ->from(config('mail.from.address'), config('mail.from.name'));
+                }
+            );
+        } catch (\Throwable $e) {
+            $mailWarnings[] = 'Email eleve non envoye: ' . $e->getMessage();
+        }
+
+        try {
+            if (! $parentUser->email) {
+                throw new \RuntimeException('Email parent manquant.');
+            }
+
+            $parentMailBody = "Bonjour {$parentFullName},\n\n"
+                . "Votre compte parent LinkEdu est active.\n"
+                . "Email: {$parentUser->email}\n"
+                . "Mot de passe: {$parentPassword}\n\n"
+                . "Lien de connexion: " . (config('app.frontend_url') ?: 'http://localhost:5173') . "/login\n\n";
+
+            Mail::raw(
+                $parentMailBody,
+                function ($message) use ($parentUser) {
+                    $message->to($parentUser->email)
+                        ->subject('Activation compte Parent - LinkEdu')
+                        ->from(config('mail.from.address'), config('mail.from.name'));
+                }
+            );
+        } catch (\Throwable $e) {
+            $mailWarnings[] = 'Email parent non envoye: ' . $e->getMessage();
+        }
+
+        return response()->json([
+            'message' => 'Compte etudiant active. Les identifiants ont ete prepares pour etudiant et parent.',
+            'warnings' => $mailWarnings,
+        ]);
+    }
+
+    public function deactivateUser(Request $request, int $id)
+    {
+        if (!$request->user() || $request->user()->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $user = User::findOrFail($id);
+
+        if ($user->role !== 'etudiant') {
+            return response()->json([
+                'message' => 'Seul un compte etudiant peut etre desactive depuis ce flux.',
+            ], 422);
+        }
+
+        $student = Etudiant::with(['user', 'parentEleve.user'])->find($user->id);
+        if (! $student) {
+            return response()->json(['message' => 'Profil etudiant introuvable.'], 404);
+        }
+
+        $studentUser = $student->user;
+        $parentUser = $student->parentEleve?->user;
+
+        if (! $studentUser || ! $parentUser) {
+            return response()->json([
+                'message' => 'Etudiant ou parent associe introuvable. Verifiez l inscription.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($studentUser, $parentUser) {
+            $studentUser->update([
+                'account_status' => 'pending_activation',
+                'activated_at' => null,
+            ]);
+
+            $parentUser->update([
+                'account_status' => 'pending_activation',
+                'activated_at' => null,
+            ]);
+        });
+
+        return response()->json([
+            'message' => 'Compte eleve et compte parent repasses en non active.',
+        ]);
+    }
+
+    private function buildStudentPassword(?string $sourceName, ?string $dateNaissance): string
+    {
+        $namePart = Str::of((string) $sourceName)
+            ->ascii()
+            ->lower()
+            ->replaceMatches('/[^a-z0-9]/', '')
+            ->value();
+
+        if ($namePart === '') {
+            $namePart = 'eleve';
+        }
+
+        if (! $dateNaissance) {
+            return $namePart . $this->generateRandomPassword(4);
+        }
+
+        try {
+            $datePart = Carbon::parse($dateNaissance)->format('dmY');
+        } catch (\Throwable $e) {
+            $datePart = $this->generateRandomPassword(8);
+        }
+
+        return $namePart . $datePart;
+    }
+
+    private function generateRandomPassword(int $length = 12): string
+    {
+        $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+        $result = '';
+        $max = strlen($alphabet) - 1;
+
+        for ($i = 0; $i < $length; $i++) {
+            $result .= $alphabet[random_int(0, $max)];
+        }
+
+        return $result;
     }
 
     public function getClasses(Request $request)

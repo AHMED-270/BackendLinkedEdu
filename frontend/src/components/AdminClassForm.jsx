@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { FiArrowLeft as ArrowLeft } from 'react-icons/fi';
+import { FiPlus as Plus } from 'react-icons/fi';
 import { BiSolidUserDetail } from 'react-icons/bi';
 
 export default function AdminClassForm({ mode = 'create', classToEdit = null, onBack, onSuccess, isModal = false }) {

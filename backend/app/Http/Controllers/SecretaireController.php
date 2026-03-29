@@ -14,6 +14,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class SecretaireController extends Controller
 {
@@ -61,8 +62,13 @@ class SecretaireController extends Controller
                 'adresse' => $etudiant->adresse,
                 'id_classe' => $etudiant->id_classe,
                 'classe' => $etudiant->classe ? trim($etudiant->classe->nom . ' - ' . $etudiant->classe->niveau) : null,
+                'account_status' => $etudiant->user->account_status ?? 'active',
+                'parent_nom' => $etudiant->parentEleve->user->nom ?? '',
+                'parent_prenom' => $etudiant->parentEleve->user->prenom ?? '',
                 'parent_email' => $etudiant->parentEleve->user->email ?? '',
                 'parent_phone' => $etudiant->parentEleve->telephone ?? '',
+                'parent_cin' => $etudiant->parentEleve->cin ?? '',
+                'parent_urgence_phone' => $etudiant->parentEleve->urgence_phone ?? '',
                 'country_code' => $etudiant->parentEleve->country_code ?? '+212',
             ];
         });
@@ -79,33 +85,59 @@ class SecretaireController extends Controller
             'prenom' => ['required', 'string', 'max:255'],
             'date_naissance' => ['required', 'date'],
             'genre' => ['required', 'in:M,F,A'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['nullable', 'email', 'max:255', 'unique:users,email'],
             'adresse' => ['required', 'string', 'max:500'],
             'id_classe' => ['nullable', 'integer', 'exists:classes,id_classe'],
+            'parent_nom' => ['required', 'string', 'max:255'],
+            'parent_prenom' => ['required', 'string', 'max:255'],
             'parent_email' => ['nullable', 'email', 'max:255'],
             'parent_phone' => ['required', 'string', 'max:20'],
+            'parent_cin' => ['required', 'string', 'max:30'],
+            'parent_urgence_phone' => ['nullable', 'string', 'max:30'],
             'country_code' => ['required', 'string', 'max:5'],
         ]);
 
         $student = DB::transaction(function () use ($validated) {
             $fallbackParentEmail = 'parent_' . preg_replace('/\D+/', '', (string) $validated['parent_phone']) . '@linkedu.local';
             $parentEmail = $validated['parent_email'] ?? $fallbackParentEmail;
+            
+            $studentEmail = $validated['email'];
+            if (!$studentEmail) {
+                $studentEmail = $this->buildStudentEmailFromParent(
+                    $parentEmail,
+                    $validated['nom'],
+                    $validated['prenom']
+                );
+            }
+
+            // At this point, if $validated['email'] was provided but collision exists, 
+            // the DB transaction will still fail, but our buildStudentEmail function 
+            // is now much safer for the auto-generation case.
 
             $parentUser = User::firstOrCreate(
                 ['email' => $parentEmail],
                 [
-                    'name' => 'Parent ' . $validated['nom'],
-                    'nom' => $validated['nom'],
-                    'prenom' => 'Parent',
+                    'name' => trim($validated['parent_prenom'] . ' ' . $validated['parent_nom']),
+                    'nom' => $validated['parent_nom'],
+                    'prenom' => $validated['parent_prenom'],
                     'password' => Hash::make('Parent@2026'),
                     'role' => 'parent_eleve',
+                    'account_status' => 'pending_activation',
                 ]
             );
+
+            $parentUser->update([
+                'name' => trim($validated['parent_prenom'] . ' ' . $validated['parent_nom']),
+                'nom' => $validated['parent_nom'],
+                'prenom' => $validated['parent_prenom'],
+            ]);
 
             $parentEleve = ParentEleve::firstOrCreate(
                 ['id_parent' => $parentUser->id],
                 [
                     'telephone' => $validated['parent_phone'],
+                    'cin' => $validated['parent_cin'],
+                    'urgence_phone' => $validated['parent_urgence_phone'],
                     'country_code' => $validated['country_code'] ?? '+212',
                 ]
             );
@@ -114,9 +146,10 @@ class SecretaireController extends Controller
                 'name' => trim($validated['prenom'] . ' ' . $validated['nom']),
                 'nom' => $validated['nom'],
                 'prenom' => $validated['prenom'],
-                'email' => $validated['email'],
+                'email' => $studentEmail,
                 'password' => Hash::make('Etudiant@2026'),
                 'role' => 'etudiant',
+                'account_status' => 'pending_activation',
             ]);
 
             Etudiant::create([
@@ -147,11 +180,15 @@ class SecretaireController extends Controller
             'prenom' => ['required', 'string', 'max:255'],
             'date_naissance' => ['required', 'date'],
             'genre' => ['required', 'in:M,F,A'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $etudiant->id_etudiant],
+            'email' => ['nullable', 'email', 'max:255', 'unique:users,email,' . $etudiant->id_etudiant],
             'adresse' => ['required', 'string', 'max:500'],
             'id_classe' => ['nullable', 'integer', 'exists:classes,id_classe'],
+            'parent_nom' => ['required', 'string', 'max:255'],
+            'parent_prenom' => ['required', 'string', 'max:255'],
             'parent_email' => ['nullable', 'email', 'max:255'],
             'parent_phone' => ['required', 'string', 'max:20'],
+            'parent_cin' => ['required', 'string', 'max:30'],
+            'parent_urgence_phone' => ['nullable', 'string', 'max:30'],
             'country_code' => ['required', 'string', 'max:5'],
         ]);
 
@@ -160,22 +197,34 @@ class SecretaireController extends Controller
             $fallbackParentEmail = $etudiant->parentEleve?->user?->email
                 ?? ('parent_' . preg_replace('/\D+/', '', (string) $validated['parent_phone']) . '@linkedu.local');
             $parentEmail = $validated['parent_email'] ?? $fallbackParentEmail;
+            $studentEmail = $validated['email']
+                ?? $etudiant->user->email
+                ?? $this->buildStudentEmailFromParent($parentEmail, $validated['nom'], $validated['prenom']);
 
             $parentUser = User::firstOrCreate(
                 ['email' => $parentEmail],
                 [
-                    'name' => 'Parent ' . $validated['nom'],
-                    'nom' => $validated['nom'],
-                    'prenom' => 'Parent',
+                    'name' => trim($validated['parent_prenom'] . ' ' . $validated['parent_nom']),
+                    'nom' => $validated['parent_nom'],
+                    'prenom' => $validated['parent_prenom'],
                     'password' => Hash::make('Parent@2026'),
                     'role' => 'parent_eleve',
+                    'account_status' => 'pending_activation',
                 ]
             );
+
+            $parentUser->update([
+                'name' => trim($validated['parent_prenom'] . ' ' . $validated['parent_nom']),
+                'nom' => $validated['parent_nom'],
+                'prenom' => $validated['parent_prenom'],
+            ]);
 
             $parentEleve = ParentEleve::updateOrCreate(
                 ['id_parent' => $parentUser->id],
                 [
                     'telephone' => $validated['parent_phone'],
+                    'cin' => $validated['parent_cin'],
+                    'urgence_phone' => $validated['parent_urgence_phone'],
                     'country_code' => $validated['country_code'] ?? '+212',
                 ]
             );
@@ -192,7 +241,7 @@ class SecretaireController extends Controller
                 'name' => trim($validated['prenom'] . ' ' . $validated['nom']),
                 'nom' => $validated['nom'],
                 'prenom' => $validated['prenom'],
-                'email' => $validated['email'],
+                'email' => $studentEmail,
             ]);
         });
 
@@ -205,6 +254,40 @@ class SecretaireController extends Controller
         $user->delete();
 
         return response()->json(['message' => 'Etudiant supprime avec succes.']);
+    }
+
+    private function buildStudentEmailFromParent(string $parentEmail, string $nom, string $prenom): string
+    {
+        $baseAlias = Str::of($prenom . '.' . $nom)
+            ->ascii()
+            ->lower()
+            ->replaceMatches('/[^a-z0-9.]/', '')
+            ->trim('.')
+            ->value();
+
+        if ($baseAlias === '') {
+            $baseAlias = 'eleve';
+        }
+
+        $domain = 'linkedu.local';
+        $prefix = $baseAlias;
+
+        if (Str::contains($parentEmail, '@')) {
+            [$local, $dom] = explode('@', $parentEmail, 2);
+            $domain = $dom;
+            $prefix = $local . '+eleve.' . $baseAlias;
+        }
+
+        $studentEmail = $prefix . '@' . $domain;
+
+        // Try to add a numeric suffix if already exists
+        $i = 1;
+        while (User::where('email', $studentEmail)->exists()) {
+            $studentEmail = $prefix . $i . '@' . $domain;
+            $i++;
+        }
+
+        return $studentEmail;
     }
 
     public function listClasses(): JsonResponse
@@ -461,5 +544,63 @@ class SecretaireController extends Controller
         $reclamation->update(['statut' => $validated['statut']]);
 
         return response()->json(['message' => 'Statut de reclamation mis a jour avec succes.']);
+    }
+
+    public function listParents(): JsonResponse
+    {
+        $parents = ParentEleve::with('user')
+            ->get()
+            ->map(function ($p) {
+                return [
+                    'id_parent' => $p->id_parent,
+                    'nom' => $p->user->nom ?? '',
+                    'prenom' => $p->user->prenom ?? '',
+                    'email' => $p->user->email ?? '',
+                    'telephone' => $p->telephone,
+                ];
+            });
+
+        return response()->json(['parents' => $parents]);
+    }
+
+    public function createReclamation(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'id_etudiant' => ['nullable', 'integer', 'exists:etudiants,id_etudiant'],
+            'id_parent' => ['nullable', 'integer', 'exists:parents,id_parent'],
+            'sujet' => ['required', 'string', 'max:255'],
+            'message' => ['required', 'string'],
+        ]);
+
+        $idParent = $validated['id_parent'] ?? null;
+
+        if (! $idParent && ! empty($validated['id_etudiant'])) {
+            $etudiant = Etudiant::find($validated['id_etudiant']);
+            if (! $etudiant || ! $etudiant->id_parent) {
+                return response()->json([
+                    'message' => 'Aucun parent lie a cet etudiant.',
+                ], 422);
+            }
+            $idParent = $etudiant->id_parent;
+        }
+
+        if (! $idParent) {
+            return response()->json([
+                'message' => 'Selectionnez un etudiant ou un parent valide.',
+            ], 422);
+        }
+
+        $reclamation = Reclamation::create([
+            'id_parent' => $idParent,
+            'sujet' => $validated['sujet'],
+            'message' => $validated['message'],
+            'statut' => 'en_attente',
+            'date_soumission' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'Reclamation envoyée au parent avec succès.',
+            'reclamation' => $reclamation
+        ], 201);
     }
 }

@@ -22,10 +22,10 @@ export default function AdminUsers({ onCreateUser, onEditUser }) {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('tous');
-  const [statusFilter, setStatusFilter] = useState('tous');
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [activatingUserId, setActivatingUserId] = useState(null);
   const [editTarget, setEditTarget] = useState(null);
   const [viewTarget, setViewTarget] = useState(null);
 
@@ -38,7 +38,10 @@ export default function AdminUsers({ onCreateUser, onEditUser }) {
         withCredentials: true,
         headers: { Accept: 'application/json' }
       });
-      setUsers(resUsers.data);
+      const visibleUsers = (resUsers.data || []).filter(
+        (u) => u.role !== 'parent' && u.role !== 'parent_eleve' && u.role !== 'etudiant'
+      );
+      setUsers(visibleUsers);
     } catch (error) {
       console.error('Erreur fetch:', error);
     } finally {
@@ -93,6 +96,25 @@ export default function AdminUsers({ onCreateUser, onEditUser }) {
     }
   };
 
+  const handleActivate = async (user) => {
+    setActivatingUserId(user.id);
+    try {
+      await ensureCsrfCookie();
+      const res = await axios.post(`${apiBaseUrl}/api/admin/users/${user.id}/activate`, {}, {
+        withCredentials: true,
+        withXSRFToken: true,
+        headers: { Accept: 'application/json' }
+      });
+
+      alert(res.data?.message || 'Compte active avec succes.');
+      await fetchData();
+    } catch (error) {
+      alert(error?.response?.data?.message || 'Erreur lors de l activation du compte.');
+    } finally {
+      setActivatingUserId(null);
+    }
+  };
+
   const USERS_PER_PAGE = 8;
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -110,18 +132,15 @@ export default function AdminUsers({ onCreateUser, onEditUser }) {
 
       const roleMatch = roleFilter === 'tous' || user.role === roleFilter;
 
-      const status = (user.email || '').trim() ? 'actif' : 'inactif';
-      const statusMatch = statusFilter === 'tous' || status === statusFilter;
-
-      return searchMatch && roleMatch && statusMatch;
+      return searchMatch && roleMatch;
     });
-  }, [users, normalizedSearch, roleFilter, statusFilter]);
+  }, [users, normalizedSearch, roleFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredUsers.length / USERS_PER_PAGE));
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, roleFilter, statusFilter]);
+  }, [searchTerm, roleFilter]);
 
   const paginatedUsers = useMemo(() => {
     const start = (page - 1) * USERS_PER_PAGE;
@@ -147,10 +166,10 @@ export default function AdminUsers({ onCreateUser, onEditUser }) {
   };
 
   const getStatusUI = (user) => {
-    const active = (user.email || '').trim() !== '';
+    const active = user.account_status !== 'pending_activation';
     return active
       ? { label: 'Actif', dot: 'bg-emerald-500', text: 'text-emerald-700' }
-      : { label: 'Inactif', dot: 'bg-gray-400', text: 'text-gray-600' };
+      : { label: 'En attente activation', dot: 'bg-amber-500', text: 'text-amber-700' };
   };
 
   const firstItem = filteredUsers.length === 0 ? 0 : (page - 1) * USERS_PER_PAGE + 1;
@@ -203,19 +222,9 @@ export default function AdminUsers({ onCreateUser, onEditUser }) {
               <option value="directeur">Directeur</option>
               <option value="secretaire">Secretaire</option>
               <option value="professeur">Professeur</option>
-              <option value="parent">Parent</option>
-              <option value="etudiant">Etudiant</option>
             </select>
 
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            >
-              <option value="tous">Statut: Tous</option>
-              <option value="actif">Actif</option>
-              <option value="inactif">Inactif</option>
-            </select>
+            
           </div>
         </div>
 
@@ -251,6 +260,7 @@ export default function AdminUsers({ onCreateUser, onEditUser }) {
               ) : (
                 paginatedUsers.map(user => {
                   const statusUi = getStatusUI(user);
+                  const canActivate = user.role === 'etudiant' && user.account_status === 'pending_activation';
                   return (
                   <tr key={user.id} className="hover:bg-blue-50/50 transition-colors group">
                     <td className="py-4 px-6">
@@ -287,6 +297,16 @@ export default function AdminUsers({ onCreateUser, onEditUser }) {
                         >
                           <Eye size={18} />
                         </button>
+                        {canActivate && (
+                          <button
+                            onClick={() => handleActivate(user)}
+                            disabled={activatingUserId === user.id}
+                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 p-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                            title="Activer le compte"
+                          >
+                            <UserCheck size={18} />
+                          </button>
+                        )}
                         <button 
                           onClick={() => handleEditUser(user)} 
                           className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors cursor-pointer"

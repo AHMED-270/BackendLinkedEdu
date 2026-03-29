@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { FiBell as Bell, FiHelpCircle as HelpCircle, FiGrid as LayoutDashboard, FiUsers as Users, FiBookOpen as GraduationCap, FiSettings as Settings, FiLogOut as LogOut, FiUser as UserCircle, FiLogOut as DoorOpen, FiBookOpen as BookOpen } from 'react-icons/fi';
+import { FiBell as Bell, FiHelpCircle as HelpCircle, FiGrid as LayoutDashboard, FiUsers as Users, FiBookOpen as GraduationCap, FiSettings as Settings, FiLogOut as LogOut, FiUser as UserCircle, FiLogOut as DoorOpen, FiBookOpen as BookOpen, FiUserCheck as UserCheck } from 'react-icons/fi';
 import './AdminDashboard.css';
 import AdminDashboardHome from './AdminDashboardHome';
 import AdminUsers from './AdminUsers';
@@ -10,6 +10,7 @@ import AdminUserForm from './AdminUserForm';
 import AdminClassForm from './AdminClassForm';
 import AdminMatieres from './AdminMatieres';
 import AdminSettings from './AdminSettings';
+import AdminAccountActivations from './AdminAccountActivations';
 
 const ADMIN_AVATAR_STORAGE_KEY = 'linkedu_admin_avatar';
 const SUBPROJECT_STORAGE_KEY = 'linkedu_subproject_settings';
@@ -207,7 +208,13 @@ export default function AdminDashboard({ onLogout, userRole = 'admin', user = nu
             {userRole === 'admin' && (
               <a href="#" className={'nav-item ' + (currentView === 'users' ? 'active' : '')} onClick={(e) => {e.preventDefault(); setCurrentView('users');}}>
                 <Users size={20} />
-                <span>Users</span>
+                <span>Cadre academique</span>
+              </a>
+            )}
+            {userRole === 'admin' && (
+              <a href="#" className={'nav-item ' + (currentView === 'activations' ? 'active' : '')} onClick={(e) => {e.preventDefault(); setCurrentView('activations');}}>
+                <UserCheck size={20} />
+                <span>Activations</span>
               </a>
             )}
               <a href="#" className={'nav-item ' + (currentView === 'classes' ? 'active' : '')} onClick={(e) => {e.preventDefault(); setCurrentView('classes');}}>
@@ -265,6 +272,9 @@ export default function AdminDashboard({ onLogout, userRole = 'admin', user = nu
             <AdminUsers
               onCreateUser={openCreateUserForm}
             />
+          )}
+          {currentView === 'activations' && userRole === 'admin' && (
+            <AdminAccountActivations />
           )}
           {currentView === 'classes' && (
             <AdminClasses

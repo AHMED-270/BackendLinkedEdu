@@ -10,8 +10,12 @@ const emptyForm = {
   genre: 'M',
   id_classe: '',
   email: '',
+  parent_nom: '',
+  parent_prenom: '',
+  parent_cin: '',
   parent_email: '',
   parent_phone: '',
+  parent_urgence_phone: '',
   adresse: '',
 };
 
@@ -19,6 +23,7 @@ export default function SecretaireEtudiants() {
   const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000';
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [classFilter, setClassFilter] = useState('all');
   const [isFormPage, setIsFormPage] = useState(false);
@@ -27,6 +32,7 @@ export default function SecretaireEtudiants() {
   const [form, setForm] = useState(emptyForm);
 
   const loadData = async () => {
+    setLoading(true);
     const [studentsRes, classesRes] = await Promise.all([
       axios.get(apiBaseUrl + '/api/secretaire/students', {
         withCredentials: true,
@@ -40,12 +46,14 @@ export default function SecretaireEtudiants() {
 
     setStudents(studentsRes.data?.students || []);
     setClasses(classesRes.data?.classes || []);
+    setLoading(false);
   };
 
   useEffect(() => {
     loadData().catch(() => {
       setStudents([]);
       setClasses([]);
+      setLoading(false);
     });
   }, []);
 
@@ -55,7 +63,7 @@ export default function SecretaireEtudiants() {
       const classMatch = classFilter === 'all' || String(s.id_classe || '') === classFilter;
       if (!classMatch) return false;
       if (!term) return true;
-      return [s.nom, s.prenom, s.email, s.matricule, s.classe]
+      return [s.nom, s.prenom, s.email, s.matricule, s.classe, s.parent_nom, s.parent_prenom, s.parent_email, s.parent_cin, s.parent_phone, s.parent_urgence_phone]
         .some((v) => String(v || '').toLowerCase().includes(term));
     });
   }, [students, search, classFilter]);
@@ -101,9 +109,13 @@ export default function SecretaireEtudiants() {
         genre: form.genre,
         id_classe: form.id_classe ? Number(form.id_classe) : null,
         email: form.email,
+        parent_nom: form.parent_nom,
+        parent_prenom: form.parent_prenom,
+        parent_cin: form.parent_cin,
         parent_email: form.parent_email || '',
         country_code: '+212',
         parent_phone: form.parent_phone,
+        parent_urgence_phone: form.parent_urgence_phone,
         adresse: form.adresse,
       };
 
@@ -136,8 +148,12 @@ export default function SecretaireEtudiants() {
       genre: student.genre || 'M',
       id_classe: student.id_classe ? String(student.id_classe) : '',
       email: student.email || '',
+      parent_nom: student.parent_nom || '',
+      parent_prenom: student.parent_prenom || '',
+      parent_cin: student.parent_cin || '',
       parent_email: student.parent_email || '',
       parent_phone: student.parent_phone || '',
+      parent_urgence_phone: student.parent_urgence_phone || '',
       adresse: student.adresse || '',
     });
     setErrorMessage('');
@@ -165,84 +181,73 @@ export default function SecretaireEtudiants() {
                   <FiUsers className="w-8 h-8 text-blue-600" />
                   Liste des étudiants
                 </h1>
-                
               </div>
-              <button 
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium rounded-xl shadow-sm hover:bg-blue-700 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20 active:scale-95" 
-                onClick={openCreateFormPage}
-              >
-                <FiPlus className="w-5 h-5" />
-                Nouvel étudiant
-              </button>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3 w-full justify-end mb-4 md:mb-6">
-              <div className="relative w-full sm:w-72">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiSearch className="h-4 w-4 text-gray-400" />
+              <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                <div className="relative w-full sm:w-64">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <FiSearch className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <input
+                    className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm shadow-sm font-medium"
+                    placeholder="Chercher..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
                 </div>
-                <input
-                  className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm shadow-sm"
-                  placeholder="Rechercher un étudiant..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
+                
+                <div className="relative w-full sm:w-48">
+                  <select
+                    className="block w-full pl-3 pr-10 py-2.5 border border-gray-200 rounded-xl leading-5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm shadow-sm font-medium appearance-none cursor-pointer"
+                    value={classFilter}
+                    onChange={(e) => setClassFilter(e.target.value)}
+                  >
+                    <option value="all">Toutes les classes</option>
+                    {classes.map((c) => (
+                      <option key={c.id_classe} value={String(c.id_classe)}>
+                        {c.nom}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-400">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+
+                <button 
+                  className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl shadow-sm hover:bg-blue-700 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20 active:scale-95 text-sm" 
+                  onClick={openCreateFormPage}
+                >
+                  <FiPlus className="w-5 h-5 stroke-[3]" />
+                  Nouvel étudiant
+                </button>
               </div>
-              <select 
-                className="block w-full sm:w-48 py-2.5 px-3 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors cursor-pointer shadow-sm font-medium text-gray-700" 
-                value={classFilter} 
-                onChange={(e) => setClassFilter(e.target.value)}
-              >
-                <option value="all">Toutes les classes</option>
-                {classes.map((c) => (
-                  <option key={c.id_classe} value={String(c.id_classe)}>{c.nom} - {c.niveau}</option>
-                ))}
-              </select>
             </div>
 
             <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-              <div className="px-6 py-3 border-b border-gray-100 bg-gray-50/50 flex flex-wrap items-center gap-2">
-                
-                {classes.slice(0, 8).map((c) => {
-                  const value = String(c.id_classe);
-                  const isActive = classFilter === value;
-                  return (
-                    
-                    <button
-                      key={c.id_classe}
-                      type="button"
-                      onClick={() => setClassFilter(value)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                        isActive
-                          ? 'bg-indigo-600 text-white border-indigo-600'
-                          : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
-                      }`}
-                    >
-                      {c.nom}
-                    </button>
-                  );
-                })}
-              </div>
-
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-200">
-                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Matricule</th>
                       <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Nom et Prenom</th>
-                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Classe</th>
-                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
+                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Email</th>
+                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Parent</th>
                       <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {visibleStudents.map((student) => (
+                    {loading ? (
+                      [...Array(6)].map((_, i) => (
+                        <tr key={`student-skeleton-${i}`} className="animate-pulse">
+                          <td className="py-4 px-6"><div className="h-9 w-48 rounded bg-gray-100"></div></td>
+                          <td className="py-4 px-6"><div className="h-4 w-40 rounded bg-gray-100 mx-auto"></div></td>
+                          <td className="py-4 px-6"><div className="h-10 w-52 rounded bg-gray-100"></div></td>
+                          <td className="py-4 px-6"><div className="h-4 w-16 ml-auto rounded bg-gray-100"></div></td>
+                        </tr>
+                      ))
+                    ) : visibleStudents.map((student) => (
                       <tr key={student.id_etudiant} className="hover:bg-blue-50/50 transition-colors group">
-                        <td className="py-4 px-6">
-                           <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-mono font-medium bg-gray-100 text-gray-800">
-                             {student.matricule || '-'}
-                           </span>
-                        </td>
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm tracking-tight">
@@ -252,14 +257,11 @@ export default function SecretaireEtudiants() {
                             <span className="font-semibold text-gray-900">{student.nom} {student.prenom}</span>
                           </div>
                         </td>
-                        <td className="py-4 px-6 text-sm text-gray-600 font-medium">
-                          {student.classe ? (
-                            <span className="bg-indigo-50 text-indigo-700 py-1 px-2.5 rounded-lg border border-indigo-100">
-                              {student.classe}
-                            </span>
-                          ) : '-'}
+                        <td className="py-4 px-6 text-sm text-gray-500 text-center">{student.email || '-'}</td>
+                        <td className="py-4 px-6 text-sm text-gray-600">
+                          <div className="font-semibold text-gray-800">{student.parent_nom || '-'} {student.parent_prenom || ''}</div>
+                          <div className="text-xs text-gray-500">Parent: {student.parent_phone || '-'}</div>
                         </td>
-                        <td className="py-4 px-6 text-sm text-gray-500">{student.email || '-'}</td>
                         <td className="py-4 px-6">
                           <div className="flex items-center justify-end gap-2">
                             <button 
@@ -280,9 +282,9 @@ export default function SecretaireEtudiants() {
                         </td>
                       </tr>
                     ))}
-                    {visibleStudents.length === 0 && (
+                    {!loading && visibleStudents.length === 0 && (
                       <tr>
-                        <td colSpan="5" className="py-12 text-center">
+                        <td colSpan="4" className="py-12 text-center">
                           <div className="flex flex-col items-center justify-center text-gray-400">
                             <FiUsers className="w-12 h-12 mb-3 text-gray-200" />
                             <p className="text-base font-medium text-gray-500">Aucun étudiant trouvé</p>
@@ -425,6 +427,106 @@ export default function SecretaireEtudiants() {
                 </div>
               </section>
 
+              {/* Informations Parent / Tuteur */}
+              <section className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+                <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <span className="bg-white p-1.5 rounded-lg shadow-sm border border-gray-100 text-base">👨‍👩‍👧</span>
+                  Informations Parent / Tuteur
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-gray-700">Nom du parent</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                        <FiUser size={16} />
+                      </div>
+                      <input
+                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                        value={form.parent_nom}
+                        onChange={(e) => setForm({ ...form, parent_nom: e.target.value })}
+                        placeholder="ex: Alami"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-gray-700">Prénom du parent</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                        <FiUser size={16} />
+                      </div>
+                      <input
+                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                        value={form.parent_prenom}
+                        onChange={(e) => setForm({ ...form, parent_prenom: e.target.value })}
+                        placeholder="ex: Fatima"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-gray-700">Numéro CIN du parent</label>
+                    <input
+                      className="block w-full px-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                      value={form.parent_cin}
+                      onChange={(e) => setForm({ ...form, parent_cin: e.target.value })}
+                      placeholder="ex: AB123456"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-gray-700">Gmail du parent</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                        <FiMail size={16} />
+                      </div>
+                      <input
+                        type="email"
+                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                        value={form.parent_email}
+                        onChange={(e) => setForm({ ...form, parent_email: e.target.value })}
+                        placeholder="parent@gmail.com"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-gray-700">Téléphone parent</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                        <FiPhone size={16} />
+                      </div>
+                      <input
+                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                        value={form.parent_phone}
+                        onChange={(e) => setForm({ ...form, parent_phone: e.target.value })}
+                        placeholder="+212 6 00 00 00 00"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-gray-700">Téléphone urgence (Facultatif)</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                        <FiPhone size={16} />
+                      </div>
+                      <input
+                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                        value={form.parent_urgence_phone}
+                        onChange={(e) => setForm({ ...form, parent_urgence_phone: e.target.value })}
+                        placeholder="+212 6 11 11 11 11"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </section>
+
               {/* Coordonnées */}
               <section className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
                 <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -441,21 +543,10 @@ export default function SecretaireEtudiants() {
                       <input 
                         type="email" 
                         className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-                        value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required placeholder="etudiant@exemple.com" 
+                        value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Optionnel: etudiant@exemple.com"
                       />
                     </div>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-gray-700">Téléphone</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                        <FiPhone size={16} />
-                      </div>
-                      <input 
-                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-                        value={form.parent_phone} onChange={(e) => setForm({ ...form, parent_phone: e.target.value })} placeholder="+33 6 00 00 00 00" required 
-                      />
-                    </div>
+                    <p className="text-xs text-gray-500">Si vide, le systeme generera un email eleve base sur le gmail parent.</p>
                   </div>
                   <div className="flex flex-col gap-1.5 md:col-span-2">
                     <label className="text-sm font-medium text-gray-700">Adresse postale</label>
