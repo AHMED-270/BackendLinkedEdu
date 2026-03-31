@@ -18,8 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->validateCsrfTokens(except: [
+            'api/login',
             'api/admin/login',
             'api/admin/logout',
+            'api/directeur/login',
         ]);
 
         $middleware->alias([
