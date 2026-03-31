@@ -81,15 +81,17 @@ export default function LoginCard({ onLoginSuccess }) {
       setLoginFeedbackType('success');
 
       const role = connectedUser?.role;
-      const roleHome = role === 'admin' || role === 'directeur'
+      const roleHome = role === 'admin'
         ? '/admin'
-        : role === 'professeur'
-          ? '/dashboard'
-          : role === 'etudiant'
-            ? '/etudiant'
-            : role === 'parent'
-              ? '/parent'
-              : '/login';
+        : role === 'directeur'
+          ? '/directeur'
+          : role === 'professeur'
+            ? '/dashboard'
+            : role === 'etudiant'
+              ? '/etudiant'
+              : role === 'parent'
+                ? '/parent'
+                : '/login';
 
       setTimeout(() => navigate(roleHome, { replace: true }), 500);
     } catch (err) {

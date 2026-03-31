@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 // Layout & Admin
 import Layout from './components/Layout';
 import AdminDashboard from './components/AdminDashboard';
+import DirecteurDashboard from './components/DirecteurDashboard';
 import AuthHero from './components/AuthHero';
 import LoginCard from './components/LoginCard';
 
@@ -27,7 +28,8 @@ import ParentPortal from './pages/ParentPortal';
 import './App.css';
 
 const getHomeRouteByRole = (role) => {
-  if (role === 'admin' || role === 'directeur') return '/admin';
+  if (role === 'admin') return '/admin';
+  if (role === 'directeur') return '/directeur';
   if (role === 'professeur') return '/dashboard';
   if (role === 'etudiant') return '/etudiant';
   if (role === 'parent') return '/parent';
@@ -109,9 +111,20 @@ const AppRoutes = () => {
         <Route
           path="/admin/*"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'directeur']}>
+            <ProtectedRoute allowedRoles={['admin']}>
               <PageTransition>
                 <AdminDashboard onLogout={logout} userRole={user?.role || 'admin'} user={user} />
+              </PageTransition>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/directeur/*"
+          element={
+            <ProtectedRoute allowedRoles={['directeur']}>
+              <PageTransition>
+                <DirecteurDashboard onLogout={logout} user={user} />
               </PageTransition>
             </ProtectedRoute>
           }

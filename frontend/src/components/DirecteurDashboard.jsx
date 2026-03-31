@@ -22,6 +22,8 @@ function DirecteurDashboard({ user, onLogout }) {
   const location = useLocation()
   const navigate = useNavigate()
 
+  const basePath = '/directeur';
+
   const pathToMenuMap = {
     '/': 'Tableau de bord',
     '/professeurs': 'Liste des Professeurs',
@@ -50,10 +52,13 @@ function DirecteurDashboard({ user, onLogout }) {
     'Emploi du temps': '/emploi-du-temps'
   };
 
-  const activeMenu = pathToMenuMap[location.pathname] || 'Tableau de bord';
+  const relativePath = location.pathname.startsWith(basePath)
+    ? location.pathname.slice(basePath.length) || '/'
+    : location.pathname;
+  const activeMenu = pathToMenuMap[relativePath] || 'Tableau de bord';
   const setActiveMenu = (menuName) => {
     const p = menuToPathMap[menuName] || '/';
-    navigate(p);
+    navigate(`${basePath}${p}`);
   };
 
   const [activeTab, setActiveTab] = useState('devoir')
