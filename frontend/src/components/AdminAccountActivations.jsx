@@ -203,7 +203,7 @@ export default function AdminAccountActivations() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[980px]">
+            <table className="table w-full text-left border-collapse min-w-[980px]">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Eleve</th>

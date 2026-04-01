@@ -211,7 +211,7 @@ export default function AdminMatieres({ userRole = 'admin' }) {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[780px]">
+            <table className="table w-full text-left border-collapse min-w-[780px]">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Matiere</th>

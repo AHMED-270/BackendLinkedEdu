@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;    
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class AdminLoginController extends Controller
@@ -43,9 +44,16 @@ class AdminLoginController extends Controller
         // Créer un token au cas où une app mobile en aurait besoin
         $token = $user->createToken("web-token")->plainTextToken;
 
+        $profilePhotoUrl = $user->profile_photo_path
+            ? Storage::disk('public')->url($user->profile_photo_path)
+            : null;
+
         return response()->json([
             "message" => "Connexion réussie",
-            "user" => $user,
+            "user" => array_merge($user->toArray(), [
+                'profilePhoto' => $profilePhotoUrl,
+                'profile_photo_url' => $profilePhotoUrl,
+            ]),
             "token" => $token
         ], 200);
     }

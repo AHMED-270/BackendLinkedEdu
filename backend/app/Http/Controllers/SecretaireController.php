@@ -14,6 +14,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class SecretaireController extends Controller
@@ -97,7 +99,77 @@ class SecretaireController extends Controller
             'country_code' => ['required', 'string', 'max:5'],
         ]);
 
-        $student = DB::transaction(function () use ($validated) {
+        $student = $this->persistStudentFromValidated($validated);
+
+        return response()->json([
+            'message' => 'Etudiant cree avec succes.',
+            'student' => $student,
+        ], 201);
+    }
+
+    public function importStudents(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'students' => ['required', 'array', 'min:1'],
+        ]);
+
+        $rules = [
+            'nom' => ['required', 'string', 'max:255'],
+            'prenom' => ['required', 'string', 'max:255'],
+            'date_naissance' => ['required', 'date'],
+            'genre' => ['required', 'in:M,F,A'],
+            'email' => ['nullable', 'email', 'max:255', 'unique:users,email'],
+            'adresse' => ['required', 'string', 'max:500'],
+            'id_classe' => ['nullable', 'integer', 'exists:classes,id_classe'],
+            'parent_nom' => ['required', 'string', 'max:255'],
+            'parent_prenom' => ['required', 'string', 'max:255'],
+            'parent_email' => ['nullable', 'email', 'max:255'],
+            'parent_phone' => ['required', 'string', 'max:20'],
+            'parent_cin' => ['required', 'string', 'max:30'],
+            'parent_urgence_phone' => ['nullable', 'string', 'max:30'],
+            'country_code' => ['required', 'string', 'max:5'],
+        ];
+
+        $imported = 0;
+        $errors = [];
+
+        foreach ($validated['students'] as $index => $row) {
+            $payload = is_array($row) ? $row : [];
+            if (!array_key_exists('country_code', $payload) || !$payload['country_code']) {
+                $payload['country_code'] = '+212';
+            }
+
+            $validator = Validator::make($payload, $rules);
+            if ($validator->fails()) {
+                $errors[] = [
+                    'ligne' => $index + 1,
+                    'errors' => $validator->errors()->toArray(),
+                ];
+                continue;
+            }
+
+            try {
+                $this->persistStudentFromValidated($validator->validated());
+                $imported++;
+            } catch (\Throwable $e) {
+                $errors[] = [
+                    'ligne' => $index + 1,
+                    'errors' => ['general' => [$e->getMessage()]],
+                ];
+            }
+        }
+
+        return response()->json([
+            'message' => "Import termine: {$imported} eleve(s) importe(s).",
+            'imported' => $imported,
+            'failed' => count($errors),
+            'errors' => $errors,
+        ], $imported > 0 ? 200 : 422);
+    }
+
+    private function persistStudentFromValidated(array $validated): User
+    {
+        return DB::transaction(function () use ($validated) {
             $fallbackParentEmail = 'parent_' . preg_replace('/\D+/', '', (string) $validated['parent_phone']) . '@linkedu.local';
             $parentEmail = $validated['parent_email'] ?? $fallbackParentEmail;
             
@@ -109,10 +181,6 @@ class SecretaireController extends Controller
                     $validated['prenom']
                 );
             }
-
-            // At this point, if $validated['email'] was provided but collision exists, 
-            // the DB transaction will still fail, but our buildStudentEmail function 
-            // is now much safer for the auto-generation case.
 
             $parentUser = User::firstOrCreate(
                 ['email' => $parentEmail],
@@ -154,7 +222,7 @@ class SecretaireController extends Controller
 
             Etudiant::create([
                 'id_etudiant' => $user->id,
-                'matricule' => 'STU-' . now()->format('YmdHis'),
+                'matricule' => 'STU-' . now()->format('YmdHis') . Str::random(3),
                 'id_classe' => $validated['id_classe'] ?? null,
                 'id_parent' => $parentEleve->id_parent,
                 'date_naissance' => $validated['date_naissance'],
@@ -164,11 +232,6 @@ class SecretaireController extends Controller
 
             return $user;
         });
-
-        return response()->json([
-            'message' => 'Etudiant cree avec succes.',
-            'student' => $student,
-        ], 201);
     }
 
     public function updateStudent(Request $request, int $id): JsonResponse
@@ -438,13 +501,21 @@ class SecretaireController extends Controller
                 'annonces.id_annonce',
                 'annonces.titre',
                 'annonces.contenu',
+                'annonces.cible',
                 'annonces.date_publication',
                 'annonces.created_at',
+                'annonces.photo_path',
                 'users.nom as auteur_nom',
                 'users.prenom as auteur_prenom'
             )
             ->orderByDesc('annonces.created_at')
-            ->get();
+            ->get()
+            ->map(function ($annonce) {
+                $annonce->photo_url = $annonce->photo_path
+                    ? Storage::disk('public')->url($annonce->photo_path)
+                    : null;
+                return $annonce;
+            });
 
         return response()->json(['annonces' => $annonces]);
     }
@@ -457,6 +528,7 @@ class SecretaireController extends Controller
                 'contenu' => ['required', 'string'],
                 'cible' => ['nullable', 'string'],
                 'statut' => ['nullable', 'string'],
+                'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             ]);
 
             $user = $request->user();
@@ -464,12 +536,23 @@ class SecretaireController extends Controller
                 return response()->json(['message' => 'Utilisateur non authentifié'], 401);
             }
 
+            $photoPath = null;
+            if ($request->hasFile('photo')) {
+                $photoPath = $request->file('photo')->store('annonces', 'public');
+            }
+
             $annonce = Annonce::create([
                 'titre' => $validated['titre'],
                 'contenu' => $validated['contenu'],
+                'cible' => $validated['cible'] ?? 'Tous',
                 'date_publication' => now(),
                 'id_user' => $user->id,
+                'photo_path' => $photoPath,
             ]);
+
+            $annonce->photo_url = $annonce->photo_path
+                ? Storage::disk('public')->url($annonce->photo_path)
+                : null;
 
             return response()->json([
                 'message' => 'Annonce publiee avec succes.',
@@ -491,13 +574,27 @@ class SecretaireController extends Controller
             'contenu' => ['required', 'string'],
             'cible' => ['nullable', 'string'],
             'statut' => ['nullable', 'string'],
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
 
         $annonce = Annonce::findOrFail($id);
-        $annonce->update([
+        $updateData = [
             'titre' => $validated['titre'],
             'contenu' => $validated['contenu'],
-        ]);
+            'cible' => $validated['cible'] ?? 'Tous',
+        ];
+
+        if ($request->hasFile('photo')) {
+            if ($annonce->photo_path && Storage::disk('public')->exists($annonce->photo_path)) {
+                Storage::disk('public')->delete($annonce->photo_path);
+            }
+            $updateData['photo_path'] = $request->file('photo')->store('annonces', 'public');
+        }
+
+        $annonce->update($updateData);
+        $annonce->photo_url = $annonce->photo_path
+            ? Storage::disk('public')->url($annonce->photo_path)
+            : null;
 
         return response()->json([
             'message' => 'Annonce mise a jour avec succes.',
@@ -508,6 +605,9 @@ class SecretaireController extends Controller
     public function deleteAnnonce(int $id): JsonResponse
     {
         $annonce = Annonce::findOrFail($id);
+        if ($annonce->photo_path && Storage::disk('public')->exists($annonce->photo_path)) {
+            Storage::disk('public')->delete($annonce->photo_path);
+        }
         $annonce->delete();
 
         return response()->json(['message' => 'Annonce supprimee avec succes.']);

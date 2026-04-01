@@ -1,119 +1,74 @@
-import { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { FiGrid, FiUsers, FiBookOpen, FiCalendar, FiMessageCircle, FiLogOut } from 'react-icons/fi';
-import axios from 'axios';
+﻿import { NavLink } from 'react-router-dom';
+import { FiGrid, FiUsers, FiBookOpen, FiCalendar, FiMessageCircle, FiAlertCircle } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
-import './Sidebar.css';
 
 const navItems = [
   { path: '/secretaire/dashboard', label: 'Tableau de bord', icon: FiGrid },
   { path: '/secretaire/etudiants', label: 'Etudiants', icon: FiUsers },
   { path: '/secretaire/classes', label: 'Classes', icon: FiBookOpen },
   { path: '/secretaire/absences', label: 'Absences', icon: FiCalendar },
-  { path: '/secretaire/annonces', label: 'Annonces', icon: FiMessageCircle },
-  { path: '/secretaire/reclamations', label: 'Reclamations', icon: FiMessageCircle },
+  { path: '/secretaire/annonces', label: 'Annonces', icon: FiMessageCircle },   
+  { path: '/secretaire/reclamations', label: 'Reclamations', icon: FiAlertCircle },
 ];
 
 export default function SecretaireSidebar() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { user } = useAuth();
   const initials = (user?.name || 'S').trim().charAt(0).toUpperCase();
 
-  const handleLogoutConfirm = async () => {
-    setIsLoggingOut(true);
-    try {
-      const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000';
-
-      await axios.get(apiBaseUrl + '/sanctum/csrf-cookie', {
-        withCredentials: true,
-        withXSRFToken: true,
-      });
-
-      await axios.post(apiBaseUrl + '/api/admin/logout', {}, {
-        withCredentials: true,
-        withXSRFToken: true,
-        headers: {
-          Accept: 'application/json',
-        },
-      });
-    } catch {
-      // Continue local logout even if API request fails.
-    } finally {
-      logout();
-      setIsLoggingOut(false);
-      setShowLogoutModal(false);
-      navigate('/login', { replace: true });
-    }
-  };
-
   return (
-    <>
-      {showLogoutModal && (
-        <div className="logout-modal-backdrop">
-          <div className="logout-modal-card">
-            <div className="logout-modal-icon">
-              <FiLogOut size={44} color="#f43f5e" />
-            </div>
-            <h3>Etes-vous sur de vouloir vous deconnecter ?</h3>
-            <p>Vous devrez saisir a nouveau vos identifiants pour revenir sur cet espace.</p>
-            <div className="logout-modal-actions">
-              <button
-                className="btn-cancel"
-                onClick={() => setShowLogoutModal(false)}
-                disabled={isLoggingOut}
-              >
-                Annuler
-              </button>
-              <button
-                className="btn-confirm-logout"
-                onClick={handleLogoutConfirm}
-                disabled={isLoggingOut}
-              >
-                {isLoggingOut ? 'Deconnexion...' : 'Oui, me deconnecter'}
-              </button>
+      <aside className="fixed bottom-0 left-0 top-16 z-[90] w-[260px] border-r border-slate-200 bg-white">
+        <div className="flex h-full flex-col px-3 py-4">
+          
+
+          <div className="mx-2 mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <div className="flex items-center gap-3">
+              {user?.profilePhoto ? (
+                <img src={user.profilePhoto} alt="Profil" className="h-11 w-11 rounded-full object-cover ring-2 ring-blue-100" />
+              ) : (
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white ring-2 ring-blue-100">
+                  {initials}
+                </div>
+              )}
+              <div className="min-w-0">
+                <div className="truncate text-sm font-bold text-slate-900">{user?.name || 'Secretaire'}</div>
+                <span className="mt-1 inline-flex rounded-full border border-blue-100 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-700">
+                  {user?.role || 'secretaire'}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      )}
 
-      <aside className="sidebar">
-        <div className="sidebar-profile">
-          {user?.profilePhoto ? (
-            <img src={user.profilePhoto} alt="Profil" className="sidebar-avatar" />
-          ) : (
-            <div className="sidebar-avatar sidebar-avatar-fallback">{initials}</div>
-          )}
-          <div className="sidebar-user-info">
-            <span className="sidebar-name">{user?.name || 'Secretaire'}</span>
-            <span className="sidebar-role">{user?.role || 'secretaire'}</span>
-          </div>
-        </div>
+          <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Navigation</div>
 
-        <nav className="sidebar-nav">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-              >
-                <Icon size={18} className="sidebar-icon" />
-                <span>{item.label}</span>
-              </NavLink>
-            );
-          })}
-        </nav>
-
-        <div className="sidebar-footer">
-          <button type="button" className="sidebar-logout" onClick={() => setShowLogoutModal(true)}>
-            <FiLogOut size={18} className="sidebar-icon" />
-            <span>Se deconnecter</span>
-          </button>
+          <nav className="flex flex-col gap-1 px-2">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `group flex items-center gap-3 rounded-xl border-l-2 px-3 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                      isActive
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <Icon
+                        size={18}
+                        className={isActive ? 'text-blue-600' : 'text-slate-400 transition-colors group-hover:text-blue-600'}
+                      />
+                      <span>{item.label}</span>
+                    </>
+                  )}
+                </NavLink>
+              );
+            })}
+          </nav>
         </div>
       </aside>
-    </>
   );
 }

@@ -16,6 +16,9 @@ import {
   MoreVertical,
   ChevronLeft,
   ChevronRight,
+  Eye,
+  X,
+  Inbox,
 } from 'lucide-react';
 
 const emptyForm = { id_etudiant: '', date_abs: '', motif: 'Medical' };
@@ -52,6 +55,7 @@ export default function SecretaireAbsences() {
   const [filterClasse, setFilterClasse] = useState('all');
   const [filterStatut, setFilterStatut] = useState('all');
   const [selectedDate, setSelectedDate] = useState(() => toLocalISODate(new Date()));
+  const [absenceInsightStudent, setAbsenceInsightStudent] = useState(null);
 
   const searchContainerRef = useRef(null);
 
@@ -313,6 +317,29 @@ export default function SecretaireAbsences() {
     );
   };
 
+  const buildStudentAbsenceInsight = (absenceRow) => {
+    const studentAbsences = absences.filter(
+      (entry) => String(entry.id_etudiant) === String(absenceRow.id_etudiant)
+    );
+
+    const totalAbsences = studentAbsences.length;
+    // Business rule requested: every absence item corresponds to 2 hours.
+    const totalHours = totalAbsences * 2;
+    // 0.25 point per 2 hours absent.
+    const absenceNote = (totalHours / 2) * 0.25;
+
+    setAbsenceInsightStudent({
+      id_etudiant: absenceRow.id_etudiant,
+      nom: absenceRow.etu_nom || '',
+      prenom: absenceRow.etu_prenom || '',
+      classe_nom: absenceRow.classe_nom || '-',
+      classe_niveau: absenceRow.classe_niveau || '-',
+      totalAbsences,
+      totalHours,
+      absenceNote,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-[#f8fafc] p-4 lg:p-8 font-sans text-gray-900">
       <div className="max-w-[1400px] mx-auto">
@@ -320,7 +347,12 @@ export default function SecretaireAbsences() {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
           <div className="w-full md:w-auto">
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Registre des Absences</h1>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
+                <Calendar className="w-8 h-8 text-blue-600" />
+                Registre des Absences
+              </h1>
+            </div>
           </div>
           <div className="relative w-full md:w-80">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -378,7 +410,7 @@ export default function SecretaireAbsences() {
                   onChange={(e) => setFilterClasse(e.target.value)}
                   className="w-full sm:w-44 pl-10 pr-8 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none font-medium text-gray-700"
                 >
-                  <option value="all">Toutes les classes</option>
+                  <option value="all">Toutes classes</option>
                   {uniqueClasses.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
@@ -394,7 +426,7 @@ export default function SecretaireAbsences() {
               <button
                 type="button"
                 onClick={handleExportCsv}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors text-sm font-semibold whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-emerald-200 text-emerald-700 rounded-xl hover:bg-emerald-50 transition-colors text-sm font-semibold whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={filteredAbsences.length === 0}
               >
                 <Download className="w-4 h-4" />
@@ -403,8 +435,8 @@ export default function SecretaireAbsences() {
             </div>
 
             {/* Table Card */}
-            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden pb-4">
-              <div className="px-6 py-5 border-b border-gray-50 flex justify-between items-center">
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden pb-4">
+              <div className="px-6 py-5 border-b border-gray-50 flex justify-between items-center bg-transparent">
                 <h2 className="text-lg font-bold text-gray-900">Liste des Absences Récentes</h2>
                 <div className="flex items-center gap-2 text-sm text-gray-500">
                   <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
@@ -412,17 +444,17 @@ export default function SecretaireAbsences() {
                 </div>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[700px]">
+                <table className="table w-full text-left border-collapse min-w-[700px]">
                   <thead>
-                    <tr className="border-b border-gray-50 bg-gray-50/30">
-                      <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Étudiant</th>
-                      <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Classe</th>
-                      <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Date & Période</th>
-                      <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Statut</th>
-                      <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Étudiant</th>
+                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Classe</th>
+                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date & Période</th>
+                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Statut</th>
+                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50">
+                  <tbody className="divide-y divide-gray-100">
                     {loading ? (
                       [...Array(6)].map((_, i) => (
                         <tr key={`absence-skeleton-${i}`} className="animate-pulse">
@@ -434,7 +466,7 @@ export default function SecretaireAbsences() {
                         </tr>
                       ))
                     ) : filteredAbsences.length > 0 ? filteredAbsences.map((a) => (
-                      <tr key={a.id_absence} className="hover:bg-gray-50/50 transition-colors group">
+                      <tr key={a.id_absence} className="hover:bg-blue-50/50 transition-colors group">
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
@@ -468,6 +500,13 @@ export default function SecretaireAbsences() {
                         <td className="py-4 px-6 text-right">
                            <div className="flex items-center justify-end gap-2 text-gray-400">
                              <button
+                               onClick={() => buildStudentAbsenceInsight(a)}
+                               className="p-1.5 text-gray-700 hover:bg-gray-100 hover:text-black rounded-lg transition-colors"
+                               title="Voir le bilan d'absence"
+                             >
+                               <Eye className="w-4 h-4" />
+                             </button>
+                             <button
                                onClick={() => {
                                  setEditingId(a.id_absence);
                                  setForm({
@@ -477,13 +516,13 @@ export default function SecretaireAbsences() {
                                  });
                                  window.scrollTo({ top: 0, behavior: 'smooth' });
                                }}
-                               className="p-1.5 hover:bg-gray-100 hover:text-blue-600 rounded-lg transition-colors"
+                               className="p-1.5 text-blue-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors"
                              >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                              </button>
                              <button
                                onClick={() => onDelete(a.id_absence)}
-                               className="p-1.5 hover:bg-gray-100 hover:text-red-600 rounded-lg transition-colors"
+                               className="p-1.5 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors"
                              >
                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                              </button>
@@ -491,7 +530,17 @@ export default function SecretaireAbsences() {
                         </td>
                       </tr>
                     )) : (
-                      <tr><td colSpan="5" className="py-8 text-center text-gray-500">Aucune absence trouvée</td></tr>
+                      <tr>
+                        <td colSpan="5" className="py-12 text-center">
+                          <div className="flex flex-col items-center justify-center text-gray-400">
+                            <span className="mb-3 text-gray-200">
+                               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            </span>
+                            <p className="text-base font-medium text-gray-500">Aucune absence trouvée</p>
+                            <p className="text-sm mt-1">Ajustez vos filtres ou effectuez une nouvelle recherche.</p>
+                          </div>
+                        </td>
+                      </tr>
                     )}
                   </tbody>
                 </table>
@@ -639,6 +688,54 @@ export default function SecretaireAbsences() {
           </div>
         </div>
       </div>
+
+      {absenceInsightStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-white/15 bg-white shadow-2xl">
+            <div className="flex items-start justify-between border-b border-gray-100 bg-gray-50 px-6 py-4">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Bilan d'absence de l'étudiant</h2>
+                <p className="mt-1 text-xs text-gray-500">
+                  {absenceInsightStudent.nom} {absenceInsightStudent.prenom} - {absenceInsightStudent.classe_nom} ({absenceInsightStudent.classe_niveau})
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAbsenceInsightStudent(null)}
+                className="rounded-lg bg-white p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                title="Fermer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-3">
+              <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-4">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-blue-500">Nombre d'absences</p>
+                <p className="mt-2 text-3xl font-black text-blue-700">{absenceInsightStudent.totalAbsences}</p>
+              </div>
+
+              <div className="rounded-xl bg-gradient-to-br from-fuchsia-500 via-sky-500 to-emerald-500 p-[1px] shadow-lg">
+                <div className="h-full rounded-[11px] bg-white px-4 py-4">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500">Total d'heures</p>
+                  <p className="mt-2 text-3xl font-black bg-gradient-to-r from-fuchsia-600 via-sky-600 to-emerald-600 bg-clip-text text-transparent">
+                    {absenceInsightStudent.totalHours} h
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-4">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-amber-600">Note d'absence</p>
+                <p className="mt-2 text-3xl font-black text-amber-700">{absenceInsightStudent.absenceNote.toFixed(2)}</p>
+              </div>
+            </div>
+
+            <div className="border-t border-gray-100 bg-gray-50 px-6 py-4 text-xs text-gray-600">
+              Regle de calcul appliquee: 0.25 point pour chaque 2 heures d'absence.
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -196,4 +198,51 @@ button {
 
 .animate-slide-in {
   animation: slideInLeft 0.3s var(--transition-base) forwards;
+}
+
+/* ===== UNIFIED DISPLAY TABLES ===== */
+.table-container {
+  /* Removed white card wrappers entirely */
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  background: transparent;
+}
+
+.table th {
+  text-align: left;
+  padding: 0.9rem 1rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b7280;
+  border-bottom: 1px solid #f3f4f6;
+  background: transparent;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 0.85rem 1rem;
+  font-size: 0.88rem;
+  color: #374151;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
+  background: transparent;
+  box-shadow: none !important;
+}
+
+.table tbody tr {
+  background: transparent;
+  box-shadow: none !important;
+  border-radius: 0;
+}
+
+.table tbody tr:hover td {
+  background: rgba(0, 0, 0, 0.015);
 }

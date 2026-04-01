@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfessorController;
 use App\Http\Controllers\AdminLoginController;
 use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\ProfileController;
 
 use App\Http\Controllers\SecretaireController;
 
@@ -32,6 +33,12 @@ Route::any('/health', function (Request $request) {
 // Auth Check (Frontend check)
 Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
     return $request->user();
+});
+
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/profile', [ProfileController::class, 'show']);
+    Route::post('/profile', [ProfileController::class, 'update']);
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword']);
 });
 
 // Admin routes
@@ -90,6 +97,7 @@ Route::middleware(['auth:sanctum', 'role:secretaire,admin,directeur'])->prefix('
 
     // Students
     Route::get('/students', [SecretaireController::class, 'listStudents']);
+    Route::post('/students/import', [SecretaireController::class, 'importStudents']);
     Route::post('/students', [SecretaireController::class, 'createStudent']);
     Route::put('/students/{id}', [SecretaireController::class, 'updateStudent']);
     Route::delete('/students/{id}', [SecretaireController::class, 'deleteStudent']);
@@ -109,6 +117,7 @@ Route::middleware(['auth:sanctum', 'role:secretaire,admin,directeur'])->prefix('
     // Announcements
     Route::get('/annonces', [SecretaireController::class, 'listAnnonces']);
     Route::post('/annonces', [SecretaireController::class, 'createAnnonce']);
+    Route::post('/annonces/{id}', [SecretaireController::class, 'updateAnnonce']);
     Route::put('/annonces/{id}', [SecretaireController::class, 'updateAnnonce']);
     Route::delete('/annonces/{id}', [SecretaireController::class, 'deleteAnnonce']);
 

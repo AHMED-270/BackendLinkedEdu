@@ -16,8 +16,10 @@ class Annonce extends Model
     protected $fillable = [
         'titre',
         'contenu',
+        'cible',
         'date_publication',
         'id_user',
+        'photo_path',
     ];
 
     protected $casts = [

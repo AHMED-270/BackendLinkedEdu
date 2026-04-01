@@ -206,21 +206,18 @@ export default function SecretaireReclamations() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-              </div>
-
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+                <table className="table w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-gray-50/50 border-b border-gray-100">
-                      <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Date</th>
-                      <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Parent / Sujet</th>
-                      <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Message</th>
-                      <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Actions</th>
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Parent / Sujet</th>
+                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Message</th>
+                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50">
+                  <tbody className="divide-y divide-gray-100">
                     {loading ? (
                       [...Array(5)].map((_, i) => (
                         <tr key={`reclamation-skeleton-${i}`} className="animate-pulse">
@@ -228,7 +225,7 @@ export default function SecretaireReclamations() {
                         </tr>
                       ))
                     ) : filteredReclamations.map((r) => (
-                        <tr key={r.id_reclamation} className="hover:bg-blue-50/30 transition-colors">
+                      <tr key={r.id_reclamation} className="hover:bg-blue-50/50 transition-colors">
                           <td className="py-4 px-6">
                             <div className="text-xs font-semibold text-gray-500">
                               {r.date_soumission
@@ -256,7 +253,7 @@ export default function SecretaireReclamations() {
                               <button
                                 type="button"
                                 onClick={() => onEdit(r)}
-                                className="p-2 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                                className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
                                 title="Modifier"
                               >
                                 <Edit2 className="w-4 h-4" />
@@ -264,7 +261,7 @@ export default function SecretaireReclamations() {
                               <button
                                 type="button"
                                 onClick={() => onDelete(r.id_reclamation)}
-                                className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                                className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
                                 title="Supprimer"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -276,9 +273,14 @@ export default function SecretaireReclamations() {
 
                     {!loading && filteredReclamations.length === 0 && (
                       <tr>
-                        <td colSpan="4" className="py-20 text-center">
-                          <AlertCircle className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-                          <p className="text-gray-400 font-medium">Aucune reclamation trouvee</p>
+                        <td colSpan="4" className="py-12 text-center">
+                          <div className="flex flex-col items-center justify-center text-gray-400">
+                            <span className="mb-3 text-gray-200">
+                              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                            </span>
+                            <p className="text-base font-medium text-gray-500">Aucune réclamation trouvée</p>
+                            <p className="text-sm mt-1">Ajustez vos filtres ou effectuez une nouvelle recherche.</p>
+                          </div>
                         </td>
                       </tr>
                     )}

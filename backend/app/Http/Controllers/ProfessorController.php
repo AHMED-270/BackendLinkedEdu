@@ -10,6 +10,7 @@ use App\Models\Student;
 use App\Models\Attendance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class ProfessorController extends Controller
 {
@@ -216,6 +217,7 @@ class ProfessorController extends Controller
                 'annonces.titre as title',
                 'annonces.contenu as content',
                 'users.nom as author',
+                'annonces.photo_path as photo_path',
                 'annonces.date_publication as date'
             )
             ->orderByDesc('annonces.date_publication')
@@ -226,7 +228,9 @@ class ProfessorController extends Controller
                     'title' => $a->title,
                     'content' => $a->content,
                     'author' => $a->author,
+                    'raw_date' => $a->date,
                     'date' => $a->date ? \Carbon\Carbon::parse($a->date)->diffForHumans() : 'Date inconnue',
+                    'photo_url' => $a->photo_path ? Storage::disk('public')->url($a->photo_path) : null,
                     'read' => true // logic for read/unread could be added later
                 ];
             });

@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import { FiUser, FiCalendar, FiMail, FiPhone, FiMapPin, FiArrowLeft, FiCheckCircle, FiSearch, FiEdit2, FiTrash2, FiPlus, FiUsers } from 'react-icons/fi';
+import jsPDF from 'jspdf';
+import { jsPDF as jsPDFType } from 'jspdf';
+import { FiUser, FiCalendar, FiMail, FiPhone, FiMapPin, FiArrowLeft, FiCheckCircle, FiSearch, FiEdit2, FiTrash2, FiPlus, FiUsers, FiDownload, FiEye, FiX, FiUpload } from 'react-icons/fi';
 
 const emptyForm = {
   nom: '',
@@ -23,6 +25,7 @@ export default function SecretaireEtudiants() {
   const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000';
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
+  const [absences, setAbsences] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [classFilter, setClassFilter] = useState('all');
@@ -30,10 +33,12 @@ export default function SecretaireEtudiants() {
   const [errorMessage, setErrorMessage] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [selectedStudentInsight, setSelectedStudentInsight] = useState(null);
+  const importFileRef = useRef(null);
 
   const loadData = async () => {
     setLoading(true);
-    const [studentsRes, classesRes] = await Promise.all([
+    const [studentsRes, classesRes, absencesRes] = await Promise.all([
       axios.get(apiBaseUrl + '/api/secretaire/students', {
         withCredentials: true,
         withXSRFToken: true,
@@ -42,10 +47,15 @@ export default function SecretaireEtudiants() {
         withCredentials: true,
         withXSRFToken: true,
       }),
+      axios.get(apiBaseUrl + '/api/secretaire/absences', {
+        withCredentials: true,
+        withXSRFToken: true,
+      }),
     ]);
 
     setStudents(studentsRes.data?.students || []);
     setClasses(classesRes.data?.classes || []);
+    setAbsences(absencesRes.data?.absences || []);
     setLoading(false);
   };
 
@@ -53,6 +63,7 @@ export default function SecretaireEtudiants() {
     loadData().catch(() => {
       setStudents([]);
       setClasses([]);
+      setAbsences([]);
       setLoading(false);
     });
   }, []);
@@ -170,6 +181,275 @@ export default function SecretaireEtudiants() {
     await loadData();
   };
 
+  const buildFileName = (prefix, ext) => {
+    const date = new Date().toISOString().slice(0, 10);
+    return `${prefix}-${date}.${ext}`;
+  };
+
+  const downloadBlob = (content, type, fileName) => {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const normalizeHeader = (value) =>
+    String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+
+  const extractByHeader = (row, headerMap, aliases) => {
+    const found = aliases.find((alias) => headerMap.has(alias));
+    if (!found) return '';
+    return String(row[headerMap.get(found)] ?? '').trim();
+  };
+
+  const parseStudentCsv = (text) => {
+    const lines = text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    if (lines.length < 2) {
+      throw new Error('Le fichier CSV est vide ou incomplet.');
+    }
+
+    const separator = (lines[0].match(/;/g) || []).length >= (lines[0].match(/,/g) || []).length ? ';' : ',';
+    const rawHeaders = lines[0].split(separator).map((h) => h.trim());
+    const headers = rawHeaders.map(normalizeHeader);
+    const headerMap = new Map(headers.map((h, i) => [h, i]));
+
+    const requiredAliases = {
+      nom: ['nom'],
+      prenom: ['prenom', 'prenom'],
+      date_naissance: ['datenaissance', 'date_naissance', 'naissance'],
+      genre: ['genre', 'sexe'],
+      adresse: ['adresse', 'address'],
+      parent_nom: ['parentnom', 'nomparent'],
+      parent_prenom: ['parentprenom', 'prenomparent'],
+      parent_phone: ['parentphone', 'parenttel', 'telephoneparent'],
+      parent_cin: ['parentcin', 'cinparent'],
+    };
+
+    const missing = Object.values(requiredAliases)
+      .filter((aliases) => !aliases.some((alias) => headerMap.has(alias)))
+      .map((aliases) => aliases[0]);
+
+    if (missing.length > 0) {
+      throw new Error(`Colonnes obligatoires manquantes: ${missing.join(', ')}`);
+    }
+
+    const rows = lines.slice(1).map((line, index) => {
+      const cols = line.split(separator).map((c) => c.trim());
+      const genreRaw = extractByHeader(cols, headerMap, ['genre', 'sexe']).toUpperCase();
+      const genre = genreRaw === 'F' ? 'F' : 'M';
+
+      return {
+        _line: index + 2,
+        nom: extractByHeader(cols, headerMap, requiredAliases.nom),
+        prenom: extractByHeader(cols, headerMap, requiredAliases.prenom),
+        date_naissance: extractByHeader(cols, headerMap, requiredAliases.date_naissance),
+        genre,
+        adresse: extractByHeader(cols, headerMap, requiredAliases.adresse),
+        id_classe: (() => {
+          const v = extractByHeader(cols, headerMap, ['idclasse', 'id_classe', 'classeid']);
+          return v ? Number(v) : null;
+        })(),
+        email: extractByHeader(cols, headerMap, ['email']),
+        parent_nom: extractByHeader(cols, headerMap, requiredAliases.parent_nom),
+        parent_prenom: extractByHeader(cols, headerMap, requiredAliases.parent_prenom),
+        parent_email: extractByHeader(cols, headerMap, ['parentemail', 'emailparent']),
+        parent_phone: extractByHeader(cols, headerMap, requiredAliases.parent_phone),
+        parent_cin: extractByHeader(cols, headerMap, requiredAliases.parent_cin),
+        parent_urgence_phone: extractByHeader(cols, headerMap, ['parenturgencephone', 'parenturgence', 'urgencephone']),
+        country_code: '+212',
+      };
+    });
+
+    return rows;
+  };
+
+  const handleImportStudents = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      await axios.get(apiBaseUrl + '/sanctum/csrf-cookie', { withCredentials: true, withXSRFToken: true });
+      const text = await file.text();
+      const parsedRows = parseStudentCsv(text).map(({ _line, ...payload }) => payload);
+
+      const response = await axios.post(
+        `${apiBaseUrl}/api/secretaire/students/import`,
+        { students: parsedRows },
+        { withCredentials: true, withXSRFToken: true }
+      );
+
+      const imported = response.data?.imported ?? 0;
+      const failed = response.data?.failed ?? 0;
+      alert(`Import terminé: ${imported} élève(s) importé(s), ${failed} échec(s).`);
+      await loadData();
+    } catch (error) {
+      const msg = error?.response?.data?.message || error?.message || 'Erreur lors de l\'import des élèves.';
+      alert(msg);
+    } finally {
+      if (importFileRef.current) {
+        importFileRef.current.value = '';
+      }
+    }
+  };
+
+  const downloadStudentsPdf = () => {
+    if (visibleStudents.length === 0) {
+      window.alert('Aucun étudiant à télécharger.');
+      return;
+    }
+
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+
+    // ----- HEADER (Black & White style) -----
+    doc.setFillColor(0, 0, 0);
+    doc.rect(0, 0, pageWidth, 6, 'F');
+
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.text('LinkedU', margin, 20);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text('Document Officiel', margin, 26);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text('LISTE GLOBALE DES ÉLÈVES', pageWidth - margin, 20, { align: 'right' });
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text(`Année: ${new Date().getFullYear()}/${new Date().getFullYear()+1}`, pageWidth - margin, 26, { align: 'right' });
+
+    doc.setLineWidth(0.5);
+    doc.line(margin, 35, pageWidth - margin, 35);
+
+    // ----- TABLEAU DES ELEVES -----
+    let startY = 45;
+    
+    doc.setFillColor(240, 240, 240);
+    doc.rect(margin, startY, pageWidth - (margin * 2), 10, 'F');
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(0, 0, 0);
+    
+    // Colonnes
+    const colId = margin + 2;
+    const colNom = margin + 15;
+    const colClasse = margin + 75;
+    const colEmail = margin + 115;
+    const colParent = margin + 190;
+    const colPhone = margin + 240;
+    
+    doc.text('N°', colId, startY + 7);
+    doc.text('NOM & PRÉNOM', colNom, startY + 7);
+    doc.text('CLASSE', colClasse, startY + 7);
+    doc.text('EMAIL ÉLÈVE', colEmail, startY + 7);
+    doc.text('PARENT / TUTEUR', colParent, startY + 7);
+    doc.text('TÉLÉPHONE', colPhone, startY + 7);
+    
+    startY += 12;
+    doc.setFont('helvetica', 'normal');
+    
+    visibleStudents.forEach((student, index) => {
+      if (startY > pageHeight - 25) {
+        doc.addPage();
+        startY = margin;
+        
+        doc.setFillColor(0, 0, 0);
+        doc.rect(0, 0, pageWidth, 6, 'F');
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text('LinkedU - Suite de la liste globale', margin, 15);
+        
+        doc.setLineWidth(0.5);
+        doc.line(margin, 20, pageWidth - margin, 20);
+        
+        // Rappel En-tête
+        startY = 25;
+        doc.setFillColor(240, 240, 240);
+        doc.rect(margin, startY, pageWidth - (margin * 2), 10, 'F');
+        doc.text('N°', colId, startY + 7);
+        doc.text('NOM & PRÉNOM', colNom, startY + 7);
+        doc.text('CLASSE', colClasse, startY + 7);
+        doc.text('EMAIL ÉLÈVE', colEmail, startY + 7);
+        doc.text('PARENT / TUTEUR', colParent, startY + 7);
+        doc.text('TÉLÉPHONE', colPhone, startY + 7);
+        
+        startY += 12;
+        doc.setFont('helvetica', 'normal');
+      }
+      
+      if (index % 2 === 0) {
+        doc.setFillColor(252, 252, 252);
+        doc.rect(margin, startY - 4, pageWidth - (margin * 2), 8, 'F');
+      }
+      
+      const numero = (index + 1).toString().padStart(3, '0');
+      const nomComplet = `${student.nom || ''} ${student.prenom || ''}`.trim();
+      const classeName = classes.find(c => String(c.id_classe) === String(student.id_classe))?.nom || 'N/A';
+      const emailObj = student.email || '-';
+      const parentName = `${student.parent_nom || ''} ${student.parent_prenom || ''}`.trim() || '-';
+      const phone = student.parent_phone || '-';
+      
+      doc.setFontSize(8);
+      doc.text(numero, colId, startY + 2);
+      doc.text(nomComplet.length > 30 ? nomComplet.substring(0, 27) + '...' : nomComplet, colNom, startY + 2);
+      doc.text(classeName.length > 20 ? classeName.substring(0, 18) + '...' : classeName, colClasse, startY + 2);
+      doc.text(emailObj.length > 35 ? emailObj.substring(0, 32) + '...' : emailObj, colEmail, startY + 2);
+      doc.text(parentName.length > 25 ? parentName.substring(0, 22) + '...' : parentName, colParent, startY + 2);
+      doc.text(phone, colPhone, startY + 2);
+      
+      doc.setDrawColor(230, 230, 230);
+      doc.setLineWidth(0.1);
+      doc.line(margin, startY + 4, pageWidth - margin, startY + 4);
+      
+      startY += 8;
+    });
+
+    const bottomY = pageHeight - 10;
+    doc.setFontSize(7);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Généré le ${new Date().toLocaleString('fr-FR')} | Total : ${visibleStudents.length} élève(s)`, margin, bottomY);
+    
+    doc.save(`liste-etudiants-${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  const openAbsenceInsight = (student) => {
+    const studentAbsences = absences.filter(
+      (a) => String(a.id_etudiant) === String(student.id_etudiant)
+    );
+
+    const totalAbsences = studentAbsences.length;
+    const totalHours = totalAbsences * 2;
+    const note = Math.max(0, 20 - (totalHours / 2) * 0.25);
+
+    setSelectedStudentInsight({
+      student,
+      totalAbsences,
+      totalHours,
+      note,
+    });
+  };
+
   return (
     <div className="min-h-screen p-6 lg:p-10 bg-gray-50/50">
       <div className="max-w-7xl mx-auto">
@@ -183,18 +463,6 @@ export default function SecretaireEtudiants() {
                 </h1>
               </div>
               <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                <div className="relative w-full sm:w-64">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FiSearch className="h-4 w-4 text-gray-400" />
-                  </div>
-                  <input
-                    className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm shadow-sm font-medium"
-                    placeholder="Chercher..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                </div>
-                
                 <div className="relative w-full sm:w-48">
                   <select
                     className="block w-full pl-3 pr-10 py-2.5 border border-gray-200 rounded-xl leading-5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm shadow-sm font-medium appearance-none cursor-pointer"
@@ -215,6 +483,31 @@ export default function SecretaireEtudiants() {
                   </div>
                 </div>
 
+                <button
+                  type="button"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-amber-600 text-white font-semibold rounded-xl shadow-sm hover:bg-amber-700 transition-all focus:outline-none focus:ring-2 focus:ring-amber-500/20 active:scale-95 text-sm"
+                  onClick={() => importFileRef.current?.click()}
+                >
+                  <FiUpload className="w-4 h-4" />
+                  Importer 
+                </button>
+                <input
+                  ref={importFileRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  className="hidden"
+                  onChange={handleImportStudents}
+                />
+
+                <button
+                  type="button"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white font-semibold rounded-xl shadow-sm hover:bg-emerald-700 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 active:scale-95 text-sm"
+                  onClick={downloadStudentsPdf}
+                >
+                  <FiDownload className="w-4 h-4" />
+                  Télécharger 
+                </button>
+
                 <button 
                   className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl shadow-sm hover:bg-blue-700 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20 active:scale-95 text-sm" 
                   onClick={openCreateFormPage}
@@ -227,10 +520,25 @@ export default function SecretaireEtudiants() {
 
             <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+                <table className="table w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-200">
-                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Nom et Prenom</th>
+                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        <div className="flex items-center gap-3">
+                          <span>Nom et Prenom</span>
+                          <div className="relative w-full max-w-[260px]">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <FiSearch className="h-4 w-4 text-gray-400" />
+                            </div>
+                            <input
+                              className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-xs font-medium normal-case"
+                              placeholder="Rechercher "
+                              value={search}
+                              onChange={(e) => setSearch(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      </th>
                       <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Email</th>
                       <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Parent</th>
                       <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</th>
@@ -264,15 +572,22 @@ export default function SecretaireEtudiants() {
                         </td>
                         <td className="py-4 px-6">
                           <div className="flex items-center justify-end gap-2">
+                            <button
+                              className="text-gray-800 hover:text-black hover:bg-gray-100 p-2 rounded-lg transition-colors cursor-pointer"
+                              onClick={() => openAbsenceInsight(student)}
+                              title="Voir infos absences"
+                            >
+                              <FiEye size={18} />
+                            </button>
                             <button 
-                              className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors cursor-pointer" 
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors cursor-pointer" 
                               onClick={() => onEdit(student)}
                               title="Modifier"
                             >
                               <FiEdit2 size={18} />
                             </button>
                             <button 
-                              className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors cursor-pointer" 
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors cursor-pointer" 
                               onClick={() => onDelete(student.id_etudiant)}
                               title="Supprimer"
                             >
@@ -297,6 +612,54 @@ export default function SecretaireEtudiants() {
                 </table>
               </div>
             </div>
+
+            {selectedStudentInsight && (
+              <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 p-4 backdrop-blur-[1px]">
+                <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-gray-300 bg-white shadow-2xl">
+                  <div className="flex items-start justify-between border-b border-gray-200 bg-gray-50 px-6 py-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-black">Bilan des absences</h3>
+                      <p className="mt-1 text-xs text-gray-700">
+                        {selectedStudentInsight.student.nom} {selectedStudentInsight.student.prenom}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedStudentInsight(null)}
+                      className="rounded-lg bg-black p-2 text-white hover:bg-gray-800"
+                      title="Fermer"
+                    >
+                      <FiX size={16} />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-3">
+                    <div className="rounded-xl border border-gray-300 bg-white px-4 py-4">
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-gray-700">Nombre d'absences</p>
+                      <p className="mt-2 text-3xl font-black text-black">{selectedStudentInsight.totalAbsences}</p>
+                    </div>
+
+                    <div className="rounded-xl border border-gray-300 bg-white px-4 py-4">
+                      <div className="h-full rounded-[11px] bg-white">
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-gray-700">Heures d'absences</p>
+                        <p className="mt-2 text-3xl font-black text-black">
+                          {selectedStudentInsight.totalHours} h
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-gray-300 bg-white px-4 py-4">
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-gray-700">Note d'absence</p>
+                      <p className="mt-2 text-3xl font-black text-black">{selectedStudentInsight.note.toFixed(2)} / 20</p>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 text-xs text-gray-700">
+                    Initialisation: note = 20, heures = 0. Regle appliquee: -0.25 pour chaque 2h d'absence.
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         )}
 

@@ -131,7 +131,7 @@ export default function AdminClasses({ onCreateClass, onEditClass, userRole = 'a
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="table w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/50">
                   <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Détails Classe</th>
