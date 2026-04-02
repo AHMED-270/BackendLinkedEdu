@@ -26,7 +26,7 @@ export default function AdminDashboard({ onLogout, userRole = 'admin', user = nu
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [currentView, setCurrentView] = useState('home');
-  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
   const [editingClass, setEditingClass] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState('');
   const [subproject, setSubproject] = useState(defaultSubproject);
@@ -89,7 +89,13 @@ export default function AdminDashboard({ onLogout, userRole = 'admin', user = nu
   }, []);
 
   const openCreateUserForm = () => {
-    setShowCreateUserModal(true);
+    setEditingUser(null);
+    setCurrentView('user-create');
+  };
+
+  const openEditUserForm = (userToEdit) => {
+    setEditingUser(userToEdit || null);
+    setCurrentView('user-edit');
   };
 
   const openCreateClassForm = () => {
@@ -130,23 +136,6 @@ export default function AdminDashboard({ onLogout, userRole = 'admin', user = nu
 
   return (
     <div className="admin-layout">
-      {showCreateUserModal && userRole === 'admin' && (
-        <div className="logout-modal-backdrop">
-          <div className="logout-modal-card" style={{ maxWidth: '900px', width: '90vw', maxHeight: '90vh', overflowY: 'auto', padding: '16px' }}>
-            <AdminUserForm
-              mode="create"
-              userToEdit={null}
-              isModal={true}
-              onBack={() => setShowCreateUserModal(false)}
-              onSuccess={() => {
-                setShowCreateUserModal(false);
-                setCurrentView('users');
-              }}
-            />
-          </div>
-        </div>
-      )}
-
       {showLogoutModal && (
         <div className="logout-modal-backdrop">
           <div className="logout-modal-card">
@@ -260,6 +249,33 @@ export default function AdminDashboard({ onLogout, userRole = 'admin', user = nu
           {currentView === 'users' && userRole === 'admin' && (
             <AdminUsers
               onCreateUser={openCreateUserForm}
+              onEditUser={openEditUserForm}
+            />
+          )}
+          {currentView === 'user-create' && userRole === 'admin' && (
+            <AdminUserForm
+              mode="create"
+              userToEdit={null}
+              isModal={false}
+              onBack={() => setCurrentView('users')}
+              onSuccess={() => {
+                setCurrentView('users');
+              }}
+            />
+          )}
+          {currentView === 'user-edit' && userRole === 'admin' && editingUser && (
+            <AdminUserForm
+              mode="edit"
+              userToEdit={editingUser}
+              isModal={false}
+              onBack={() => {
+                setEditingUser(null);
+                setCurrentView('users');
+              }}
+              onSuccess={() => {
+                setEditingUser(null);
+                setCurrentView('users');
+              }}
             />
           )}
           {currentView === 'activations' && userRole === 'admin' && (

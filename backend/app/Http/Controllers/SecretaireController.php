@@ -87,7 +87,7 @@ class SecretaireController extends Controller
             'prenom' => ['required', 'string', 'max:255'],
             'date_naissance' => ['required', 'date'],
             'genre' => ['required', 'in:M,F,A'],
-            'email' => ['nullable', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['nullable', 'email', 'max:255', \Illuminate\Validation\Rule::unique('users')->where(fn ($query) => $query->where('role', 'etudiant'))],
             'adresse' => ['required', 'string', 'max:500'],
             'id_classe' => ['nullable', 'integer', 'exists:classes,id_classe'],
             'parent_nom' => ['required', 'string', 'max:255'],
@@ -118,7 +118,7 @@ class SecretaireController extends Controller
             'prenom' => ['required', 'string', 'max:255'],
             'date_naissance' => ['required', 'date'],
             'genre' => ['required', 'in:M,F,A'],
-            'email' => ['nullable', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['nullable', 'email', 'max:255', \Illuminate\Validation\Rule::unique('users')->where(fn ($query) => $query->where('role', 'etudiant'))],
             'adresse' => ['required', 'string', 'max:500'],
             'id_classe' => ['nullable', 'integer', 'exists:classes,id_classe'],
             'parent_nom' => ['required', 'string', 'max:255'],
@@ -183,13 +183,12 @@ class SecretaireController extends Controller
             }
 
             $parentUser = User::firstOrCreate(
-                ['email' => $parentEmail],
+                ['email' => $parentEmail, 'role' => 'parent_eleve'],
                 [
                     'name' => trim($validated['parent_prenom'] . ' ' . $validated['parent_nom']),
                     'nom' => $validated['parent_nom'],
                     'prenom' => $validated['parent_prenom'],
                     'password' => Hash::make('Parent@2026'),
-                    'role' => 'parent_eleve',
                     'account_status' => 'pending_activation',
                 ]
             );
@@ -243,7 +242,7 @@ class SecretaireController extends Controller
             'prenom' => ['required', 'string', 'max:255'],
             'date_naissance' => ['required', 'date'],
             'genre' => ['required', 'in:M,F,A'],
-            'email' => ['nullable', 'email', 'max:255', 'unique:users,email,' . $etudiant->id_etudiant],
+            'email' => ['nullable', 'email', 'max:255', \Illuminate\Validation\Rule::unique('users')->ignore($etudiant->id_etudiant)->where(fn ($query) => $query->where('role', 'etudiant'))],
             'adresse' => ['required', 'string', 'max:500'],
             'id_classe' => ['nullable', 'integer', 'exists:classes,id_classe'],
             'parent_nom' => ['required', 'string', 'max:255'],
@@ -265,13 +264,12 @@ class SecretaireController extends Controller
                 ?? $this->buildStudentEmailFromParent($parentEmail, $validated['nom'], $validated['prenom']);
 
             $parentUser = User::firstOrCreate(
-                ['email' => $parentEmail],
+                ['email' => $parentEmail, 'role' => 'parent_eleve'],
                 [
                     'name' => trim($validated['parent_prenom'] . ' ' . $validated['parent_nom']),
                     'nom' => $validated['parent_nom'],
                     'prenom' => $validated['parent_prenom'],
                     'password' => Hash::make('Parent@2026'),
-                    'role' => 'parent_eleve',
                     'account_status' => 'pending_activation',
                 ]
             );
@@ -735,3 +733,5 @@ class SecretaireController extends Controller
         ], 201);
     }
 }
+
+

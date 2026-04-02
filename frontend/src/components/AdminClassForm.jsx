@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { FiArrowLeft as ArrowLeft } from 'react-icons/fi';
 import { FiPlus as Plus } from 'react-icons/fi';
@@ -11,6 +11,11 @@ const SCHOOL_LEVELS = [
   { code: 'lycee', label: 'Lycee' },
 ];
 
+const levelLabelByCode = SCHOOL_LEVELS.reduce((accumulator, level) => {
+  accumulator[level.code] = level.label;
+  return accumulator;
+}, {});
+
 const inferCycleFromNiveau = (niveauCode = '', niveauMeta = null) => {
   if (niveauMeta?.cycle) return String(niveauMeta.cycle);
   const code = String(niveauCode || '').toLowerCase();
@@ -21,6 +26,53 @@ const inferCycleFromNiveau = (niveauCode = '', niveauMeta = null) => {
   if (['tc', '1bac', '2bac'].includes(code)) return 'lycee';
 
   return '';
+};
+
+const normalizeMatiereName = (value = '') => {
+  const normalized = String(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+
+  switch (normalized) {
+    case 'math': return 'mathematiques';
+    case 'pc': return 'physiquechimie';
+    case 'svt': return 'sciencesdelavieetdelaterresvt';
+    case 'eps':
+    case 'sport': return 'educationphysique';
+    case 'ei': return 'educationislamique';
+    case 'histoiregeo': return 'histoiregeographie';
+    case 'sciencedelingen':
+    case 'sciencedelingenieur': return 'sciencesdingenieur';
+    case 'comptabilite': return 'economiegeneraleetstatistiques';
+    default: return normalized;
+  }
+};
+
+const extractProfessorSubjects = (professor) => {
+  const fromArray = Array.isArray(professor?.matieres_enseignement)
+    ? professor.matieres_enseignement
+    : [];
+
+  let fromJson = [];
+  if (typeof professor?.matieres_enseignement === 'string' && professor.matieres_enseignement.trim() !== '') {
+    try {
+      const parsed = JSON.parse(professor.matieres_enseignement);
+      if (Array.isArray(parsed)) {
+        fromJson = parsed;
+      }
+    } catch {
+      fromJson = [];
+    }
+  }
+
+  const combined = [...fromArray, ...fromJson];
+  if (combined.length === 0 && professor?.matiere_enseignement) {
+    combined.push(professor.matiere_enseignement);
+  }
+
+  return [...new Set(combined.map((value) => String(value || '').trim()).filter(Boolean))];
 };
 
 export default function AdminClassForm({ mode = 'create', classToEdit = null, onBack, onSuccess, isModal = false }) {
@@ -40,7 +92,8 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
   const [classOptions, setClassOptions] = useState({
     niveaux: [],
     filieresByNiveau: {},
-    pricingByNiveauFiliere: {}
+    pricingByNiveauFiliere: {},
+    matieresByNiveauFiliere: {},
   });
   const [professeurMatieres, setProfesseurMatieres] = useState({});
   const [formMsg, setFormMsg] = useState('');
@@ -82,6 +135,10 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
           pricingByNiveauFiliere: optionsData.pricing_by_niveau_filiere && typeof optionsData.pricing_by_niveau_filiere === 'object'
             ? optionsData.pricing_by_niveau_filiere
             : {},
+          matieresByNiveauFiliere:
+            optionsData.matieres_by_niveau_filiere && typeof optionsData.matieres_by_niveau_filiere === 'object'
+              ? optionsData.matieres_by_niveau_filiere
+              : {},
         });
 
         if (isEditing) {
@@ -169,18 +226,6 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
     }
   }, [formData.niveau, niveauxWithCycle, niveauScolaire]);
 
-  useEffect(() => {
-    if (!formData.niveau || !formData.filiere) return;
-    if (isEditing) return;
-
-    const automaticPrice = classOptions.pricingByNiveauFiliere?.[formData.niveau]?.[formData.filiere];
-    if (typeof automaticPrice !== 'number') return;
-
-    if (Number(formData.pricing) !== Number(automaticPrice)) {
-      setFormData((prev) => ({ ...prev, pricing: automaticPrice }));
-    }
-  }, [formData.niveau, formData.filiere, formData.pricing, classOptions.pricingByNiveauFiliere, isEditing]);
-
   const ensureCsrfCookie = async () => {
     await axios.get(apiBaseUrl + '/sanctum/csrf-cookie', {
       withCredentials: true,
@@ -248,6 +293,132 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
 
   const availableFilieres = formData.niveau ? (classOptions.filieresByNiveau[formData.niveau] || []) : [];
 
+  const groupedFilieres = useMemo(() => {
+    const groups = {
+      francais: [],
+      arabe: [],
+      ungrouped: [],
+    };
+
+    availableFilieres.forEach((filiere) => {
+      const value = String(filiere || '');
+      if (/\(Francais\)$/i.test(value)) {
+        groups.francais.push(value);
+        return;
+      }
+
+      if (/\(Arabe\)$/i.test(value)) {
+        groups.arabe.push(value);
+        return;
+      }
+
+      groups.ungrouped.push(value);
+    });
+
+    return groups;
+  }, [availableFilieres]);
+
+  const configuredMatiereNames = useMemo(() => {
+    if (!formData.niveau || !formData.filiere) return [];
+
+    const byNiveau = classOptions.matieresByNiveauFiliere?.[formData.niveau] ?? {};
+    const list = byNiveau?.[formData.filiere];
+
+    return Array.isArray(list) ? list : [];
+  }, [formData.niveau, formData.filiere, classOptions.matieresByNiveauFiliere]);
+
+  const filteredMatieres = useMemo(() => {
+    if (configuredMatiereNames.length === 0) return matieres;
+
+    const allowedNames = new Set(configuredMatiereNames.map((name) => normalizeMatiereName(name)));
+    const matches = matieres.filter((matiere) => allowedNames.has(normalizeMatiereName(matiere.nom || '')));
+
+    return matches.length > 0 ? matches : matieres;
+  }, [matieres, configuredMatiereNames]);
+
+  const allowedMatiereTokens = useMemo(
+    () => new Set(configuredMatiereNames.map((name) => normalizeMatiereName(name))),
+    [configuredMatiereNames]
+  );
+
+  const visibleProfesseurs = useMemo(() => {
+    return professeurs.filter((professeur) => {
+      const matchesLevel = !niveauScolaire
+        ? true
+        : String(professeur?.niveau_enseignement || '').toLowerCase() === String(niveauScolaire).toLowerCase();
+
+      if (!matchesLevel) {
+        return false;
+      }
+
+      if (allowedMatiereTokens.size === 0) {
+        return true;
+      }
+
+      const subjectTokens = extractProfessorSubjects(professeur)
+        .map((subject) => normalizeMatiereName(subject))
+        .filter(Boolean);
+
+      return subjectTokens.some((token) => allowedMatiereTokens.has(token));
+    });
+  }, [professeurs, niveauScolaire, allowedMatiereTokens]);
+
+  useEffect(() => {
+    const allowedIds = new Set(
+      filteredMatieres.map((matiere) => String(matiere.id_matiere || matiere.id || matiere.ID))
+    );
+
+    setProfesseurMatieres((previous) => {
+      let changed = false;
+      const next = {};
+
+      Object.entries(previous).forEach(([profId, matiereIds]) => {
+        const filteredIds = (Array.isArray(matiereIds) ? matiereIds : [])
+          .map((id) => String(id))
+          .filter((id) => allowedIds.has(id));
+
+        if (filteredIds.length !== (Array.isArray(matiereIds) ? matiereIds.length : 0)) {
+          changed = true;
+        }
+
+        next[profId] = filteredIds;
+      });
+
+      return changed ? next : previous;
+    });
+  }, [filteredMatieres]);
+
+  useEffect(() => {
+    const allowedProfIds = new Set(visibleProfesseurs.map((professeur) => String(professeur.id)));
+
+    setFormData((previous) => {
+      const filteredIds = previous.professeur_ids.filter((id) => allowedProfIds.has(String(id)));
+      if (filteredIds.length === previous.professeur_ids.length) {
+        return previous;
+      }
+
+      return {
+        ...previous,
+        professeur_ids: filteredIds,
+      };
+    });
+
+    setProfesseurMatieres((previous) => {
+      const next = {};
+      let changed = false;
+
+      Object.entries(previous).forEach(([profId, matiereIds]) => {
+        if (allowedProfIds.has(String(profId))) {
+          next[profId] = matiereIds;
+        } else {
+          changed = true;
+        }
+      });
+
+      return changed ? next : previous;
+    });
+  }, [visibleProfesseurs]);
+
   return (
     <div className={isModal ? 'bg-[#f8fafc]' : 'dashboard-content bg-gray-50/30'}>
       {/* Modal for Assigning Matières to Professor */}
@@ -298,13 +469,13 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
               overflowY: 'auto',
               marginBottom: '24px',
             }}>
-              {matieres.length === 0 ? (
+              {filteredMatieres.length === 0 ? (
                 <p style={{ textAlign: 'center', color: '#94a3b8', padding: '16px' }}>
                   Aucune matière disponible
                 </p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {matieres.map((mat) => {
+                  {filteredMatieres.map((mat) => {
                     const matId = String(mat.id_matiere || mat.id || mat.ID);
                     const isSelected = selectedMatieres.includes(matId);
                     return (
@@ -511,7 +682,21 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
                       className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm disabled:bg-gray-50 disabled:text-gray-400"
                     >
                       <option value="">Selectionner une filiere...</option>
-                      {availableFilieres.map((fil) => (
+                      {groupedFilieres.francais.length > 0 && (
+                        <optgroup label="Francais">
+                          {groupedFilieres.francais.map((fil) => (
+                            <option key={fil} value={fil}>{fil}</option>
+                          ))}
+                        </optgroup>
+                      )}
+                      {groupedFilieres.arabe.length > 0 && (
+                        <optgroup label="Arabe">
+                          {groupedFilieres.arabe.map((fil) => (
+                            <option key={fil} value={fil}>{fil}</option>
+                          ))}
+                        </optgroup>
+                      )}
+                      {groupedFilieres.ungrouped.map((fil) => (
                         <option key={fil} value={fil}>{fil}</option>
                       ))}
                     </select>
@@ -530,6 +715,7 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
                       placeholder="Entrer le cout de scolarite"
                       className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
                     />
+                    <p className="mt-1 text-xs text-gray-500">Montant manuel: vous choisissez librement le cout total.</p>
                   </div>
                 </div>
               </div>
@@ -547,13 +733,30 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
                   </div>
                 </div>
                 <div className="md:col-span-8 p-4 bg-white">
+                  {niveauScolaire && (
+                    <p className="mb-2 text-xs text-gray-600">
+                      Affichage automatique: professeurs de niveau {levelLabelByCode[niveauScolaire] || niveauScolaire}.
+                    </p>
+                  )}
+                  {configuredMatiereNames.length > 0 && (
+                    <p className="mb-3 text-xs text-blue-700">
+                      Matieres filtrees automatiquement selon la filiere selectionnee.
+                    </p>
+                  )}
                   <div className="border border-slate-100 rounded-xl bg-slate-50/30 p-2 max-h-[300px] overflow-y-auto custom-scrollbar shadow-inner">
-                    {professeurs.length === 0 ? (
-                      <div className="p-10 text-center text-slate-400 italic text-sm">Chargement ou aucun professeur disponible...</div>
+                    {visibleProfesseurs.length === 0 ? (
+                      <div className="p-10 text-center text-slate-400 italic text-sm">
+                        {niveauScolaire && configuredMatiereNames.length > 0
+                          ? 'Aucun professeur ne correspond a ce niveau et a cette filiere.'
+                          : niveauScolaire
+                            ? 'Aucun professeur assigne a ce niveau pour le moment.'
+                            : 'Chargement ou aucun professeur disponible...'}
+                      </div>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {professeurs.map((p) => {
+                        {visibleProfesseurs.map((p) => {
                           const checked = formData.professeur_ids.includes(String(p.id));
+                          const teacherSubjects = extractProfessorSubjects(p);
                           return (
                             <label 
                               key={p.id} 
@@ -588,6 +791,31 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
                               <div className="overflow-hidden">
                                 <span className={`text-sm font-bold block truncate transition-colors ${checked ? 'text-blue-700' : 'text-slate-600 group-hover:text-slate-900'}`}>{p.name}</span>
                                 <span className="text-[10px] font-bold text-slate-300 uppercase tracking-tighter">PROFESSEUR</span>
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  {teacherSubjects.length > 1 ? (
+                                    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                                      Polyvalent
+                                    </span>
+                                  ) : null}
+                                  {teacherSubjects.slice(0, 2).map((subject) => (
+                                    <span
+                                      key={`${p.id}-${subject}`}
+                                      className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700"
+                                    >
+                                      {subject}
+                                    </span>
+                                  ))}
+                                  {teacherSubjects.length > 2 ? (
+                                    <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">
+                                      +{teacherSubjects.length - 2} matiere(s)
+                                    </span>
+                                  ) : null}
+                                  {p.niveau_enseignement ? (
+                                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                                      {levelLabelByCode[p.niveau_enseignement] || p.niveau_enseignement}
+                                    </span>
+                                  ) : null}
+                                </div>
                               </div>
                             </label>
                           );

@@ -55,19 +55,33 @@ class AdminDashboardController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6',
+            'email' => [
+                'required',
+                'string',
+                'email',
+                'max:255',
+                \Illuminate\Validation\Rule::unique('users')->where(fn ($query) => $query->where('role', $request->role))
+            ],
             'role' => 'required|string|in:secretaire,directeur,professeur',
-            'telephone' => 'required_if:role,directeur,professeur|string|max:30'
+            'telephone' => 'required_if:role,directeur,professeur|string|max:30',
+            'matiere_enseignement' => 'nullable|string|max:255',
+            'matieres_enseignement' => 'nullable|array|min:1',
+            'matieres_enseignement.*' => 'string|max:255',
+            'niveau_enseignement' => ['required_if:role,professeur', 'string', Rule::in(['maternelle', 'primaire', 'college', 'lycee'])],
         ]);
 
         try {
             DB::beginTransaction();
 
+            [$prenom, $nom] = $this->splitFullName((string) $validated['name']);
+            $generatedPassword = $this->generateRandomPassword(12);
+
             $user = User::create([
                 'name' => $validated['name'],
+                'prenom' => $prenom,
+                'nom' => $nom,
                 'email' => $validated['email'],
-                'password' => bcrypt($validated['password']),
+                'password' => bcrypt($generatedPassword),
                 'role' => $validated['role'],
                 'account_status' => 'active',
                 'activated_at' => now(),
@@ -81,10 +95,21 @@ class AdminDashboardController extends Controller
             }
 
             if ($validated['role'] === 'professeur') {
+                $teachingSubjects = $this->buildTeachingSubjects($validated);
+                if (empty($teachingSubjects)) {
+                    DB::rollBack();
+                    return response()->json([
+                        'message' => 'Veuillez selectionner au moins une matiere pour le professeur.',
+                    ], 422);
+                }
+
                 Professeur::create([
                     'id_professeur' => $user->id,
-                    'specialite' => 'Non definie',
+                    'specialite' => $teachingSubjects[0] ?? 'Non definie',
                     'telephone' => $validated['telephone'] ?? null,
+                    'matiere_enseignement' => $teachingSubjects[0] ?? null,
+                    'matieres_enseignement' => $teachingSubjects,
+                    'niveau_enseignement' => $validated['niveau_enseignement'] ?? null,
                 ]);
             }
 
@@ -103,20 +128,23 @@ class AdminDashboardController extends Controller
                     default => ucfirst((string) $validated['role']),
                 };
 
-                $mailBody = "Bonjour {$user->name},\n\n"
-                    . "Votre compte {$roleLabel} LinkEdu a ete cree avec succes.\n"
-                    . "Email: {$user->email}\n"
-                    . "Mot de passe: {$validated['password']}\n\n"
-                    . "Lien de connexion: " . (env('FRONTEND_URL') ?: 'http://localhost:5173') . "/login\n";
+                $mailHtml = $this->buildAccountCreationEmailHtml([
+                    'role_label' => $roleLabel,
+                    'name' => (string) ($user->name ?? ''),
+                    'nom' => (string) ($user->nom ?? ''),
+                    'prenom' => (string) ($user->prenom ?? ''),
+                    'email' => (string) ($user->email ?? ''),
+                    'password' => $generatedPassword,
+                    'login_url' => $this->resolveFrontendLoginUrl(),
+                ]);
 
-                Mail::raw(
-                    $mailBody,
-                    function ($message) use ($user, $roleLabel) {
-                        $message->to($user->email)
-                            ->subject("Identifiants {$roleLabel} - LinkEdu")
-                            ->from(config('mail.from.address'), config('mail.from.name'));
-                    }
-                );
+                Mail::send([], [], function ($message) use ($user, $roleLabel, $mailHtml) {
+                    $message->to($user->email)
+                        ->subject("Identifiants {$roleLabel} - LinkEdu")
+                        ->from(config('mail.from.address'), config('mail.from.name'));
+
+                    $message->html($mailHtml);
+                });
             } catch (\Throwable $e) {
                 $mailWarnings[] = 'Email cadre non envoye: ' . $e->getMessage();
             }
@@ -142,18 +170,32 @@ class AdminDashboardController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,' . $id,
+            'email' => [
+                'required',
+                'string',
+                'email',
+                'max:255',
+                \Illuminate\Validation\Rule::unique('users')->ignore($id)->where(fn ($query) => $query->where('role', $request->role))
+            ],
             'role' => 'required|string|in:etudiant,parent,secretaire,admin,directeur,professeur',
             'password' => 'nullable|string|min:6',
             'id_classe' => 'required_if:role,etudiant|nullable|integer|exists:classes,id_classe',
             'id_parent' => 'required_if:role,etudiant|nullable|integer|exists:parents,id_parent',
-            'telephone' => 'required_if:role,parent,directeur,professeur|string|max:30'
+            'telephone' => 'required_if:role,parent,directeur,professeur|string|max:30',
+            'matiere_enseignement' => 'nullable|string|max:255',
+            'matieres_enseignement' => 'nullable|array|min:1',
+            'matieres_enseignement.*' => 'string|max:255',
+            'niveau_enseignement' => ['required_if:role,professeur', 'string', Rule::in(['maternelle', 'primaire', 'college', 'lycee'])],
         ]);
 
         try {
             DB::beginTransaction();
 
+            [$prenom, $nom] = $this->splitFullName((string) $validated['name']);
+
             $user->name = $validated['name'];
+            $user->prenom = $prenom;
+            $user->nom = $nom;
             $user->email = $validated['email'];
             $user->role = $validated['role'];
             if (!empty($validated['password'])) {
@@ -210,15 +252,30 @@ class AdminDashboardController extends Controller
             }
 
             if ($validated['role'] === 'professeur') {
+                $teachingSubjects = $this->buildTeachingSubjects($validated);
+                if (empty($teachingSubjects)) {
+                    DB::rollBack();
+                    return response()->json([
+                        'message' => 'Veuillez selectionner au moins une matiere pour le professeur.',
+                    ], 422);
+                }
+
                 $professeur = Professeur::where('id_professeur', $user->id)->first();
                 if ($professeur) {
+                    $professeur->specialite = $teachingSubjects[0] ?? $professeur->specialite;
                     $professeur->telephone = $validated['telephone'] ?? null;
+                    $professeur->matiere_enseignement = $teachingSubjects[0] ?? null;
+                    $professeur->matieres_enseignement = $teachingSubjects;
+                    $professeur->niveau_enseignement = $validated['niveau_enseignement'] ?? null;
                     $professeur->save();
                 } else {
                     Professeur::create([
                         'id_professeur' => $user->id,
-                        'specialite' => 'Non definie',
+                        'specialite' => $teachingSubjects[0] ?? 'Non definie',
                         'telephone' => $validated['telephone'] ?? null,
+                        'matiere_enseignement' => $teachingSubjects[0] ?? null,
+                        'matieres_enseignement' => $teachingSubjects,
+                        'niveau_enseignement' => $validated['niveau_enseignement'] ?? null,
                     ]);
                 }
             } else {
@@ -268,7 +325,13 @@ class AdminDashboardController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            'email' => [
+                'required',
+                'string',
+                'email',
+                'max:255',
+                \Illuminate\Validation\Rule::unique('users')->ignore($user->id)->where(fn ($query) => $query->where('role', $user->role))
+            ],
             'password' => 'nullable|string|min:6',
         ]);
 
@@ -309,6 +372,9 @@ class AdminDashboardController extends Controller
                 'users.activated_at',
                 'etudiants.id_classe',
                 'etudiants.id_parent',
+                'own_professeur.matiere_enseignement',
+                'own_professeur.matieres_enseignement',
+                'own_professeur.niveau_enseignement',
                 DB::raw("TRIM(CONCAT(COALESCE(classes.nom, ''), CASE WHEN classes.niveau IS NOT NULL AND classes.niveau <> '' THEN CONCAT(' - ', classes.niveau) ELSE '' END)) as classe"),
                 'parent_user.email as parent_email'
             )
@@ -331,6 +397,16 @@ class AdminDashboardController extends Controller
         $users = $usersQuery
             ->orderBy('users.created_at', 'desc')
             ->get();
+
+        $users = $users->map(function ($user) {
+            $subjects = $this->normalizeTeachingSubjects($user->matieres_enseignement, $user->matiere_enseignement);
+            $user->matieres_enseignement = $subjects;
+            if (!empty($subjects) && empty($user->matiere_enseignement)) {
+                $user->matiere_enseignement = $subjects[0];
+            }
+
+            return $user;
+        });
 
         return response()->json($users);
     }
@@ -515,6 +591,130 @@ class AdminDashboardController extends Controller
         return $namePart . $datePart;
     }
 
+    private function buildTeachingSubjects(array $validated): array
+    {
+        $subjects = collect($validated['matieres_enseignement'] ?? [])
+            ->map(fn ($subject) => trim((string) $subject))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($subjects->isEmpty() && !empty($validated['matiere_enseignement'])) {
+            $subjects = collect([(string) $validated['matiere_enseignement']])
+                ->map(fn ($subject) => trim($subject))
+                ->filter()
+                ->unique()
+                ->values();
+        }
+
+        return $subjects->all();
+    }
+
+    private function normalizeTeachingSubjects(mixed $rawSubjects, mixed $fallbackSubject = null): array
+    {
+        $subjects = [];
+
+        if (is_string($rawSubjects) && trim($rawSubjects) !== '') {
+            $decoded = json_decode($rawSubjects, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $subjects = $decoded;
+            }
+        } elseif (is_array($rawSubjects)) {
+            $subjects = $rawSubjects;
+        }
+
+        if (empty($subjects) && is_string($fallbackSubject) && trim($fallbackSubject) !== '') {
+            $subjects = [$fallbackSubject];
+        }
+
+        return collect($subjects)
+            ->map(fn ($subject) => trim((string) $subject))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+        private function splitFullName(string $fullName): array
+        {
+                $clean = trim(preg_replace('/\s+/', ' ', $fullName) ?? '');
+                if ($clean === '') {
+                        return ['', ''];
+                }
+
+                $parts = preg_split('/\s+/', $clean) ?: [];
+                $prenom = (string) ($parts[0] ?? '');
+                $nom = trim(implode(' ', array_slice($parts, 1)));
+
+                if ($nom === '') {
+                        $nom = $prenom;
+                }
+
+                return [$prenom, $nom];
+        }
+
+        private function resolveFrontendLoginUrl(): string
+        {
+                $frontend = rtrim((string) (env('FRONTEND_URL') ?: 'http://localhost:5173'), '/');
+
+                return $frontend . '/login';
+        }
+
+        private function buildAccountCreationEmailHtml(array $data): string
+        {
+                $roleLabel = e((string) ($data['role_label'] ?? 'Utilisateur'));
+                $name = e((string) ($data['name'] ?? ''));
+                $nom = e((string) ($data['nom'] ?? ''));
+                $prenom = e((string) ($data['prenom'] ?? ''));
+                $email = e((string) ($data['email'] ?? ''));
+                $password = e((string) ($data['password'] ?? ''));
+                $loginUrl = e((string) ($data['login_url'] ?? $this->resolveFrontendLoginUrl()));
+
+                return "
+<div style=\"margin:0;padding:24px;background:#f5f7fb;font-family:Arial,Helvetica,sans-serif;color:#0f172a;\">
+    <div style=\"max-width:680px;margin:0 auto;background:#ffffff;border:1px solid #dbe3ef;border-radius:12px;overflow:hidden;\">
+        <div style=\"background:#0f172a;color:#ffffff;padding:18px 24px;\">
+            <h1 style=\"margin:0;font-size:20px;line-height:1.3;\">Bienvenue sur LinkEdu</h1>
+            <p style=\"margin:6px 0 0 0;font-size:14px;opacity:0.9;\">Creation de compte {$roleLabel}</p>
+        </div>
+
+        <div style=\"padding:22px 24px;\">
+            <p style=\"margin:0 0 14px 0;font-size:14px;\">Bonjour {$name},</p>
+            <p style=\"margin:0 0 16px 0;font-size:14px;line-height:1.6;\">
+                Votre compte a ete cree avec succes. Voici vos informations de connexion.
+            </p>
+
+            <table style=\"width:100%;border-collapse:collapse;font-size:14px;\">
+                <tr>
+                    <td style=\"padding:10px;border:1px solid #dbe3ef;background:#f8fafc;font-weight:700;width:34%;\">Nom</td>
+                    <td style=\"padding:10px;border:1px solid #dbe3ef;\">{$nom}</td>
+                </tr>
+                <tr>
+                    <td style=\"padding:10px;border:1px solid #dbe3ef;background:#f8fafc;font-weight:700;\">Prenom</td>
+                    <td style=\"padding:10px;border:1px solid #dbe3ef;\">{$prenom}</td>
+                </tr>
+                <tr>
+                    <td style=\"padding:10px;border:1px solid #dbe3ef;background:#f8fafc;font-weight:700;\">Email de connexion</td>
+                    <td style=\"padding:10px;border:1px solid #dbe3ef;\">{$email}</td>
+                </tr>
+                <tr>
+                    <td style=\"padding:10px;border:1px solid #dbe3ef;background:#f8fafc;font-weight:700;\">Mot de passe temporaire</td>
+                    <td style=\"padding:10px;border:1px solid #dbe3ef;font-family:Consolas,Monaco,monospace;font-size:15px;\">{$password}</td>
+                </tr>
+            </table>
+
+            <p style=\"margin:16px 0 0 0;padding:12px;border:1px solid #f5d8a8;background:#fff8eb;border-radius:8px;font-size:13px;line-height:1.5;\">
+                Important: veuillez modifier votre mot de passe lors de votre premiere connexion pour securiser votre compte.
+            </p>
+
+            <p style=\"margin:18px 0 0 0;font-size:14px;\">
+                Lien de connexion: <a href=\"{$loginUrl}\" style=\"color:#0b63f6;text-decoration:none;\">{$loginUrl}</a>
+            </p>
+        </div>
+    </div>
+</div>";
+        }
+
     private function generateRandomPassword(int $length = 12): string
     {
         $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
@@ -629,6 +829,7 @@ class AdminDashboardController extends Controller
             'niveaux' => array_values(config('school_options.niveaux', [])),
             'filieres_by_niveau' => config('school_options.filieres_by_niveau', []),
             'pricing_by_niveau_filiere' => config('school_options.pricing_by_niveau_filiere', []),
+            'matieres_by_niveau_filiere' => config('school_options.matieres_by_niveau_filiere', []),
         ]);
     }
 
