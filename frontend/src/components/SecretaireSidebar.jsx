@@ -130,15 +130,7 @@ export default function SecretaireSidebar() {
             })}
           </nav>
 
-          <div className="mt-auto border-t border-slate-200 pt-4">
-            <button
-              onClick={() => setShowLogoutModal(true)}
-              className="flex w-full items-center gap-3 rounded-xl border-l-2 border-transparent px-3 py-2.5 text-sm font-semibold text-red-600 transition-all hover:bg-red-50 hover:text-red-700"
-            >
-              <FiLogOut size={18} />
-              <span>Déconnexion</span>
-            </button>
-          </div>
+       
         </div>
       </aside>
       </>

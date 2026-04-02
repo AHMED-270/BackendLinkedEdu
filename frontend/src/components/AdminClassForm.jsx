@@ -4,6 +4,25 @@ import { FiArrowLeft as ArrowLeft } from 'react-icons/fi';
 import { FiPlus as Plus } from 'react-icons/fi';
 import { BiSolidUserDetail } from 'react-icons/bi';
 
+const SCHOOL_LEVELS = [
+  { code: 'maternelle', label: 'Maternelle' },
+  { code: 'primaire', label: 'Primaire' },
+  { code: 'college', label: 'College' },
+  { code: 'lycee', label: 'Lycee' },
+];
+
+const inferCycleFromNiveau = (niveauCode = '', niveauMeta = null) => {
+  if (niveauMeta?.cycle) return String(niveauMeta.cycle);
+  const code = String(niveauCode || '').toLowerCase();
+
+  if (['ms', 'mm', 'gs'].includes(code)) return 'maternelle';
+  if (code.endsWith('ap')) return 'primaire';
+  if (code.endsWith('ac')) return 'college';
+  if (['tc', '1bac', '2bac'].includes(code)) return 'lycee';
+
+  return '';
+};
+
 export default function AdminClassForm({ mode = 'create', classToEdit = null, onBack, onSuccess, isModal = false }) {
   const isEditing = mode === 'edit' && !!classToEdit;
   const [professeurs, setProfesseurs] = useState([]);
@@ -26,6 +45,7 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
   const [professeurMatieres, setProfesseurMatieres] = useState({});
   const [formMsg, setFormMsg] = useState('');
   const [saving, setSaving] = useState(false);
+  const [niveauScolaire, setNiveauScolaire] = useState('');
 
   const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 
@@ -65,6 +85,9 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
         });
 
         if (isEditing) {
+          const matchedNiveau = (Array.isArray(optionsData.niveaux) ? optionsData.niveaux : [])
+            .find((item) => item?.code === classToEdit.niveau);
+
           setFormData({
             nom: classToEdit.nom || '',
             niveau: classToEdit.niveau || '',
@@ -74,6 +97,7 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
               ? classToEdit.professeurs_ids.map((id) => String(id))
               : []
           });
+          setNiveauScolaire(inferCycleFromNiveau(classToEdit.niveau, matchedNiveau));
         } else {
           setFormData({
             nom: '',
@@ -82,6 +106,7 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
             pricing: 0,
             professeur_ids: []
           });
+          setNiveauScolaire('');
         }
       } catch (error) {
         setFormMsg('Impossible de charger les données.');
@@ -111,6 +136,50 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
       setFormData((prev) => ({ ...prev, filiere: allowedFilieres[0] }));
     }
   }, [formData.niveau, formData.filiere, classOptions]);
+
+  const niveauxWithCycle = classOptions.niveaux.map((niveau) => ({
+    ...niveau,
+    cycle: inferCycleFromNiveau(niveau?.code, niveau),
+  }));
+
+  const availableNiveaux = niveauScolaire
+    ? niveauxWithCycle.filter((niveau) => niveau.cycle === niveauScolaire)
+    : [];
+
+  useEffect(() => {
+    if (!niveauScolaire) {
+      if (formData.niveau || formData.filiere) {
+        setFormData((prev) => ({ ...prev, niveau: '', filiere: '' }));
+      }
+      return;
+    }
+
+    const isNiveauStillAllowed = availableNiveaux.some((niveau) => niveau.code === formData.niveau);
+    if (!isNiveauStillAllowed && formData.niveau) {
+      setFormData((prev) => ({ ...prev, niveau: '', filiere: '' }));
+    }
+  }, [niveauScolaire, availableNiveaux, formData.niveau, formData.filiere]);
+
+  useEffect(() => {
+    if (!formData.niveau) return;
+    const selectedNiveau = niveauxWithCycle.find((niveau) => niveau.code === formData.niveau);
+    const detectedCycle = inferCycleFromNiveau(formData.niveau, selectedNiveau);
+    if (detectedCycle && detectedCycle !== niveauScolaire) {
+      setNiveauScolaire(detectedCycle);
+    }
+  }, [formData.niveau, niveauxWithCycle, niveauScolaire]);
+
+  useEffect(() => {
+    if (!formData.niveau || !formData.filiere) return;
+    if (isEditing) return;
+
+    const automaticPrice = classOptions.pricingByNiveauFiliere?.[formData.niveau]?.[formData.filiere];
+    if (typeof automaticPrice !== 'number') return;
+
+    if (Number(formData.pricing) !== Number(automaticPrice)) {
+      setFormData((prev) => ({ ...prev, pricing: automaticPrice }));
+    }
+  }, [formData.niveau, formData.filiere, formData.pricing, classOptions.pricingByNiveauFiliere, isEditing]);
 
   const ensureCsrfCookie = async () => {
     await axios.get(apiBaseUrl + '/sanctum/csrf-cookie', {
@@ -372,34 +441,50 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
 
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Section 1: Base Info */}
-            <section className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-sm">
+            <section className="border border-gray-200 rounded-xl overflow-hidden bg-white">
               <div className="grid grid-cols-1 md:grid-cols-12">
-                <div className="md:col-span-4 bg-slate-50 p-6 border-b md:border-b-0 md:border-r border-slate-200 flex flex-col justify-center">
-                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-1">Identité</h3>
-                  <p className="text-xs text-slate-500 font-medium leading-relaxed">Informations de base pour identifier la classe dans le système.</p>
+                <div className="md:col-span-4 bg-gray-50 p-4 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col justify-center">
+                  <h3 className="text-sm font-bold text-gray-800">Identite</h3>
+                  <p className="text-xs text-gray-500 mt-1">Informations de base pour identifier la classe dans le systeme.</p>
                 </div>
-                <div className="md:col-span-8 p-6 grid grid-cols-1 sm:grid-cols-2 gap-6 bg-white">
-                  <div className="space-y-2">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Nom de la classe</label>
+                <div className="md:col-span-8 p-4 grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Nom de la classe</label>
                     <input
                       type="text"
                       value={formData.nom}
                       onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
                       required
                       placeholder="Ex: 3ème B"
-                      className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-sm font-bold text-slate-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Niveau scolaire</label>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Niveau scolaire</label>
+                    <select
+                      value={niveauScolaire}
+                      onChange={(e) => setNiveauScolaire(e.target.value)}
+                      required
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
+                    >
+                      <option value="">Selectionner</option>
+                      {SCHOOL_LEVELS.map((level) => (
+                        <option key={level.code} value={level.code}>{level.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Classe / Niveau</label>
                     <select
                       value={formData.niveau}
                       onChange={(e) => setFormData({ ...formData, niveau: e.target.value })}
                       required
-                      className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-sm font-bold text-slate-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
+                      disabled={!niveauScolaire}
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm disabled:bg-gray-50 disabled:text-gray-400"
                     >
-                      <option value="">Sélectionner un niveau...</option>
-                      {classOptions.niveaux.map((niv) => (
+                      <option value="">{niveauScolaire ? 'Selectionner une classe...' : 'Choisir d abord un niveau scolaire'}</option>
+                      {availableNiveaux.map((niv) => (
                         <option key={niv.code} value={niv.code}>{niv.label}</option>
                       ))}
                     </select>
@@ -409,38 +494,41 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
             </section>
 
             {/* Section: Filière & Pricing */}
-            <section className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-sm">
+            <section className="border border-gray-200 rounded-xl overflow-hidden bg-white">
               <div className="grid grid-cols-1 md:grid-cols-12">
-                <div className="md:col-span-4 bg-slate-50 p-6 border-b md:border-b-0 md:border-r border-slate-200 flex flex-col justify-center">
-                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-1">Structure</h3>
-                  <p className="text-xs text-slate-500 font-medium leading-relaxed">Définissez la filière et le coût de scolarité pour cette classe.</p>
+                <div className="md:col-span-4 bg-gray-50 p-4 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col justify-center">
+                  <h3 className="text-sm font-bold text-gray-800">Structure</h3>
+                  <p className="text-xs text-gray-500 mt-1">Definissez la filiere et le cout de scolarite pour cette classe.</p>
                 </div>
-                <div className="md:col-span-8 p-6 grid grid-cols-1 sm:grid-cols-2 gap-6 bg-white">
-                  <div className="space-y-2">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Filière</label>
+                <div className="md:col-span-8 p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Filiere / Serie</label>
                     <select
                       value={formData.filiere}
                       onChange={(e) => setFormData({ ...formData, filiere: e.target.value })}
                       required
                       disabled={!formData.niveau}
-                      className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-sm font-bold text-slate-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm disabled:bg-gray-50 disabled:text-gray-400"
                     >
-                      <option value="">Sélectionner une filière...</option>
+                      <option value="">Selectionner une filiere...</option>
                       {availableFilieres.map((fil) => (
                         <option key={fil} value={fil}>{fil}</option>
                       ))}
                     </select>
+                    {!!formData.niveau && availableFilieres.length === 0 && (
+                      <p className="mt-1 text-xs text-amber-700">Aucune filiere configuree pour ce niveau.</p>
+                    )}
                   </div>
-                  <div className="space-y-2">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Coût de scolarité (DH)</label>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Cout de scolarite (DH)</label>
                     <input
                       type="number"
                       value={formData.pricing}
                       onChange={(e) => setFormData({ ...formData, pricing: e.target.value })}
                       min="0"
                       step="100"
-                      placeholder="Entrer le coût de scolarité"
-                      className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50/50 text-sm font-bold text-slate-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
+                      placeholder="Entrer le cout de scolarite"
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
                     />
                   </div>
                 </div>
@@ -448,17 +536,17 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
             </section>
 
             {/* Section 2: Professeurs */}
-            <section className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-sm">
+            <section className="border border-gray-200 rounded-xl overflow-hidden bg-white">
               <div className="grid grid-cols-1 md:grid-cols-12">
-                <div className="md:col-span-4 bg-slate-50 p-6 border-b md:border-b-0 md:border-r border-slate-200 flex flex-col justify-center">
-                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-1">Enseignants</h3>
-                  <p className="text-xs text-slate-500 font-medium leading-relaxed">Sélectionnez les professeurs habilités à intervenir dans cette classe.</p>
+                <div className="md:col-span-4 bg-gray-50 p-4 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col justify-center">
+                  <h3 className="text-sm font-bold text-gray-800">Enseignants</h3>
+                  <p className="text-xs text-gray-500 mt-1">Selectionnez les professeurs habilites a intervenir dans cette classe.</p>
                   <div className="mt-4 inline-flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-full">
                     <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                    <span className="text-[10px] font-bold text-blue-700 uppercase">{formData.professeur_ids.length} Sélectionné(s)</span>
+                    <span className="text-[10px] font-bold text-blue-700 uppercase">{formData.professeur_ids.length} selectionne(s)</span>
                   </div>
                 </div>
-                <div className="md:col-span-8 p-6 bg-white">
+                <div className="md:col-span-8 p-4 bg-white">
                   <div className="border border-slate-100 rounded-xl bg-slate-50/30 p-2 max-h-[300px] overflow-y-auto custom-scrollbar shadow-inner">
                     {professeurs.length === 0 ? (
                       <div className="p-10 text-center text-slate-400 italic text-sm">Chargement ou aucun professeur disponible...</div>
@@ -512,27 +600,27 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
             </section>
 
             {/* Actions */}
-            <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end pt-4 border-t border-slate-100 mt-10">
+            <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end pt-4 border-t border-gray-100 mt-10">
               <button
                 type="button"
                 onClick={onBack}
                 disabled={saving}
-                className="px-8 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-bold transition-all text-sm active:scale-95 disabled:opacity-50"
+                className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg font-semibold transition-all text-sm active:scale-95 disabled:opacity-50"
               >
-                ANNULER
+                Annuler
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="px-10 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black transition-all shadow-lg shadow-blue-200 text-sm active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3"
+                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all shadow-sm text-sm active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {saving ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    ENREGISTREMENT...
+                    Enregistrement...
                   </>
                 ) : (
-                  'CONFIRMER ET ENREGISTRER'
+                  'Confirmer et enregistrer'
                 )}
               </button>
             </div>

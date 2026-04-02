@@ -27,7 +27,7 @@ export default function AdminDashboard({ onLogout, userRole = 'admin', user = nu
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [currentView, setCurrentView] = useState('home');
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
-  const [showCreateClassModal, setShowCreateClassModal] = useState(false);
+  const [editingClass, setEditingClass] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState('');
   const [subproject, setSubproject] = useState(defaultSubproject);
   const headerAvatar = user?.profilePhoto || avatarUrl;
@@ -93,7 +93,13 @@ export default function AdminDashboard({ onLogout, userRole = 'admin', user = nu
   };
 
   const openCreateClassForm = () => {
-    setShowCreateClassModal(true);
+    setEditingClass(null);
+    setCurrentView('class-create');
+  };
+
+  const openEditClassForm = (classe) => {
+    setEditingClass(classe || null);
+    setCurrentView('class-edit');
   };
 
   const handleLogoutConfirm = async () => {
@@ -135,23 +141,6 @@ export default function AdminDashboard({ onLogout, userRole = 'admin', user = nu
               onSuccess={() => {
                 setShowCreateUserModal(false);
                 setCurrentView('users');
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      {showCreateClassModal && userRole === 'admin' && (
-        <div className="logout-modal-backdrop">
-          <div className="logout-modal-card" style={{ maxWidth: '900px', width: '90vw', maxHeight: '90vh', overflowY: 'auto', padding: '16px' }}>
-            <AdminClassForm
-              mode="create"
-              classToEdit={null}
-              isModal={true}
-              onBack={() => setShowCreateClassModal(false)}
-              onSuccess={() => {
-                setShowCreateClassModal(false);
-                setCurrentView('classes');
               }}
             />
           </div>
@@ -217,7 +206,7 @@ export default function AdminDashboard({ onLogout, userRole = 'admin', user = nu
                 <span>Activations</span>
               </a>
             )}
-              <a href="#" className={'nav-item ' + (currentView === 'classes' ? 'active' : '')} onClick={(e) => {e.preventDefault(); setCurrentView('classes');}}>
+              <a href="#" className={'nav-item ' + (['classes', 'class-create', 'class-edit'].includes(currentView) ? 'active' : '')} onClick={(e) => {e.preventDefault(); setCurrentView('classes');}}>
               <GraduationCap size={20} />
               <span>Classes</span>
             </a>
@@ -280,6 +269,33 @@ export default function AdminDashboard({ onLogout, userRole = 'admin', user = nu
             <AdminClasses
               userRole={userRole}
               onCreateClass={openCreateClassForm}
+              onEditClass={openEditClassForm}
+            />
+          )}
+          {currentView === 'class-create' && userRole === 'admin' && (
+            <AdminClassForm
+              mode="create"
+              classToEdit={null}
+              isModal={false}
+              onBack={() => setCurrentView('classes')}
+              onSuccess={() => {
+                setCurrentView('classes');
+              }}
+            />
+          )}
+          {currentView === 'class-edit' && userRole === 'admin' && editingClass && (
+            <AdminClassForm
+              mode="edit"
+              classToEdit={editingClass}
+              isModal={false}
+              onBack={() => {
+                setEditingClass(null);
+                setCurrentView('classes');
+              }}
+              onSuccess={() => {
+                setEditingClass(null);
+                setCurrentView('classes');
+              }}
             />
           )}
           {currentView === 'matieres' && userRole === 'admin' && (
