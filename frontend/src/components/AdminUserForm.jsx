@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { FiArrowLeft as ArrowLeft } from 'react-icons/fi';
 import { BiSolidUserDetail } from 'react-icons/bi';
+import { PROFESSOR_SUBJECTS_BY_LEVEL } from '../constants/professorSubjectsByLevel';
 
 const SCHOOL_LEVELS = [
   { code: 'maternelle', label: 'Maternelle' },
@@ -9,13 +10,6 @@ const SCHOOL_LEVELS = [
   { code: 'college', label: 'College' },
   { code: 'lycee', label: 'Lycee' },
 ];
-
-const PROFESSOR_SUBJECTS_BY_LEVEL = {
-  maternelle: ['Arabe', 'Francais', 'Anglais', 'EPS'],
-  primaire: ['Francais', 'Arabe', 'Anglais', 'Sport', 'EI', 'Histoire geo'],
-  college: ['Francais', 'Anglais', 'Arabe', 'EI', 'EPS', 'Histoire geo', 'Math', 'PC', 'SVT', 'Informatique'],
-  lycee: ['Math', 'PC', 'SVT', 'Arabe', 'Francais', 'Anglais', 'Philosophie', 'Sport', 'EI', 'Histoire geo', 'Comptabilite', 'Science de l\'ingenieur'],
-};
 
 const normalizeMatieres = (rawValue, fallback = '') => {
   let values = [];
@@ -148,12 +142,46 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
     if (formData.role !== 'professeur') return matieres;
     if (!formData.niveau_enseignement) return [];
 
-    const fixedSubjects = PROFESSOR_SUBJECTS_BY_LEVEL[formData.niveau_enseignement] || [];
-    if (fixedSubjects.length === 0) return matieres;
+    // Include subjects assigned to the selected level + transversal "general" subjects
+    const selectedLevel = String(formData.niveau_enseignement).toLowerCase();
+    const filteredByLevel = matieres.filter((m) => {
+      const matiereLevel = String(m.niveau || '').toLowerCase();
+      return matiereLevel === selectedLevel || matiereLevel === 'general';
+    });
 
-    return fixedSubjects.map((name) => ({
-      id_matiere: name,
-      nom: name,
+    const uniqueByName = new Map();
+    filteredByLevel.forEach((m) => {
+      const key = String(m.nom || '').trim().toLowerCase();
+      if (!key) return;
+
+      const existing = uniqueByName.get(key);
+      if (!existing) {
+        uniqueByName.set(key, m);
+        return;
+      }
+
+      if (String(m.niveau || '').toLowerCase() === selectedLevel) {
+        uniqueByName.set(key, m);
+      }
+    });
+
+    const uniqueSubjects = [...uniqueByName.values()];
+
+    if (uniqueSubjects.length === 0) {
+      const fallbackSubjects = PROFESSOR_SUBJECTS_BY_LEVEL[formData.niveau_enseignement] || [];
+      return fallbackSubjects.map((subjectName) => ({
+        id_matiere: subjectName,
+        nom: subjectName,
+        niveau: formData.niveau_enseignement,
+        isFallback: true,
+      }));
+    }
+
+    return uniqueSubjects.map((m) => ({
+      id_matiere: String(m.nom).trim(),
+      nom: m.nom,
+      niveau: m.niveau,
+      isFallback: false,
     }));
   }, [formData.role, formData.niveau_enseignement, matieres]);
 
@@ -425,6 +453,9 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
                       <label className="text-sm font-medium text-gray-700">
                         Matieres enseignees ({formData.matieres_enseignement.length} selectionnee(s))
                       </label>
+                      <p className="text-xs text-gray-500">
+                        Source: base de donnees (niveau enseigne + matieres General transversales).
+                      </p>
                       <div className="max-h-56 overflow-y-auto rounded-xl border border-black bg-white p-3">
                         {!formData.niveau_enseignement ? (
                           <p className="px-2 py-1 text-sm text-gray-500">Choisissez d'abord le niveau enseigne pour afficher les matieres.</p>
@@ -452,6 +483,15 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
                                     onChange={() => handleMatiereToggle(value)}
                                   />
                                   <span>{value}</span>
+                                  {matiere.isFallback ? (
+                                    <span className="ml-auto rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                                      Mode profil
+                                    </span>
+                                  ) : (
+                                    <span className="ml-auto rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                                      BD
+                                    </span>
+                                  )}
                                 </label>
                               );
                             })}

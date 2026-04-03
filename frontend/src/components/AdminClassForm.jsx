@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { FiArrowLeft as ArrowLeft } from 'react-icons/fi';
-import { FiPlus as Plus } from 'react-icons/fi';
 import { BiSolidUserDetail } from 'react-icons/bi';
 
 const SCHOOL_LEVELS = [
@@ -42,7 +41,9 @@ const normalizeMatiereName = (value = '') => {
     case 'eps':
     case 'sport': return 'educationphysique';
     case 'ei': return 'educationislamique';
+    case 'hg': return 'histoiregeographie';
     case 'histoiregeo': return 'histoiregeographie';
+    case 'info': return 'informatique';
     case 'sciencedelingen':
     case 'sciencedelingenieur': return 'sciencesdingenieur';
     case 'comptabilite': return 'economiegeneraleetstatistiques';
@@ -79,15 +80,13 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
   const isEditing = mode === 'edit' && !!classToEdit;
   const [professeurs, setProfesseurs] = useState([]);
   const [matieres, setMatieres] = useState([]);
-  const [selectedProfForModal, setSelectedProfForModal] = useState(null);
-  const [selectedMatieres, setSelectedMatieres] = useState([]);
+
 
   const [formData, setFormData] = useState({
     nom: '',
     niveau: '',
     filiere: '',
-    pricing: 0,
-    professeur_ids: []
+    pricing: 0
   });
   const [classOptions, setClassOptions] = useState({
     niveaux: [],
@@ -95,7 +94,8 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
     pricingByNiveauFiliere: {},
     matieresByNiveauFiliere: {},
   });
-  const [professeurMatieres, setProfesseurMatieres] = useState({});
+  const [matiereProfesseurs, setMatiereProfesseurs] = useState({});
+  const [prefillDone, setPrefillDone] = useState(false);
   const [formMsg, setFormMsg] = useState('');
   const [saving, setSaving] = useState(false);
   const [niveauScolaire, setNiveauScolaire] = useState('');
@@ -149,20 +149,20 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
             nom: classToEdit.nom || '',
             niveau: classToEdit.niveau || '',
             filiere: classToEdit.filiere || '',
-            pricing: Number(classToEdit.pricing) || 0,
-            professeur_ids: Array.isArray(classToEdit.professeurs_ids)
-              ? classToEdit.professeurs_ids.map((id) => String(id))
-              : []
+            pricing: Number(classToEdit.pricing) || 0
           });
+          setMatiereProfesseurs({});
+          setPrefillDone(false);
           setNiveauScolaire(inferCycleFromNiveau(classToEdit.niveau, matchedNiveau));
         } else {
           setFormData({
             nom: '',
             niveau: '',
             filiere: '',
-            pricing: 0,
-            professeur_ids: []
+            pricing: 0
           });
+          setMatiereProfesseurs({});
+          setPrefillDone(false);
           setNiveauScolaire('');
         }
       } catch (error) {
@@ -238,16 +238,44 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
     setFormMsg('');
     setSaving(true);
 
-    if (!formData.professeur_ids || formData.professeur_ids.length === 0) {
-      setFormMsg('Veuillez selectionner au moins un professeur.');
+    if (configuredMatiereNames.length === 0) {
+      setFormMsg('Aucune matiere pedagogique configuree pour cette filiere.');
       setSaving(false);
       return;
     }
 
-    // Check if all professors have at least one matière assigned
-    const missingMatieres = formData.professeur_ids.some(profId => !professeurMatieres[profId] || professeurMatieres[profId].length === 0);
-    if (missingMatieres) {
-      setFormMsg('Chaque professeur doit avoir au moins une matière assignée.');
+    const undefinedMatieres = configuredMatieres.filter((matiere) => !matiere.matiereId);
+    if (undefinedMatieres.length > 0) {
+      setFormMsg('Certaines matieres du cadre pedagogique ne sont pas encore creees en base.');
+      setSaving(false);
+      return;
+    }
+
+    const unassignedMatieres = configuredMatieres.filter((matiere) => !matiereProfesseurs[matiere.matiereId]);
+    if (unassignedMatieres.length > 0) {
+      setFormMsg('Veuillez selectionner un professeur pour chaque matiere du cadre pedagogique.');
+      setSaving(false);
+      return;
+    }
+
+    const professeurMatieresPayload = {};
+    configuredMatieres.forEach((matiere) => {
+      const professeurId = String(matiereProfesseurs[matiere.matiereId] || '').trim();
+      if (!professeurId) return;
+
+      if (!professeurMatieresPayload[professeurId]) {
+        professeurMatieresPayload[professeurId] = [];
+      }
+
+      const numericMatiereId = Number(matiere.matiereId);
+      if (!professeurMatieresPayload[professeurId].includes(numericMatiereId)) {
+        professeurMatieresPayload[professeurId].push(numericMatiereId);
+      }
+    });
+
+    const professeurIds = Object.keys(professeurMatieresPayload).map((id) => Number(id));
+    if (professeurIds.length === 0) {
+      setFormMsg('Veuillez assigner au moins un professeur.');
       setSaving(false);
       return;
     }
@@ -257,13 +285,8 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
       niveau: formData.niveau,
       filiere: formData.filiere,
       pricing: Number(formData.pricing),
-      professeur_ids: formData.professeur_ids.map((id) => Number(id)),
-      professeur_matieres: Object.fromEntries(
-        Object.entries(professeurMatieres).map(([profId, matIds]) => [
-          profId,
-          matIds.map(id => Number(id))
-        ])
-      )
+      professeur_ids: professeurIds,
+      professeur_matieres: professeurMatieresPayload,
     };
 
     try {
@@ -327,19 +350,56 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
     return Array.isArray(list) ? list : [];
   }, [formData.niveau, formData.filiere, classOptions.matieresByNiveauFiliere]);
 
-  const filteredMatieres = useMemo(() => {
-    if (configuredMatiereNames.length === 0) return matieres;
-
-    const allowedNames = new Set(configuredMatiereNames.map((name) => normalizeMatiereName(name)));
-    const matches = matieres.filter((matiere) => allowedNames.has(normalizeMatiereName(matiere.nom || '')));
-
-    return matches.length > 0 ? matches : matieres;
-  }, [matieres, configuredMatiereNames]);
-
   const allowedMatiereTokens = useMemo(
     () => new Set(configuredMatiereNames.map((name) => normalizeMatiereName(name))),
     [configuredMatiereNames]
   );
+
+  const configuredMatieres = useMemo(() => {
+    if (configuredMatiereNames.length === 0) return [];
+
+    const byToken = {};
+    matieres.forEach((matiere) => {
+      const token = normalizeMatiereName(matiere?.nom || '');
+      if (!token) return;
+      if (!byToken[token]) byToken[token] = [];
+      byToken[token].push(matiere);
+    });
+
+    const selectBestMatiere = (candidates) => {
+      const sorted = [...candidates].sort((a, b) => {
+        const aLevel = String(a?.niveau || '').toLowerCase();
+        const bLevel = String(b?.niveau || '').toLowerCase();
+
+        const score = (niveau) => {
+          if (niveauScolaire && niveau === niveauScolaire) return 3;
+          if (niveau === 'general') return 2;
+          return 1;
+        };
+
+        return score(bLevel) - score(aLevel);
+      });
+
+      return sorted[0] || null;
+    };
+
+    return configuredMatiereNames
+      .map((matiereName) => {
+        const token = normalizeMatiereName(matiereName);
+        const selected = selectBestMatiere(byToken[token] || []);
+        const matiereId = selected
+          ? String(selected.id_matiere || selected.id || selected.ID || '')
+          : '';
+
+        return {
+          label: matiereName,
+          token,
+          matiereId,
+          source: selected || null,
+        };
+      })
+      .filter((matiere) => Boolean(matiere.token));
+  }, [configuredMatiereNames, matieres, niveauScolaire]);
 
   const visibleProfesseurs = useMemo(() => {
     return professeurs.filter((professeur) => {
@@ -363,213 +423,110 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
     });
   }, [professeurs, niveauScolaire, allowedMatiereTokens]);
 
-  useEffect(() => {
-    const allowedIds = new Set(
-      filteredMatieres.map((matiere) => String(matiere.id_matiere || matiere.id || matiere.ID))
-    );
+  const professorTokensById = useMemo(() => {
+    const map = {};
 
-    setProfesseurMatieres((previous) => {
-      let changed = false;
-      const next = {};
-
-      Object.entries(previous).forEach(([profId, matiereIds]) => {
-        const filteredIds = (Array.isArray(matiereIds) ? matiereIds : [])
-          .map((id) => String(id))
-          .filter((id) => allowedIds.has(id));
-
-        if (filteredIds.length !== (Array.isArray(matiereIds) ? matiereIds.length : 0)) {
-          changed = true;
-        }
-
-        next[profId] = filteredIds;
-      });
-
-      return changed ? next : previous;
+    visibleProfesseurs.forEach((professeur) => {
+      map[String(professeur.id)] = new Set(
+        extractProfessorSubjects(professeur)
+          .map((subject) => normalizeMatiereName(subject))
+          .filter(Boolean)
+      );
     });
-  }, [filteredMatieres]);
 
-  useEffect(() => {
-    const allowedProfIds = new Set(visibleProfesseurs.map((professeur) => String(professeur.id)));
+    return map;
+  }, [visibleProfesseurs]);
 
-    setFormData((previous) => {
-      const filteredIds = previous.professeur_ids.filter((id) => allowedProfIds.has(String(id)));
-      if (filteredIds.length === previous.professeur_ids.length) {
-        return previous;
+  const professorChoicesByMatiere = useMemo(() => {
+    const choices = {};
+
+    configuredMatieres.forEach((matiere) => {
+      if (!matiere.matiereId) {
+        choices[matiere.label] = [];
+        return;
       }
 
-      return {
-        ...previous,
-        professeur_ids: filteredIds,
-      };
+      const selectableProfs = visibleProfesseurs.filter((professeur) => {
+        const tokens = professorTokensById[String(professeur.id)] || new Set();
+        return tokens.has(matiere.token);
+      });
+
+      choices[matiere.matiereId] = selectableProfs;
     });
 
-    setProfesseurMatieres((previous) => {
-      const next = {};
-      let changed = false;
+    return choices;
+  }, [configuredMatieres, visibleProfesseurs, professorTokensById]);
 
-      Object.entries(previous).forEach(([profId, matiereIds]) => {
-        if (allowedProfIds.has(String(profId))) {
-          next[profId] = matiereIds;
-        } else {
+  useEffect(() => {
+    const allowedMatiereIds = new Set(configuredMatieres.filter((matiere) => matiere.matiereId).map((matiere) => matiere.matiereId));
+
+    setMatiereProfesseurs((previous) => {
+      let changed = false;
+      const next = {};
+
+      Object.entries(previous).forEach(([matiereId, professeurId]) => {
+        if (!allowedMatiereIds.has(String(matiereId))) {
           changed = true;
+          return;
         }
+
+        const allowedProfesseurs = professorChoicesByMatiere[String(matiereId)] || [];
+        const isStillAllowed = allowedProfesseurs.some((prof) => String(prof.id) === String(professeurId));
+        if (!isStillAllowed) {
+          changed = true;
+          return;
+        }
+
+        next[String(matiereId)] = String(professeurId);
       });
 
       return changed ? next : previous;
     });
-  }, [visibleProfesseurs]);
+  }, [configuredMatieres, professorChoicesByMatiere]);
+
+  useEffect(() => {
+    if (!isEditing || prefillDone || !classToEdit) return;
+    if (configuredMatieres.length === 0) return;
+
+    const mappingFromBackend = classToEdit.professeur_matieres;
+    if (!mappingFromBackend || typeof mappingFromBackend !== 'object') {
+      setPrefillDone(true);
+      return;
+    }
+
+    const next = {};
+    Object.entries(mappingFromBackend).forEach(([professeurId, matiereIds]) => {
+      (Array.isArray(matiereIds) ? matiereIds : []).forEach((matiereId) => {
+        next[String(matiereId)] = String(professeurId);
+      });
+    });
+
+    setMatiereProfesseurs((previous) => {
+      if (Object.keys(previous).length > 0) return previous;
+      return next;
+    });
+    setPrefillDone(true);
+  }, [isEditing, prefillDone, classToEdit, configuredMatieres]);
+
+  const selectedProfessorCount = useMemo(() => {
+    const unique = new Set(
+      Object.values(matiereProfesseurs)
+        .map((id) => String(id || '').trim())
+        .filter(Boolean)
+    );
+
+    return unique.size;
+  }, [matiereProfesseurs]);
+
+  const unassignedMatiereCount = useMemo(() => {
+    return configuredMatieres.filter((matiere) => {
+      if (!matiere.matiereId) return true;
+      return !matiereProfesseurs[matiere.matiereId];
+    }).length;
+  }, [configuredMatieres, matiereProfesseurs]);
 
   return (
     <div className={isModal ? 'bg-[#f8fafc]' : 'dashboard-content bg-gray-50/30'}>
-      {/* Modal for Assigning Matières to Professor */}
-      {selectedProfForModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.7)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            maxWidth: '500px',
-            width: '90%',
-            padding: '32px',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-          }}>
-            <h3 style={{
-              fontSize: '1.25rem',
-              fontWeight: '600',
-              color: '#0f172a',
-              marginBottom: '12px',
-            }}>
-              Assigner les matières
-            </h3>
-            <p style={{
-              color: '#64748b',
-              fontSize: '0.95rem',
-              marginBottom: '24px',
-              lineHeight: '1.5',
-            }}>
-              Sélectionnez une ou plusieurs matières pour <strong>{selectedProfForModal.name}</strong>
-            </p>
-
-            <div style={{
-              border: '1px solid #e2e8f0',
-              borderRadius: '8px',
-              padding: '12px',
-              maxHeight: '300px',
-              overflowY: 'auto',
-              marginBottom: '24px',
-            }}>
-              {filteredMatieres.length === 0 ? (
-                <p style={{ textAlign: 'center', color: '#94a3b8', padding: '16px' }}>
-                  Aucune matière disponible
-                </p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {filteredMatieres.map((mat) => {
-                    const matId = String(mat.id_matiere || mat.id || mat.ID);
-                    const isSelected = selectedMatieres.includes(matId);
-                    return (
-                    <label key={matId} style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      padding: '12px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      backgroundColor: isSelected ? '#dbeafe' : '#f8fafc',
-                      border: '1px solid ' + (isSelected ? '#93c5fd' : '#e2e8f0'),
-                    }}>
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedMatieres([...selectedMatieres, matId]);
-                          } else {
-                            setSelectedMatieres(selectedMatieres.filter(id => id !== matId));
-                          }
-                        }}
-                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                      />
-                      <span style={{ fontWeight: '500', color: '#1e293b' }}>
-                        {mat.nom}
-                      </span>
-                    </label>
-                  );
-                  })}
-                </div>
-              )}
-            </div>
-
-            <div style={{
-              display: 'flex',
-              gap: '12px',
-              justifyContent: 'flex-end',
-            }}>
-              <button
-                onClick={() => {
-                  setSelectedProfForModal(null);
-                  setSelectedMatieres([]);
-                  // Remove professor if no matieres selected
-                  if (selectedMatieres.length === 0) {
-                    setFormData(prev => ({
-                      ...prev,
-                      professeur_ids: prev.professeur_ids.filter(id => id !== String(selectedProfForModal.id))
-                    }));
-                  }
-                }}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  backgroundColor: 'white',
-                  color: '#475569',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                }}
-              >
-                Annuler
-              </button>
-              <button
-                onClick={() => {
-                  if (selectedMatieres.length > 0) {
-                    setProfesseurMatieres({
-                      ...professeurMatieres,
-                      [String(selectedProfForModal.id)]: selectedMatieres
-                    });
-                    setSelectedProfForModal(null);
-                    setSelectedMatieres([]);
-                  } else {
-                    alert('Veuillez sélectionner au moins une matière.');
-                  }
-                }}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  backgroundColor: '#2563eb',
-                  color: 'white',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                }}
-              >
-                Confirmer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {!isModal && (
         <header className="content-header flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
@@ -726,11 +683,12 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
               <div className="grid grid-cols-1 md:grid-cols-12">
                 <div className="md:col-span-4 bg-gray-50 p-4 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col justify-center">
                   <h3 className="text-sm font-bold text-gray-800">Enseignants</h3>
-                  <p className="text-xs text-gray-500 mt-1">Selectionnez les professeurs habilites a intervenir dans cette classe.</p>
+                  <p className="text-xs text-gray-500 mt-1">Assignez un professeur pour chaque matiere du cadre pedagogique de la classe.</p>
                   <div className="mt-4 inline-flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-full">
                     <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                    <span className="text-[10px] font-bold text-blue-700 uppercase">{formData.professeur_ids.length} selectionne(s)</span>
+                    <span className="text-[10px] font-bold text-blue-700 uppercase">{selectedProfessorCount} professeur(s) assigne(s)</span>
                   </div>
+                  <p className="mt-2 text-[11px] font-semibold text-amber-700">{unassignedMatiereCount} matiere(s) non assignee(s)</p>
                 </div>
                 <div className="md:col-span-8 p-4 bg-white">
                   {niveauScolaire && (
@@ -740,11 +698,15 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
                   )}
                   {configuredMatiereNames.length > 0 && (
                     <p className="mb-3 text-xs text-blue-700">
-                      Matieres filtrees automatiquement selon la filiere selectionnee.
+                      Matieres du cadre pedagogique chargees selon la filiere selectionnee.
                     </p>
                   )}
-                  <div className="border border-slate-100 rounded-xl bg-slate-50/30 p-2 max-h-[300px] overflow-y-auto custom-scrollbar shadow-inner">
-                    {visibleProfesseurs.length === 0 ? (
+                  <div className="border border-slate-100 rounded-xl bg-slate-50/30 p-3 max-h-[420px] overflow-y-auto custom-scrollbar shadow-inner">
+                    {configuredMatieres.length === 0 ? (
+                      <div className="p-10 text-center text-slate-400 italic text-sm">
+                        Selectionnez d'abord le niveau et la filiere pour charger les matieres.
+                      </div>
+                    ) : visibleProfesseurs.length === 0 ? (
                       <div className="p-10 text-center text-slate-400 italic text-sm">
                         {niveauScolaire && configuredMatiereNames.length > 0
                           ? 'Aucun professeur ne correspond a ce niveau et a cette filiere.'
@@ -753,71 +715,61 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
                             : 'Chargement ou aucun professeur disponible...'}
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {visibleProfesseurs.map((p) => {
-                          const checked = formData.professeur_ids.includes(String(p.id));
-                          const teacherSubjects = extractProfessorSubjects(p);
+                      <div className="space-y-3">
+                        {configuredMatieres.map((matiere) => {
+                          const choix = matiere.matiereId ? (professorChoicesByMatiere[matiere.matiereId] || []) : [];
+                          const selectedProfesseurId = matiere.matiereId ? String(matiereProfesseurs[matiere.matiereId] || '') : '';
                           return (
-                            <label 
-                              key={p.id} 
-                              className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer group ${
-                                checked 
-                                  ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-500/5' 
-                                  : 'bg-white border-slate-100 hover:border-slate-300'
-                              }`}
-                            >
-                              <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
-                                checked ? 'bg-blue-600 border-blue-600 text-white' : 'bg-slate-50 border-slate-200'
-                              }`}>
-                                {checked && <Plus className="rotate-45" size={14} strokeWidth={4} />}
-                              </div>
-                              <input
-                                type="checkbox"
-                                className="hidden"
-                                checked={checked}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setFormData(prev => ({ ...prev, professeur_ids: [...prev.professeur_ids, String(p.id)] }));
-                                    setSelectedProfForModal(p);
-                                    setSelectedMatieres(professeurMatieres[String(p.id)] || []);
-                                  } else {
-                                    setFormData(prev => ({ ...prev, professeur_ids: prev.professeur_ids.filter(id => id !== String(p.id)) }));
-                                    const newMatieres = { ...professeurMatieres };
-                                    delete newMatieres[String(p.id)];
-                                    setProfesseurMatieres(newMatieres);
-                                  }
-                                }}
-                              />
-                              <div className="overflow-hidden">
-                                <span className={`text-sm font-bold block truncate transition-colors ${checked ? 'text-blue-700' : 'text-slate-600 group-hover:text-slate-900'}`}>{p.name}</span>
-                                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-tighter">PROFESSEUR</span>
-                                <div className="mt-1 flex flex-wrap gap-1">
-                                  {teacherSubjects.length > 1 ? (
-                                    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-                                      Polyvalent
-                                    </span>
-                                  ) : null}
-                                  {teacherSubjects.slice(0, 2).map((subject) => (
-                                    <span
-                                      key={`${p.id}-${subject}`}
-                                      className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700"
-                                    >
-                                      {subject}
-                                    </span>
-                                  ))}
-                                  {teacherSubjects.length > 2 ? (
-                                    <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">
-                                      +{teacherSubjects.length - 2} matiere(s)
-                                    </span>
-                                  ) : null}
-                                  {p.niveau_enseignement ? (
-                                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                                      {levelLabelByCode[p.niveau_enseignement] || p.niveau_enseignement}
-                                    </span>
-                                  ) : null}
+                            <div key={`${matiere.label}-${matiere.matiereId || 'missing'}`} className="rounded-xl border border-slate-200 bg-white p-3">
+                              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                  <p className="text-sm font-bold text-slate-800">{matiere.label}</p>
+                                  {!matiere.matiereId && (
+                                    <p className="text-[11px] text-red-600 font-semibold">Matiere absente en base de donnees.</p>
+                                  )}
+                                </div>
+                                <div className="sm:w-[280px]">
+                                  <select
+                                    value={selectedProfesseurId}
+                                    disabled={!matiere.matiereId || choix.length === 0}
+                                    onChange={(e) => {
+                                      if (!matiere.matiereId) return;
+                                      const selectedValue = String(e.target.value || '');
+                                      setMatiereProfesseurs((previous) => ({
+                                        ...previous,
+                                        [matiere.matiereId]: selectedValue,
+                                      }));
+                                    }}
+                                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm disabled:bg-gray-50 disabled:text-gray-400"
+                                  >
+                                    <option value="">Selectionner un professeur</option>
+                                    {choix.map((professeur) => (
+                                      <option key={professeur.id} value={professeur.id}>{professeur.name}</option>
+                                    ))}
+                                  </select>
+                                  {matiere.matiereId && choix.length === 0 && (
+                                    <p className="mt-1 text-[11px] text-amber-700">Aucun professeur compatible pour cette matiere.</p>
+                                  )}
                                 </div>
                               </div>
-                            </label>
+                              {selectedProfesseurId && (
+                                <p className="mt-2 text-[11px] text-emerald-700 font-semibold">
+                                  Assigne a {choix.find((professeur) => String(professeur.id) === selectedProfesseurId)?.name || 'Professeur'}
+                                </p>
+                              )}
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {choix.slice(0, 3).map((professeur) => (
+                                  <span key={`${matiere.label}-${professeur.id}`} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                                    {professeur.name}
+                                  </span>
+                                ))}
+                                {choix.length > 3 && (
+                                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                                    +{choix.length - 3} autres
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                           );
                         })}
                       </div>

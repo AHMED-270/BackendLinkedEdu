@@ -738,6 +738,10 @@ class AdminDashboardController extends Controller
             ->leftJoin('etudiants', 'classes.id_classe', '=', 'etudiants.id_classe')
             ->leftJoin('users as etudiant_user', 'etudiants.id_etudiant', '=', 'etudiant_user.id')
             ->leftJoin('classe_professeur_assignments as cpa', 'classes.id_classe', '=', 'cpa.id_classe')
+            ->leftJoin('enseigner as ens', function ($join) {
+                $join->on('classes.id_classe', '=', 'ens.id_classe')
+                    ->on('cpa.id_professeur', '=', 'ens.id_professeur');
+            })
             ->leftJoin('users as professeur_user', function ($join) {
                 $join->on('cpa.id_professeur', '=', 'professeur_user.id')
                     ->where('professeur_user.role', '=', 'professeur');
@@ -754,6 +758,7 @@ class AdminDashboardController extends Controller
                 DB::raw("GROUP_CONCAT(DISTINCT professeur_user.name ORDER BY professeur_user.id SEPARATOR '||') as professeurs_names"),
                 DB::raw("GROUP_CONCAT(DISTINCT professeur_user.id ORDER BY professeur_user.id SEPARATOR ',') as professeurs_ids"),
                 DB::raw("GROUP_CONCAT(DISTINCT COALESCE(professeur_data.telephone, '') ORDER BY professeur_user.id SEPARATOR '||') as professeurs_telephones"),
+                DB::raw("GROUP_CONCAT(DISTINCT CONCAT(COALESCE(ens.id_professeur, ''), ':', COALESCE(ens.id_matiere, '')) ORDER BY ens.id_professeur, ens.id_matiere SEPARATOR ',') as professeur_matiere_pairs"),
                 DB::raw("GROUP_CONCAT(DISTINCT etudiant_user.id ORDER BY etudiant_user.id SEPARATOR ',') as etudiants_ids"),
                 DB::raw("GROUP_CONCAT(DISTINCT etudiant_user.name ORDER BY etudiant_user.id SEPARATOR '||') as etudiants_names"),
                 DB::raw("GROUP_CONCAT(DISTINCT COALESCE(etudiants.matricule, '') ORDER BY etudiant_user.id SEPARATOR '||') as etudiants_matricules")
@@ -784,6 +789,27 @@ class AdminDashboardController extends Controller
                 ];
             }
 
+            $professeurMatieres = [];
+            if (!empty($classe->professeur_matiere_pairs)) {
+                foreach (explode(',', $classe->professeur_matiere_pairs) as $pair) {
+                    [$idProfesseur, $idMatiere] = array_pad(explode(':', $pair, 2), 2, null);
+                    $idProfesseur = (int) $idProfesseur;
+                    $idMatiere = (int) $idMatiere;
+
+                    if ($idProfesseur <= 0 || $idMatiere <= 0) {
+                        continue;
+                    }
+
+                    if (!array_key_exists($idProfesseur, $professeurMatieres)) {
+                        $professeurMatieres[$idProfesseur] = [];
+                    }
+
+                    if (!in_array($idMatiere, $professeurMatieres[$idProfesseur], true)) {
+                        $professeurMatieres[$idProfesseur][] = $idMatiere;
+                    }
+                }
+            }
+
             $etudiantIds = $classe->etudiants_ids
                 ? array_values(array_map('intval', array_filter(explode(',', $classe->etudiants_ids))))
                 : [];
@@ -808,10 +834,11 @@ class AdminDashboardController extends Controller
             $classe->professeurs_names = $names;
             $classe->professeurs_ids = $ids;
             $classe->professeurs_details = $professeursDetails;
+            $classe->professeur_matieres = $professeurMatieres;
             $classe->effectif_details = $effectifDetails;
             $classe->pricing = (float) ($classe->pricing ?? 0);
 
-            unset($classe->professeurs_telephones, $classe->etudiants_ids, $classe->etudiants_names, $classe->etudiants_matricules);
+            unset($classe->professeurs_telephones, $classe->professeur_matiere_pairs, $classe->etudiants_ids, $classe->etudiants_names, $classe->etudiants_matricules);
 
             return $classe;
         });
@@ -1016,7 +1043,7 @@ class AdminDashboardController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $matieres = Matiere::orderBy('nom')->get();
+        $matieres = Matiere::orderBy('niveau')->orderBy('nom')->get();
 
         return response()->json($matieres);
     }
@@ -1028,9 +1055,15 @@ class AdminDashboardController extends Controller
         }
 
         $validated = $request->validate([
-            'nom' => 'required|string|max:255|unique:matieres,nom',
-            'coefficient' => 'required|integer|min:1|max:10',
+            'nom' => 'required|string|max:255',
+            'niveau' => 'required|string|in:general,maternelle,primaire,college,lycee',
+            'coefficient' => 'required|integer|min:0|max:10',
         ]);
+
+        $existing = Matiere::where('nom', $validated['nom'])->where('niveau', $validated['niveau'])->first();
+        if ($existing) {
+            return response()->json(['message' => 'Cette matiere existe deja pour ce niveau.'], 422);
+        }
 
         $matiere = Matiere::create($validated);
 
@@ -1049,9 +1082,19 @@ class AdminDashboardController extends Controller
         $matiere = Matiere::findOrFail($id);
 
         $validated = $request->validate([
-            'nom' => 'required|string|max:255|unique:matieres,nom,' . $matiere->id_matiere . ',id_matiere',
-            'coefficient' => 'required|integer|min:1|max:10',
+            'nom' => 'required|string|max:255',
+            'niveau' => 'required|string|in:general,maternelle,primaire,college,lycee',
+            'coefficient' => 'required|integer|min:0|max:10',
         ]);
+
+        $existing = Matiere::where('nom', $validated['nom'])
+            ->where('niveau', $validated['niveau'])
+            ->where('id_matiere', '!=', $matiere->id_matiere)
+            ->first();
+            
+        if ($existing) {
+            return response()->json(['message' => 'Cette matiere existe deja pour ce niveau.'], 422);
+        }
 
         $matiere->update($validated);
 
