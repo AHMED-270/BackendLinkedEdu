@@ -62,7 +62,7 @@ export default function Parametres() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      showToast('error', 'Veuillez sÃ©lectionner une image valide.');
+      showToast('error', 'Veuillez sélectionner une image valide.');
       return;
     }
 
@@ -73,7 +73,7 @@ export default function Parametres() {
 
       setAvatarPreview(result);
       updateAuthenticatedUser({ profilePhoto: result });
-      showToast('success', 'Photo de profil mise Ã  jour.');
+      showToast('success', 'Photo de profil mise à jour.');
     };
     reader.readAsDataURL(file);
     event.target.value = '';
@@ -82,7 +82,7 @@ export default function Parametres() {
   const handleRemovePhoto = () => {
     setAvatarPreview('');
     updateAuthenticatedUser({ profilePhoto: null });
-    showToast('success', 'Photo de profil supprimÃ©e.');
+    showToast('success', 'Photo de profil supprimée.');
   };
 
   const handleSubmit = async (event) => {
@@ -97,9 +97,9 @@ export default function Parametres() {
       });
 
       updateAuthenticatedUser({ name: formData.name, email: formData.email });
-      showToast('success', res.data?.message || 'Profil mis Ã  jour avec succÃ¨s.');
+      showToast('success', res.data?.message || 'Profil mis à jour avec succès.');
     } catch (submitError) {
-      showToast('error', submitError?.response?.data?.message || 'Erreur lors de la mise Ã  jour du profil.');
+      showToast('error', submitError?.response?.data?.message || 'Erreur lors de la mise à jour du profil.');
     } finally {
       setSaving(false);
     }
@@ -142,7 +142,7 @@ export default function Parametres() {
       <header className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">Mon Profil</h1>
-          <p className="text-slate-500 text-sm mt-1">GÃ©rez vos informations personnelles de professeur.</p>
+          <p className="text-slate-500 text-sm mt-1">Gérez vos informations personnelles de professeur.</p>
         </div>
       </header>
 
@@ -216,7 +216,7 @@ export default function Parametres() {
             <div className="grid-2">
               <motion.div variants={itemVariants} className="form-group">
                 <label className="form-label flex items-center gap-2">
-                  <User size={16} className="text-slate-400" /> Nom / PrÃ©nom
+                  <User size={16} className="text-slate-400" /> Nom / Prénom
                 </label>
                 <input
                   type="text"
@@ -266,3 +266,4 @@ export default function Parametres() {
     </div>
   );
 }
+

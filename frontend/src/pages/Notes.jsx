@@ -1,20 +1,30 @@
 ﻿import { useEffect, useState } from 'react';
-import { Save, Printer, UploadCloud, Search, CheckCircle2, AlertCircle, User, FileSpreadsheet } from 'lucide-react';
+import { Save, Printer, UploadCloud, Search, CheckCircle2, AlertCircle, FileSpreadsheet, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Link, useNavigate } from 'react-router-dom';
 import { professorGet, professorPost } from '../services/professorApi';
+import { useAuth } from '../context/AuthContext';
 
 export default function Notes() {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [matieres, setMatieres] = useState([]);
   
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedMatiere, setSelectedMatiere] = useState('');
-  const [evaluationType, setEvaluationType] = useState('ContrÃ´le 1');
+  const [evaluationType, setEvaluationType] = useState('Contrôle 1');
   
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState({ type: '', text: '' });
+
+  const redirectToLogin = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
 
   const loadNotes = async (classId, matiereId) => {
     setLoading(true);
@@ -31,8 +41,16 @@ export default function Notes() {
       
       if (!classId && data.selectedClassId) setSelectedClass(String(data.selectedClassId));
       if (!matiereId && data.selectedMatiereId) setSelectedMatiere(String(data.selectedMatiereId));
-    } catch {
-      setStatusMsg({ type: 'error', text: 'Impossible de charger la liste des Ã©lÃ¨ves.' });
+    } catch (error) {
+      const status = error?.response?.status;
+      if (status === 401) {
+        redirectToLogin();
+        return;
+      } else if (status === 403) {
+        setStatusMsg({ type: 'error', text: 'Acces refuse a cette classe ou matiere.' });
+      } else {
+        setStatusMsg({ type: 'error', text: 'Impossible de charger la liste des eleves.' });
+      }
     } finally {
       setLoading(false);
     }
@@ -65,16 +83,25 @@ export default function Notes() {
         evaluationType,
         notes: students.map((student) => ({
           studentId: student.id,
+          noteId: student.noteId ?? null,
           note: student.note === '' ? null : Number(student.note),
           appreciation: student.appreciation || null,
         })),
       });
 
       await loadNotes(selectedClass, selectedMatiere);
-      setStatusMsg({ type: 'success', text: 'Les notes ont Ã©tÃ© enregistrÃ©es avec succÃ¨s.' });
+      setStatusMsg({ type: 'success', text: 'Les notes ont été enregistrées avec succès.' });
       setTimeout(() => setStatusMsg({ type: '', text: '' }), 3500);
-    } catch {
-      setStatusMsg({ type: 'error', text: 'Ã‰chec lors de l\'enregistrement des notes.' });
+    } catch (error) {
+      const status = error?.response?.status;
+      if (status === 401) {
+        redirectToLogin();
+        return;
+      } else if (status === 403) {
+        setStatusMsg({ type: 'error', text: 'Vous n etes pas assigne a cette classe/matiere.' });
+      } else {
+        setStatusMsg({ type: 'error', text: 'Echec lors de l enregistrement des notes.' });
+      }
     } finally {
       setIsSaving(false);
     }
@@ -88,6 +115,10 @@ export default function Notes() {
     if (n >= 14) return 'bg-emerald-50 border-emerald-200 text-emerald-700 focus:border-emerald-500 focus:ring-emerald-100';
     if (n >= 10) return 'bg-orange-50 border-orange-200 text-orange-700 focus:border-orange-500 focus:ring-orange-100';
     return 'bg-red-50 border-red-200 text-red-700 focus:border-red-500 focus:ring-red-100';
+  };
+
+  const clearNote = (id) => {
+    setStudents(students.map((s) => s.id === id ? { ...s, note: '', appreciation: '' } : s));
   };
 
   // Framer Motion Variants
@@ -124,7 +155,21 @@ export default function Notes() {
       <header className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">Saisie des Notes</h1>
-          <p className="text-slate-500 text-sm mt-1">GÃ©rez les Ã©valuations et les apprÃ©ciations de vos classes.</p>
+          <p className="text-slate-500 text-sm mt-1">Gérez les évaluations et les appréciations de vos classes.</p>
+          <div className="mt-3 inline-flex rounded-xl border border-slate-200 bg-white p-1">
+            <Link
+              to="/notes"
+              className="px-3 py-1.5 text-sm font-semibold rounded-lg bg-blue-600 text-white"
+            >
+              Notes
+            </Link>
+            <Link
+              to="/appel"
+              className="px-3 py-1.5 text-sm font-semibold rounded-lg text-slate-600 hover:bg-slate-100"
+            >
+              Absences
+            </Link>
+          </div>
         </div>
         <div className="flex gap-3">
           <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="btn btn-outline bg-white shadow-sm">
@@ -147,26 +192,26 @@ export default function Notes() {
         <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
             <select className="form-select min-w-[200px] shadow-sm" value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)}>
-              <option value="">SÃ©lectionner une classe</option>
+              <option value="">Sélectionner une classe</option>
               {classes.map((classe) => (
                 <option key={classe.id} value={classe.id}>{classe.nom} - {classe.niveau}</option>
               ))}
             </select>
             
             <select className="form-select min-w-[180px] shadow-sm" value={selectedMatiere} onChange={(e) => setSelectedMatiere(e.target.value)}>
-              <option value="">SÃ©lectionner une matiÃ¨re</option>
+              <option value="">Sélectionner une matière</option>
               {matieres.map((matiere) => (
                 <option key={matiere.id} value={matiere.id}>{matiere.nom}</option>
               ))}
             </select>
             
             <select className="form-select min-w-[160px] shadow-sm" value={evaluationType} onChange={(e) => setEvaluationType(e.target.value)}>
-              <option value="ContrÃ´le 1">ContrÃ´le 1</option>
-              <option value="ContrÃ´le 2">ContrÃ´le 2</option>
-              <option value="ContrÃ´le 3">ContrÃ´le 3</option>
+              <option value="Contrôle 1">Contrôle 1</option>
+              <option value="Contrôle 2">Contrôle 2</option>
+              <option value="Contrôle 3">Contrôle 3</option>
               <option value="Examen Final">Examen Final</option>
               <option value="TP">Travaux Pratiques</option>
-              <option value="Projet">Projet / ExposÃ©</option>
+              <option value="Projet">Projet / Exposé</option>
             </select>
           </div>
           
@@ -183,26 +228,27 @@ export default function Notes() {
           {loading ? (
             <div className="flex flex-col justify-center items-center py-20">
               <span className="loading-spinner border-blue-500 mb-4"></span>
-              <p className="text-slate-500 font-medium">Chargement de la liste d'Ã©lÃ¨ves...</p>
+              <p className="text-slate-500 font-medium">Chargement de la liste d'élèves...</p>
             </div>
           ) : (
             <table className="table w-full">
               <thead>
                 <tr className="bg-white">
-                  <th className="w-12 text-center">NÂ°</th>
+                  <th className="w-12 text-center">N°</th>
                   <th className="w-16">Photo</th>
-                  <th>Nom de l'Ã©lÃ¨ve</th>
+                  <th>Nom de l'élève</th>
                   <th className="w-32 text-center">Note / 20</th>
-                  <th>ApprÃ©ciation (Optionnel)</th>
+                  <th>Appréciation (Optionnel)</th>
+                  <th className="w-24 text-center">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {students.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="text-center py-16 text-slate-500">
+                    <td colSpan="6" className="text-center py-16 text-slate-500">
                       <FileSpreadsheet size={48} className="mx-auto mb-3 opacity-20" />
-                      <p className="font-medium text-slate-600">Aucun Ã©lÃ¨ve trouvÃ©.</p>
-                      <p className="text-sm">Veuillez vÃ©rifier vos filtres de sÃ©lection.</p>
+                      <p className="font-medium text-slate-600">Aucun élève trouvé.</p>
+                      <p className="text-sm">Veuillez vérifier vos filtres de sélection.</p>
                     </td>
                   </tr>
                 ) : (
@@ -251,6 +297,16 @@ export default function Notes() {
                           onChange={(e) => setStudents(students.map((x) => x.id === s.id ? { ...x, appreciation: e.target.value } : x))}
                         />
                       </td>
+                      <td className="text-center">
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors"
+                          onClick={() => clearNote(s.id)}
+                          title="Supprimer la note"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
                     </motion.tr>
                   ))
                 )}
@@ -279,3 +335,4 @@ export default function Notes() {
     </div>
   );
 }
+

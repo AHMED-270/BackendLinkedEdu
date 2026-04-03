@@ -77,7 +77,7 @@ export default function Annonces() {
           <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight flex items-center gap-2">
             <Megaphone className="text-blue-600" size={28} /> Communication Interne
           </h1>
-          <p className="text-slate-500 text-sm mt-1">GÃ©rez et consultez les annonces officielles de l'Ã©tablissement.</p>
+          <p className="text-slate-500 text-sm mt-1">Gérez et consultez les annonces officielles de l'établissement.</p>
         </div>
         <div className="flex items-center gap-3">
           <AnimatePresence>
@@ -113,7 +113,7 @@ export default function Annonces() {
               />
               <textarea
                 className="form-input min-h-[100px] border-none bg-slate-50 focus:bg-white px-4 py-3 resize-none"
-                placeholder="RÃ©digez le contenu dÃ©taillÃ© ici..."
+                placeholder="Rédigez le contenu détaillé ici..."
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
               />
@@ -160,7 +160,7 @@ export default function Annonces() {
             ) : filteredAnnonces.length === 0 ? (
               <div className="card p-12 text-center text-slate-400 bg-slate-50/50">
                 <Info size={48} className="mx-auto mb-3 opacity-20" />
-                <p className="font-medium">Aucune annonce trouvÃ©e dans cette catÃ©gorie.</p>
+                <p className="font-medium">Aucune annonce trouvée dans cette catégorie.</p>
               </div>
             ) : (
               <AnimatePresence mode="popLayout">
@@ -224,8 +224,8 @@ export default function Annonces() {
             <div className="p-2 bg-slate-50/50">
               <div className="flex flex-col gap-1">
                 {[
-                  { name: 'Directeur', role: 'Direction GÃ©nÃ©rale', icon: 'D', color: 'var(--primary-500)' },
-                  { name: 'Surveillant GÃ©nÃ©ral', role: 'Vie Scolaire', icon: 'S', color: 'var(--accent-green)' },
+                  { name: 'Directeur', role: 'Direction Générale', icon: 'D', color: 'var(--primary-500)' },
+                  { name: 'Surveillant Général', role: 'Vie Scolaire', icon: 'S', color: 'var(--accent-green)' },
                   { name: 'Support IT', role: 'Assistance Technique', icon: 'I', color: 'var(--accent-orange)' }
                 ].map((contact, idx) => (
                   <button key={idx} className="flex items-center gap-4 p-3 rounded-xl hover:bg-white hover:shadow-sm transition-all text-left group">
@@ -252,7 +252,7 @@ export default function Annonces() {
             <div className="absolute top-0 right-0 p-4 opacity-10"><Bell size={120}/></div>
             <h4 className="font-bold mb-1 relative z-10">Notifications Push</h4>
             <p className="text-sm text-blue-100 mb-4 relative z-10 leading-relaxed">Activez les notifications pour ne jamais manquer une urgence administrative.</p>
-            <button className="bg-white text-blue-700 text-xs font-bold px-4 py-2 rounded-lg hover:bg-blue-50 transition-colors relative z-10 shadow-sm">ParamÃ©trer</button>
+            <button className="bg-white text-blue-700 text-xs font-bold px-4 py-2 rounded-lg hover:bg-blue-50 transition-colors relative z-10 shadow-sm">Paramétrer</button>
           </div>
         </aside>
 
@@ -260,3 +260,4 @@ export default function Annonces() {
     </div>
   );
 }
+

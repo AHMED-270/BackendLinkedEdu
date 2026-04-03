@@ -37,16 +37,16 @@ export default function EmploiDuTemps() {
     loadSchedule();
   }, []);
 
-  // 1. Organiser les donnÃ©es brutes (liste) en un objet groupÃ© par jour
+  // 1. Organiser les données brutes (liste) en un objet groupé par jour
   const scheduleByDay = JOURS_SEMAINE.reduce((acc, jour) => {
     acc[jour] = schedule
       .filter((s) => s.jour?.toLowerCase() === jour.toLowerCase())
-      // Trier par heure de dÃ©but pour que les cours du matin soient en haut
+      // Trier par heure de début pour que les cours du matin soient en haut
       .sort((a, b) => a.heure_debut.localeCompare(b.heure_debut));
     return acc;
   }, {});
 
-  // Fonction pour assigner une couleur constante basÃ©e sur le nom de la matiÃ¨re
+  // Fonction pour assigner une couleur constante basée sur le nom de la matière
   const getColorForMatiere = (matiereNom) => {
     if (!matiereNom) return CARD_COLORS[0];
     const charCode = matiereNom.charCodeAt(0) || 0;
@@ -66,7 +66,7 @@ export default function EmploiDuTemps() {
 
   return (
     <div className="layout-content">
-      {/* En-tÃªte */}
+      {/* En-tête */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight flex items-center gap-2">
@@ -85,7 +85,7 @@ export default function EmploiDuTemps() {
         </div>
       </header>
 
-      {/* Zone principale (Card) avec dÃ©filement horizontal pour mobile */}
+      {/* Zone principale (Card) avec défilement horizontal pour mobile */}
       <div className="card p-0 overflow-hidden border border-slate-200 bg-white">
         
         {loading ? (
@@ -113,7 +113,7 @@ export default function EmploiDuTemps() {
                 return (
                   <motion.div variants={columnVariants} key={jour} className="flex-1 flex flex-col min-w-[180px] bg-slate-50/30">
                     
-                    {/* En-tÃªte de la colonne (Jour) */}
+                    {/* En-tête de la colonne (Jour) */}
                     <div className={`py-4 text-center border-b border-slate-100 ${estAujourdhui ? 'bg-blue-50' : 'bg-slate-50'}`}>
                       <h3 className={`text-sm font-extrabold uppercase tracking-wider ${estAujourdhui ? 'text-blue-600' : 'text-slate-600'}`}>
                         {jour}
@@ -136,7 +136,7 @@ export default function EmploiDuTemps() {
                               whileHover={{ y: -2, scale: 1.02 }}
                               className={`p-3 rounded-xl border shadow-sm relative overflow-hidden flex flex-col gap-2 cursor-default ${colorClass}`}
                             >
-                              {/* Ligne colorÃ©e dÃ©corative Ã  gauche */}
+                              {/* Ligne colorée décorative à gauche */}
                               <div className="absolute left-0 top-0 bottom-0 w-1 bg-current opacity-20"></div>
                               
                               {/* Heure */}
@@ -145,7 +145,7 @@ export default function EmploiDuTemps() {
                                 <span>{cours.heure_debut} - {cours.heure_fin}</span>
                               </div>
                               
-                              {/* MatiÃ¨re */}
+                              {/* Matière */}
                               <div className="font-extrabold text-sm leading-tight flex items-start gap-1.5 mt-1">
                                 <BookOpen size={14} className="mt-0.5 shrink-0 opacity-70" />
                                 {cours.matiere_nom}
@@ -179,3 +179,4 @@ export default function EmploiDuTemps() {
     </div>
   );
 }
+

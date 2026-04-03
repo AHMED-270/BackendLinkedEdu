@@ -48,8 +48,8 @@ export default function Dashboard() {
     <div className="layout-content relative">
       {/* Header */}
       <header className="mb-8">
-        <h1 className="text-2xl font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>Bonjour, {user?.name || 'Professeur'} ðŸ‘‹</h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Voici un aperÃ§u de vos activitÃ©s et de vos classes pour aujourd'hui.</p>
+        <h1 className="text-2xl font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>Bonjour, {user?.name || 'Professeur'} 👋</h1>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Voici un aperçu de vos activités et de vos classes pour aujourd'hui.</p>
       </header>
 
       {loading ? (
@@ -75,7 +75,7 @@ export default function Dashboard() {
                 <Users size={28} />
               </div>
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-secondary)' }}>Total Ã‰lÃ¨ves</p>
+                <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-secondary)' }}>Total Élèves</p>
                 <h3 className="text-3xl font-black leading-none" style={{ color: 'var(--text-primary)' }}>{stats?.total_eleves ?? 0}</h3>
               </div>
             </motion.div>
@@ -125,7 +125,7 @@ export default function Dashboard() {
                 {schedule.length === 0 ? (
                   <div className="text-center py-10 text-slate-400">
                     <Calendar size={48} className="mx-auto mb-3 opacity-20" />
-                    <p className="font-medium text-slate-600">Aucun cours prÃ©vu prochainement.</p>
+                    <p className="font-medium text-slate-600">Aucun cours prévu prochainement.</p>
                   </div>
                 ) : (
                   <div className="flex flex-col gap-4">
@@ -163,7 +163,7 @@ export default function Dashboard() {
                 {classes.length === 0 ? (
                   <div className="text-center py-16 text-slate-400 bg-slate-50/50 h-full">
                     <BookOpen size={48} className="mx-auto mb-3 opacity-20" />
-                    <p className="font-medium text-slate-600">Aucune classe assignÃ©e.</p>
+                    <p className="font-medium text-slate-600">Aucune classe assignée.</p>
                   </div>
                 ) : (
                   <table className="table w-full m-0">
@@ -198,3 +198,4 @@ export default function Dashboard() {
     </div>
   );
 }
+

@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { Search, Mail, Phone, Users, GraduationCap } from 'lucide-react';
+import { Search, Mail, Phone, Users, GraduationCap, CalendarClock, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Eleves() {
@@ -10,6 +10,12 @@ export default function Eleves() {
   const [elevesData, setElevesData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [studentAbsences, setStudentAbsences] = useState([]);
+  const [absenceMatieres, setAbsenceMatieres] = useState([]);
+  const [selectedAbsenceMatiere, setSelectedAbsenceMatiere] = useState('all');
+  const [absencesLoading, setAbsencesLoading] = useState(false);
+  const [absencesError, setAbsencesError] = useState('');
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -26,7 +32,7 @@ export default function Eleves() {
         setClasses(response.data?.classes || []);
         setElevesData(response.data?.students || []);
       } catch (fetchError) {
-        setError('Impossible de charger vos classes et vos Ã©lÃ¨ves.');
+        setError('Impossible de charger vos classes et vos élèves.');
       } finally {
         setLoading(false);
       }
@@ -34,6 +40,54 @@ export default function Eleves() {
 
     fetchStudents();
   }, []);
+
+  const fetchStudentAbsences = async (student, matiereId = 'all') => {
+    setSelectedStudent(student);
+    setAbsencesLoading(true);
+    setAbsencesError('');
+
+    try {
+      const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000';
+      const params = {};
+
+      if (matiereId !== 'all' && matiereId) {
+        params.matiere_id = Number(matiereId);
+      }
+
+      const response = await axios.get(apiBaseUrl + `/api/professeur/eleves/${student.id}/absences`, {
+        params,
+        withCredentials: true,
+        headers: { Accept: 'application/json' },
+      });
+
+      setStudentAbsences(response.data?.absences || []);
+      setAbsenceMatieres(response.data?.matieres || []);
+
+      const resolvedMatiere = response.data?.selectedMatiereId
+        ? String(response.data.selectedMatiereId)
+        : 'all';
+
+      setSelectedAbsenceMatiere(resolvedMatiere);
+    } catch (fetchError) {
+      const status = fetchError?.response?.status;
+
+      if (status === 401) {
+        setAbsencesError('Session expirée. Reconnectez-vous pour voir les absences.');
+      } else if (status === 403) {
+        setAbsencesError('Accès refusé aux absences de cet élève.');
+      } else {
+        setAbsencesError('Impossible de charger les absences de cet élève.');
+      }
+    } finally {
+      setAbsencesLoading(false);
+    }
+  };
+
+  const formatDate = (isoDate) => {
+    if (!isoDate) return '-';
+    const date = new Date(`${isoDate}T00:00:00`);
+    return date.toLocaleDateString('fr-FR');
+  };
 
   const filteredEleves = useMemo(() => {
     return elevesData.filter((e) => {
@@ -56,8 +110,8 @@ export default function Eleves() {
       {/* Header */}
       <header className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">Mes Classes & Ã‰lÃ¨ves</h1>
-          <p className="text-slate-500 text-sm mt-1">Consultez l'annuaire et les informations de contact de vos Ã©lÃ¨ves.</p>
+          <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">Mes Classes & Élèves</h1>
+          <p className="text-slate-500 text-sm mt-1">Consultez l'annuaire et les informations de contact de vos élèves.</p>
         </div>
       </header>
 
@@ -96,7 +150,7 @@ export default function Eleves() {
             <input
               type="text"
               className="form-input w-full pl-10 shadow-sm"
-              placeholder="Rechercher un Ã©lÃ¨ve..."
+              placeholder="Rechercher un élève..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -119,7 +173,7 @@ export default function Eleves() {
               <thead>
                 <tr className="bg-white">
                   <th className="w-16"></th>
-                  <th>IdentitÃ© de l'Ã©lÃ¨ve</th>
+                  <th>Identité de l'élève</th>
                   <th>Classe</th>
                   <th>Informations de contact</th>
                 </tr>
@@ -129,14 +183,15 @@ export default function Eleves() {
                   <tr>
                     <td colSpan="4" className="text-center py-16 text-slate-500">
                       <GraduationCap size={48} className="mx-auto mb-3 opacity-20" />
-                      <p className="font-medium text-slate-600">Aucun Ã©lÃ¨ve trouvÃ©.</p>
-                      <p className="text-sm">Veuillez vÃ©rifier votre recherche ou vos filtres.</p>
+                      <p className="font-medium text-slate-600">Aucun élève trouvé.</p>
+                      <p className="text-sm">Veuillez vérifier votre recherche ou vos filtres.</p>
                     </td>
                   </tr>
                 ) : (
                   filteredEleves.map((e, index) => {
-                    const fullName = `${e.firstName || ''} ${e.lastName || ''}`.trim() || 'Ã‰lÃ¨ve';
+                    const fullName = `${e.firstName || ''} ${e.lastName || ''}`.trim() || 'Élève';
                     const initial = fullName.charAt(0).toUpperCase();
+                    const isSelected = selectedStudent?.id === e.id;
 
                     return (
                       <motion.tr 
@@ -145,7 +200,8 @@ export default function Eleves() {
                         initial="hidden"
                         animate="visible"
                         key={e.id}
-                        className="hover:bg-slate-50/50 transition-colors"
+                        onClick={() => fetchStudentAbsences(e, 'all')}
+                        className={`${isSelected ? 'bg-blue-50/60' : 'hover:bg-slate-50/50'} transition-colors cursor-pointer`}
                       >
                         <td>
                           <div className="w-12 h-12 rounded-full border-2 border-white shadow-sm flex items-center justify-center overflow-hidden bg-gradient-to-br from-blue-100 to-indigo-100 text-indigo-600 font-bold text-lg">
@@ -172,10 +228,10 @@ export default function Eleves() {
                         <td>
                           <div className="flex flex-col gap-1.5 text-sm">
                             <span className="flex items-center gap-2 text-slate-600 font-medium">
-                              <Mail size={14} className="text-slate-400" /> {e.email || 'Non renseignÃ©'}
+                              <Mail size={14} className="text-slate-400" /> {e.email || 'Non renseigné'}
                             </span>
                             <span className="flex items-center gap-2 text-slate-600 font-medium">
-                              <Phone size={14} className="text-slate-400" /> {e.phone || 'Non renseignÃ©'}
+                              <Phone size={14} className="text-slate-400" /> {e.phone || 'Non renseigné'}
                             </span>
                           </div>
                         </td>
@@ -188,11 +244,76 @@ export default function Eleves() {
           )}
         </div>
 
+        {selectedStudent && (
+          <div className="border-t border-slate-100 bg-white p-5">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                  <CalendarClock size={18} className="text-blue-600" />
+                  Absences de {selectedStudent.firstName} {selectedStudent.lastName}
+                </h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  {selectedStudent.matricule || `#${String(selectedStudent.id).padStart(5, '0')}`} • {selectedStudent.class}
+                </p>
+              </div>
+
+              <select
+                className="form-select min-w-[220px] shadow-sm"
+                value={selectedAbsenceMatiere}
+                onChange={(e) => fetchStudentAbsences(selectedStudent, e.target.value)}
+              >
+                <option value="all">Toutes les matières</option>
+                {absenceMatieres.map((matiere) => (
+                  <option key={matiere.id} value={String(matiere.id)}>{matiere.nom}</option>
+                ))}
+              </select>
+            </div>
+
+            {absencesLoading ? (
+              <div className="flex items-center gap-3 text-slate-500 py-6">
+                <span className="loading-spinner border-blue-500"></span>
+                <span>Chargement des absences...</span>
+              </div>
+            ) : absencesError ? (
+              <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-red-600 font-medium flex items-center gap-2">
+                <AlertCircle size={16} /> {absencesError}
+              </div>
+            ) : studentAbsences.length === 0 ? (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-5 text-slate-500">
+                Aucune absence trouvée pour cet élève avec le filtre actuel.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {studentAbsences.map((absence) => (
+                  <div
+                    key={absence.id}
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2"
+                  >
+                    <div className="font-semibold text-slate-700">
+                      {absence.jour} {formatDate(absence.date)}
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      <span className="font-semibold">Séance:</span> {absence.seanceLabel || absence.seance || 'N/A'}
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      <span className="font-semibold">Matière:</span> {absence.matiere}
+                    </div>
+                    <div className="text-sm text-slate-600 md:text-right">
+                      <span className="font-semibold">Motif:</span> {absence.motif}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Footer */}
         <div className="p-4 border-t border-slate-100 bg-slate-50 text-sm font-medium text-slate-500 flex justify-between items-center">
-          <span>Affichage de {filteredEleves.length} Ã©lÃ¨ve(s)</span>
+          <span>Affichage de {filteredEleves.length} élève(s)</span>
         </div>
       </motion.div>
     </div>
   );
 }
+

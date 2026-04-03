@@ -19,7 +19,7 @@ const tabs = [
   { key: 'annonces', label: 'Annonces', icon: Bell },
   { key: 'professeurs', label: 'Professeurs', icon: UserCheck },
   { key: 'absences', label: 'Absences', icon: Clock },
-  { key: 'reclamations', label: 'RÃ©clamations', icon: LifeBuoy },
+  { key: 'reclamations', label: 'Réclamations', icon: LifeBuoy },
 ];
 
 const browserHost = typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1';
@@ -171,14 +171,14 @@ export default function ParentPortal() {
 
       setReclamationSujet('');
       setReclamationMessage('');
-      setReclamationFeedback({ type: 'success', msg: 'Votre rÃ©clamation a Ã©tÃ© envoyÃ©e avec succÃ¨s.' });
+      setReclamationFeedback({ type: 'success', msg: 'Votre réclamation a été envoyée avec succès.' });
 
       const refresh = await fetchWithAuth('/api/parent/reclamations');
       setReclamations(refresh.data.reclamations ?? []);
       
       setTimeout(() => setReclamationFeedback({ type: '', msg: '' }), 4000);
     } catch (err) {
-      setReclamationFeedback({ type: 'error', msg: err?.response?.data?.message || 'Ã‰chec de l\'envoi de la rÃ©clamation.' });
+      setReclamationFeedback({ type: 'error', msg: err?.response?.data?.message || 'Échec de l\'envoi de la réclamation.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -223,7 +223,7 @@ export default function ParentPortal() {
           className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-red-500 hover:bg-red-50 rounded-full transition-colors"
           onClick={handleLogout}
         >
-          <LogOut size={16} /> <span className="hidden sm:inline">DÃ©connexion</span>
+          <LogOut size={16} /> <span className="hidden sm:inline">Déconnexion</span>
         </motion.button>
       </header>
 
@@ -278,7 +278,7 @@ export default function ParentPortal() {
                 >
                   {children.map((child) => (
                     <option key={child.id_etudiant} value={child.id_etudiant}>
-                      Ã‰lÃ¨ve: {child.nom_complet || child.prenom || `ID #${child.id_etudiant}`}
+                      Élève: {child.nom_complet || child.prenom || `ID #${child.id_etudiant}`}
                     </option>
                   ))}
                 </select>
@@ -330,14 +330,14 @@ export default function ParentPortal() {
                     </motion.div>
                     <motion.div variants={cardVariants} className="card p-6 flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600"><LifeBuoy size={24} /></div>
-                      <div><p className="text-xs font-bold text-slate-400 uppercase">RequÃªtes</p><h3 className="text-2xl font-black text-slate-800">{dashboard.stats?.reclamations_en_attente ?? 0}</h3></div>
+                      <div><p className="text-xs font-bold text-slate-400 uppercase">Requêtes</p><h3 className="text-2xl font-black text-slate-800">{dashboard.stats?.reclamations_en_attente ?? 0}</h3></div>
                     </motion.div>
                   </div>
                 )}
 
                 {/* === ENFANTS TAB === */}
                 {activeTab === 'enfants' && (
-                  children.length === 0 ? <EmptyState icon={Users} message="Aucun enfant n'est associÃ© Ã  votre compte." /> :
+                  children.length === 0 ? <EmptyState icon={Users} message="Aucun enfant n'est associé à votre compte." /> :
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {children.map((child) => (
                       <motion.div variants={cardVariants} key={child.id_etudiant} className="card p-6 flex items-start gap-4 border-l-4 border-l-indigo-500">
@@ -345,8 +345,8 @@ export default function ParentPortal() {
                           {(child.prenom?.[0] || child.nom_complet?.[0] || 'E').toUpperCase()}
                         </div>
                         <div>
-                          <h3 className="font-bold text-lg text-slate-800 leading-tight">{child.nom_complet || `Ã‰lÃ¨ve #${child.id_etudiant}`}</h3>
-                          <p className="text-sm text-slate-500 mb-2">{child.email || 'Email non renseignÃ©'}</p>
+                          <h3 className="font-bold text-lg text-slate-800 leading-tight">{child.nom_complet || `Élève #${child.id_etudiant}`}</h3>
+                          <p className="text-sm text-slate-500 mb-2">{child.email || 'Email non renseigné'}</p>
                           <div className="flex gap-2">
                             <span className="badge bg-slate-100 text-slate-600">Classe: {child.classe || '-'}</span>
                             <span className="badge bg-slate-100 text-slate-600">Mat: {child.matricule || '-'}</span>
@@ -367,7 +367,7 @@ export default function ParentPortal() {
                           <h3 className="font-bold text-slate-800">{note.matiere}</h3>
                           <span className="badge badge-blue text-lg px-3 py-1">{note.valeur}/20</span>
                         </div>
-                        <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg italic">"{note.appreciation || 'Aucune apprÃ©ciation.'}"</p>
+                        <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg italic">"{note.appreciation || 'Aucune appréciation.'}"</p>
                       </motion.div>
                     ))}
                   </div>
@@ -384,12 +384,12 @@ export default function ParentPortal() {
                           {devoir.soumis ? (
                             <span className="badge bg-emerald-50 text-emerald-600 border border-emerald-100"><CheckCircle2 size={12} className="mr-1"/> Rendu</span>
                           ) : (
-                            <span className="badge bg-orange-50 text-orange-600 border border-orange-100">Ã€ faire</span>
+                            <span className="badge bg-orange-50 text-orange-600 border border-orange-100">À faire</span>
                           )}
                         </div>
                         <h3 className="font-bold text-lg text-slate-800 mb-2">{devoir.titre}</h3>
                         <p className="text-sm font-medium text-slate-500 flex items-center gap-1 mt-auto">
-                          <Calendar size={14}/> Ã€ rendre avant le : {devoir.date_limite || '-'}
+                          <Calendar size={14}/> À rendre avant le : {devoir.date_limite || '-'}
                         </p>
                       </motion.div>
                     ))}
@@ -398,14 +398,14 @@ export default function ParentPortal() {
 
                 {/* === ABSENCES TAB === */}
                 {activeTab === 'absences' && (
-                  absences.length === 0 ? <EmptyState icon={Clock} message="Aucune absence enregistrÃ©e. Parfait !" /> :
+                  absences.length === 0 ? <EmptyState icon={Clock} message="Aucune absence enregistrée. Parfait !" /> :
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {absences.map((absence) => (
                       <motion.div variants={cardVariants} key={absence.id_absence} className="card p-5 border-l-4 border-l-red-500 flex gap-4 items-center">
                         <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center flex-shrink-0"><AlertCircle size={20}/></div>
                         <div>
                           <h3 className="font-bold text-slate-800">{absence.date_abs}</h3>
-                          <p className="text-xs text-slate-500 font-medium">Motif: {absence.motif || 'Non justifiÃ©'}</p>
+                          <p className="text-xs text-slate-500 font-medium">Motif: {absence.motif || 'Non justifié'}</p>
                           <p className="text-xs text-slate-400 mt-1">Saisi par: {absence.professeur || 'Admin'}</p>
                         </div>
                       </motion.div>
@@ -415,7 +415,7 @@ export default function ParentPortal() {
 
                 {/* === PROFESSEURS TAB === */}
                 {activeTab === 'professeurs' && (
-                  professeurs.length === 0 ? <EmptyState icon={UserCheck} message="Aucun professeur assignÃ© pour le moment." /> :
+                  professeurs.length === 0 ? <EmptyState icon={UserCheck} message="Aucun professeur assigné pour le moment." /> :
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {professeurs.map((prof, index) => (
                       <motion.div variants={cardVariants} key={`${prof.id}-${index}`} className="card p-5 flex items-center gap-4">
@@ -438,7 +438,7 @@ export default function ParentPortal() {
                     {/* Form */}
                     <motion.div variants={cardVariants} className="card p-6 lg:w-1/3 h-fit">
                       <h3 className="text-lg font-bold text-slate-800 mb-4 border-b border-slate-100 pb-3 flex items-center gap-2">
-                        <LifeBuoy className="text-indigo-600" size={20} /> Nouvelle requÃªte
+                        <LifeBuoy className="text-indigo-600" size={20} /> Nouvelle requête
                       </h3>
                       
                       <AnimatePresence>
@@ -454,11 +454,11 @@ export default function ParentPortal() {
                       <form onSubmit={submitReclamation} className="flex flex-col gap-4">
                         <div className="form-group">
                           <label className="form-label">Sujet</label>
-                          <input type="text" className="form-input" value={reclamationSujet} onChange={(e) => setReclamationSujet(e.target.value)} placeholder="Ex: Absence justifiÃ©e" required />
+                          <input type="text" className="form-input" value={reclamationSujet} onChange={(e) => setReclamationSujet(e.target.value)} placeholder="Ex: Absence justifiée" required />
                         </div>
                         <div className="form-group">
                           <label className="form-label">Message</label>
-                          <textarea className="form-input resize-none" value={reclamationMessage} onChange={(e) => setReclamationMessage(e.target.value)} placeholder="DÃ©taillez votre demande..." rows={4} required />
+                          <textarea className="form-input resize-none" value={reclamationMessage} onChange={(e) => setReclamationMessage(e.target.value)} placeholder="Détaillez votre demande..." rows={4} required />
                         </div>
                         <button type="submit" disabled={isSubmitting} className="btn btn-primary w-full shadow-sm">
                           {isSubmitting ? 'Envoi en cours...' : <><Send size={16} className="mr-2"/> Envoyer</>}
@@ -468,17 +468,17 @@ export default function ParentPortal() {
 
                     {/* History */}
                     <motion.div variants={cardVariants} className="lg:w-2/3 flex flex-col gap-3">
-                      <h3 className="font-bold text-slate-700 mb-2 px-2">Historique des requÃªtes</h3>
-                      {reclamations.length === 0 ? <EmptyState icon={LifeBuoy} message="Aucune rÃ©clamation envoyÃ©e." /> :
+                      <h3 className="font-bold text-slate-700 mb-2 px-2">Historique des requêtes</h3>
+                      {reclamations.length === 0 ? <EmptyState icon={LifeBuoy} message="Aucune réclamation envoyée." /> :
                         reclamations.map((rec) => (
                           <div key={rec.id_reclamation} className="card p-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                             <div>
                               <h4 className="font-bold text-slate-800">{rec.sujet}</h4>
                               <p className="text-sm text-slate-600 mt-1 line-clamp-2">{rec.message}</p>
-                              <p className="text-xs text-slate-400 mt-2 flex items-center gap-1"><Clock size={12}/> EnvoyÃ© le: {rec.date_soumission || '-'}</p>
+                              <p className="text-xs text-slate-400 mt-2 flex items-center gap-1"><Clock size={12}/> Envoyé le: {rec.date_soumission || '-'}</p>
                             </div>
                             <div className="whitespace-nowrap">
-                              <span className={`badge ${rec.statut?.toLowerCase().includes('traitÃ©') ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>
+                              <span className={`badge ${rec.statut?.toLowerCase().includes('traité') ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>
                                 {rec.statut || 'En attente'}
                               </span>
                             </div>
@@ -498,3 +498,4 @@ export default function ParentPortal() {
     </div>
   );
 }
+

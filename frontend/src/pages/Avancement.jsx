@@ -53,17 +53,17 @@ export default function Avancement() {
         classId: Number(selectedClass),
         matiereId: Number(selectedMatiere),
         title: chapActuel,
-        description: `Mise Ã  jour avancement ${pct}%`,
+        description: `Mise à jour avancement ${pct}%`,
       });
       
-      setStatusMsg({ type: 'success', text: 'Avancement mis Ã  jour avec succÃ¨s.' });
+      setStatusMsg({ type: 'success', text: 'Avancement mis à jour avec succès.' });
       setChapActuel('');
       setPct(0);
       await loadProgress();
       
       setTimeout(() => setStatusMsg({ type: '', text: '' }), 4000);
     } catch {
-      setStatusMsg({ type: 'error', text: 'Ã‰chec de la mise Ã  jour.' });
+      setStatusMsg({ type: 'error', text: 'Échec de la mise à jour.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -102,7 +102,7 @@ export default function Avancement() {
 
       <header className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">Avancement PÃ©dagogique</h1>
+          <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">Avancement Pédagogique</h1>
           <p className="text-slate-500 text-sm mt-1">Suivez la progression du programme pour chaque classe.</p>
         </div>
       </header>
@@ -110,7 +110,7 @@ export default function Avancement() {
       {loading && !classesProgres.length ? (
         <div className="flex flex-col justify-center items-center py-20">
           <span className="loading-spinner border-blue-500 mb-4"></span>
-          <p className="text-slate-500 font-medium">Chargement des donnÃ©es...</p>
+          <p className="text-slate-500 font-medium">Chargement des données...</p>
         </div>
       ) : (
         <motion.div 
@@ -123,27 +123,27 @@ export default function Avancement() {
           <motion.div variants={cardVariants} className="xl:col-span-5">
             <div className="card p-6 md:p-8 sticky top-24">
               <h3 className="text-lg font-bold text-slate-800 mb-6 pb-4 border-b border-slate-100 flex items-center gap-2">
-                <TrendingUp className="text-blue-600" size={20} /> Actualiser le progrÃ¨s
+                <TrendingUp className="text-blue-600" size={20} /> Actualiser le progrès
               </h3>
               
               <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                 <div className="form-group">
-                  <label className="form-label">Classe concernÃ©e</label>
+                  <label className="form-label">Classe concernée</label>
                   <select className="form-select" value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} required>
-                    <option value="">SÃ©lectionner une classe</option>
+                    <option value="">Sélectionner une classe</option>
                     {classesProgres.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">MatiÃ¨re</label>
+                  <label className="form-label">Matière</label>
                   <select className="form-select" value={selectedMatiere} onChange={(e) => setSelectedMatiere(e.target.value)} required>
                     {matieres.map((m) => <option key={m.id} value={m.id}>{m.nom}</option>)}
                   </select>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">DerniÃ¨re leÃ§on ou chapitre terminÃ©</label>
+                  <label className="form-label">Dernière leçon ou chapitre terminé</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                       <Layers size={16} />
@@ -206,7 +206,7 @@ export default function Avancement() {
                 {classesProgres.length === 0 ? (
                   <div className="text-center py-12 text-slate-400">
                     <BookOpen size={48} className="mx-auto mb-3 opacity-20" />
-                    <p className="font-medium text-slate-600">Aucune donnÃ©e de progression disponible.</p>
+                    <p className="font-medium text-slate-600">Aucune donnée de progression disponible.</p>
                   </div>
                 ) : (
                   classesProgres.map((c) => (
@@ -218,7 +218,7 @@ export default function Avancement() {
                              <span className="badge badge-blue text-[10px] uppercase tracking-widest">{c.matiere}</span>
                           </div>
                           <p className="text-xs font-medium text-slate-500 flex items-center gap-1">
-                            <Layers size={12} /> Dernier point : <span className="text-slate-700 italic">"{c.current || 'Non dÃ©fini'}"</span>
+                            <Layers size={12} /> Dernier point : <span className="text-slate-700 italic">"{c.current || 'Non défini'}"</span>
                           </p>
                         </div>
                         <div className="text-right">
@@ -240,11 +240,11 @@ export default function Avancement() {
 
                       <div className="flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-tighter">
                         <div className="flex items-center gap-3">
-                          <span className="flex items-center gap-1"><CheckCircle2 size={12} className="text-emerald-500" /> {c.completedChap || 0} TerminÃ©s</span>
+                          <span className="flex items-center gap-1"><CheckCircle2 size={12} className="text-emerald-500" /> {c.completedChap || 0} Terminés</span>
                           <span className="flex items-center gap-1"><BookOpen size={12} className="text-blue-500" /> {c.totalChap || 0} Total</span>
                         </div>
                         <div className="flex items-center gap-1 text-slate-500">
-                          Mise Ã  jour : <Clock size={12}/> {c.updated_at || 'N/A'}
+                          Mise à jour : <Clock size={12}/> {c.updated_at || 'N/A'}
                         </div>
                       </div>
                     </div>
@@ -258,3 +258,4 @@ export default function Avancement() {
     </div>
   );
 }
+

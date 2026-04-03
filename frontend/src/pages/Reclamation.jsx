@@ -45,7 +45,7 @@ export default function Reclamation() {
         // file would be appended to FormData in a real implementation
       });
       
-      setStatusMsg({ type: 'success', text: 'Votre requÃªte a Ã©tÃ© envoyÃ©e Ã  l\'administration avec succÃ¨s.' });
+      setStatusMsg({ type: 'success', text: 'Votre requête a été envoyée à l\'administration avec succès.' });
       setSubject('');
       setCategory('');
       setMessage('');
@@ -55,7 +55,7 @@ export default function Reclamation() {
       // Auto-hide success toast after 4 seconds
       setTimeout(() => setStatusMsg({ type: '', text: '' }), 4000);
     } catch {
-      setStatusMsg({ type: 'error', text: 'Ã‰chec de l\'envoi de la rÃ©clamation. Veuillez rÃ©essayer.' });
+      setStatusMsg({ type: 'error', text: 'Échec de l\'envoi de la réclamation. Veuillez réessayer.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -64,7 +64,7 @@ export default function Reclamation() {
   // Helper to colorize status badges dynamically
   const getStatusBadge = (status) => {
     const s = String(status).toLowerCase();
-    if (s.includes('rÃ©solu') || s.includes('traitÃ©')) return 'bg-emerald-50 text-emerald-600 border-emerald-100';
+    if (s.includes('résolu') || s.includes('traité')) return 'bg-emerald-50 text-emerald-600 border-emerald-100';
     if (s.includes('en cours')) return 'bg-blue-50 text-blue-600 border-blue-100';
     return 'bg-orange-50 text-orange-600 border-orange-100'; // En attente
   };
@@ -112,8 +112,8 @@ export default function Reclamation() {
       {/* Header */}
       <header className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">RÃ©clamations & Support</h1>
-          <p className="text-slate-500 text-sm mt-1">Contactez l'administration pour tout problÃ¨me technique ou administratif.</p>
+          <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">Réclamations & Support</h1>
+          <p className="text-slate-500 text-sm mt-1">Contactez l'administration pour tout problème technique ou administratif.</p>
         </div>
       </header>
 
@@ -137,7 +137,7 @@ export default function Reclamation() {
                   <input 
                     type="text" 
                     className="form-input" 
-                    placeholder="Ex: Panne du vidÃ©oprojecteur" 
+                    placeholder="Ex: Panne du vidéoprojecteur" 
                     value={subject} 
                     onChange={(e) => setSubject(e.target.value)} 
                     required 
@@ -145,11 +145,11 @@ export default function Reclamation() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">CatÃ©gorie</label>
+                  <label className="form-label">Catégorie</label>
                   <select className="form-select" value={category} onChange={(e) => setCategory(e.target.value)} required>
-                    <option value="">SÃ©lectionner une catÃ©gorie</option>
-                    <option value="Technique">ProblÃ¨me Technique (IT, MatÃ©riel)</option>
-                    <option value="PÃ©dagogique">MatÃ©riel PÃ©dagogique manquant</option>
+                    <option value="">Sélectionner une catégorie</option>
+                    <option value="Technique">Problème Technique (IT, Matériel)</option>
+                    <option value="Pédagogique">Matériel Pédagogique manquant</option>
                     <option value="Administratif">Ajustement Administratif (Emploi, etc.)</option>
                     <option value="Discipline">Signalement Disciplinaire</option>
                   </select>
@@ -157,10 +157,10 @@ export default function Reclamation() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Description dÃ©taillÃ©e</label>
+                <label className="form-label">Description détaillée</label>
                 <textarea 
                   className="form-textarea" 
-                  placeholder="Veuillez dÃ©crire votre problÃ¨me en dÃ©tail afin que l'administration puisse vous aider rapidement..." 
+                  placeholder="Veuillez décrire votre problème en détail afin que l'administration puisse vous aider rapidement..." 
                   value={message} 
                   onChange={(e) => setMessage(e.target.value)} 
                   required 
@@ -170,11 +170,11 @@ export default function Reclamation() {
 
               {/* Improved File Attachment UI */}
               <div className="form-group">
-                <label className="form-label">PiÃ¨ce jointe (Optionnel)</label>
+                <label className="form-label">Pièce jointe (Optionnel)</label>
                 {!file ? (
                   <label className="flex items-center justify-center gap-2 p-4 bg-slate-50 border border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-blue-50 hover:border-blue-400 transition-colors text-sm font-medium text-slate-600 group">
                     <Paperclip size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
-                    <span>Cliquez pour joindre un fichier, une photo ou une capture d'Ã©cran</span>
+                    <span>Cliquez pour joindre un fichier, une photo ou une capture d'écran</span>
                     <input type="file" className="hidden" onChange={(e) => setFile(e.target.files[0])} />
                   </label>
                 ) : (
@@ -207,7 +207,7 @@ export default function Reclamation() {
                 {isSubmitting ? (
                   <><span className="loading-spinner w-4 h-4 border-white mr-2"></span> Envoi en cours...</>
                 ) : (
-                  <><Send size={18} className="mr-2" /> Envoyer la requÃªte</>
+                  <><Send size={18} className="mr-2" /> Envoyer la requête</>
                 )}
               </motion.button>
             </form>
@@ -219,7 +219,7 @@ export default function Reclamation() {
           <div className="card p-0 overflow-hidden h-full flex flex-col">
             <div className="p-6 border-b border-slate-100 bg-white">
               <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <MessageSquare className="text-slate-400" size={20} /> Historique des requÃªtes
+                <MessageSquare className="text-slate-400" size={20} /> Historique des requêtes
               </h3>
             </div>
             
@@ -231,7 +231,7 @@ export default function Reclamation() {
               ) : myReclamations.length === 0 ? (
                 <div className="text-center py-12 text-slate-400">
                   <CheckCircle2 size={48} className="mx-auto mb-3 opacity-20 text-emerald-500" />
-                  <p className="font-medium text-slate-600">Aucune requÃªte en cours.</p>
+                  <p className="font-medium text-slate-600">Aucune requête en cours.</p>
                   <p className="text-sm mt-1">Tout semble fonctionner parfaitement !</p>
                 </div>
               ) : (
@@ -287,3 +287,4 @@ export default function Reclamation() {
     </div>
   );
 }
+

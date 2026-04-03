@@ -3,11 +3,11 @@ import { UploadCloud, FileText, CheckCircle2, X, File, BookOpen, Clock } from 'l
 import { motion, AnimatePresence } from 'framer-motion';
 
 const existingResources = [
-  { id: 1, title: 'Cours - MÃ©canique Newtonienne', type: 'Cours', matiere: 'Physique', class: '2BAC - G1', date: '20 Mars 2026' },
-  { id: 2, title: 'Fiche - Tableau pÃ©riodique', type: 'Fiche', matiere: 'Chimie', class: 'Toutes', date: '18 Mars 2026' },
-  { id: 3, title: 'Exercices corrigÃ©s - Optique', type: 'Exercice', matiere: 'Physique', class: '1BAC - G3', date: '15 Mars 2026' },
+  { id: 1, title: 'Cours - Mécanique Newtonienne', type: 'Cours', matiere: 'Physique', class: '2BAC - G1', date: '20 Mars 2026' },
+  { id: 2, title: 'Fiche - Tableau périodique', type: 'Fiche', matiere: 'Chimie', class: 'Toutes', date: '18 Mars 2026' },
+  { id: 3, title: 'Exercices corrigés - Optique', type: 'Exercice', matiere: 'Physique', class: '1BAC - G3', date: '15 Mars 2026' },
   { id: 4, title: 'TP - Extraction liquide-liquide', type: 'TP', matiere: 'Chimie', class: 'TCS - G2', date: '12 Mars 2026' },
-  { id: 5, title: 'RÃ©sumÃ© - CinÃ©matique', type: 'Cours', matiere: 'Physique', class: '2BAC - G2', date: '10 Mars 2026' },
+  { id: 5, title: 'Résumé - Cinématique', type: 'Cours', matiere: 'Physique', class: '2BAC - G2', date: '10 Mars 2026' },
 ];
 
 export default function Ressources() {
@@ -37,7 +37,7 @@ export default function Ressources() {
     
     // Simulate network request
     setTimeout(() => {
-      setToast('Ressource publiÃ©e avec succÃ¨s !');
+      setToast('Ressource publiée avec succès !');
       setTitle(''); setType(''); setMatiere(''); setClasse(''); setFiles([]);
       setIsSubmitting(false);
       
@@ -93,8 +93,8 @@ export default function Ressources() {
 
       <header className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">Ressources PÃ©dagogiques</h1>
-          <p className="text-slate-500 text-sm mt-1">Partagez et gÃ©rez les documents pÃ©dagogiques pour vos classes.</p>
+          <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">Ressources Pédagogiques</h1>
+          <p className="text-slate-500 text-sm mt-1">Partagez et gérez les documents pédagogiques pour vos classes.</p>
         </div>
       </header>
 
@@ -128,20 +128,20 @@ export default function Ressources() {
                 <div className="form-group">
                   <label className="form-label">Type</label>
                   <select className="form-select" value={type} onChange={(e) => setType(e.target.value)} required>
-                    <option value="">SÃ©lectionner</option>
+                    <option value="">Sélectionner</option>
                     <option value="cours">Cours</option>
-                    <option value="fiche">Fiche de rÃ©vision</option>
+                    <option value="fiche">Fiche de révision</option>
                     <option value="exercice">Exercices</option>
                     <option value="tp">Travaux Pratiques</option>
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">MatiÃ¨re</label>
+                  <label className="form-label">Matière</label>
                   <select className="form-select" value={matiere} onChange={(e) => setMatiere(e.target.value)} required>
-                    <option value="">SÃ©lectionner</option>
+                    <option value="">Sélectionner</option>
                     <option value="physique">Physique</option>
                     <option value="chimie">Chimie</option>
-                    <option value="maths">MathÃ©matiques</option>
+                    <option value="maths">Mathématiques</option>
                     <option value="svt">SVT</option>
                   </select>
                 </div>
@@ -151,7 +151,7 @@ export default function Ressources() {
                 <div className="form-group">
                   <label className="form-label">Classe cible</label>
                   <select className="form-select" value={classe} onChange={(e) => setClasse(e.target.value)} required>
-                    <option value="">SÃ©lectionner</option>
+                    <option value="">Sélectionner</option>
                     <option value="2bac-g1">2BAC Sci - G1</option>
                     <option value="2bac-g2">2BAC Sci - G2</option>
                     <option value="1bac-g3">1BAC Sci - G3</option>
@@ -159,17 +159,17 @@ export default function Ressources() {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">VisibilitÃ©</label>
+                  <label className="form-label">Visibilité</label>
                   <select className="form-select" value={visibility} onChange={(e) => setVisibility(e.target.value)}>
                     <option value="classe">Toute la classe</option>
-                    <option value="specific">Ã‰lÃ¨ves spÃ©cifiques</option>
+                    <option value="specific">Élèves spécifiques</option>
                   </select>
                 </div>
               </div>
 
               {/* Interactive File Dropzone */}
               <div className="form-group mt-2">
-                <label className="form-label">Fichier(s) Ã  joindre</label>
+                <label className="form-label">Fichier(s) à joindre</label>
                 <label className="flex flex-col items-center justify-center w-full p-6 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 cursor-pointer hover:bg-blue-50 hover:border-blue-400 transition-colors group">
                   <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm mb-3 group-hover:scale-110 transition-transform">
                     <UploadCloud size={24} className="text-blue-500" />
@@ -233,7 +233,7 @@ export default function Ressources() {
                   <tr>
                     <th>Titre du document</th>
                     <th>Type</th>
-                    <th>MatiÃ¨re</th>
+                    <th>Matière</th>
                     <th>Classe</th>
                     <th style={{ textAlign: 'right' }}>Date d'ajout</th>
                   </tr>
@@ -278,3 +278,4 @@ export default function Ressources() {
     </div>
   );
 }
+

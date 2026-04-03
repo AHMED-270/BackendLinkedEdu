@@ -4,36 +4,60 @@ import {
   RotateCcw, Save, AlertCircle, CheckCircle2, UserCheck, UserX 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Link, useNavigate } from 'react-router-dom';
 import { professorGet, professorPost } from '../services/professorApi';
+import { useAuth } from '../context/AuthContext';
 
 export default function Appel() {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [matieres, setMatieres] = useState([]);
+  const [seances, setSeances] = useState([]);
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedMatiere, setSelectedMatiere] = useState('');
+  const [selectedSeance, setSelectedSeance] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState({ type: '', text: '' });
 
-  const loadAttendance = async (classId, selectedDate) => {
+  const redirectToLogin = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
+
+  const loadAttendance = async (classId, selectedDate, matiereId = selectedMatiere, seanceStart = selectedSeance) => {
     setLoading(true);
     setStatusMsg({ type: '', text: '' });
     try {
       const data = await professorGet('/api/professeur/appel', {
         class_id: classId,
+        matiere_id: matiereId,
         date: selectedDate,
+        seance_start: seanceStart,
       });
       setClasses(data.classes || []);
       setMatieres(data.matieres || []);
+      setSeances(data.seances || []);
       setStudents(data.students?.map(s => ({ ...s, status: s.status || 'present' })) || []);
       
-      if (!classId && data.selectedClassId) setSelectedClass(String(data.selectedClassId));
-      if ((data.matieres || [])[0]?.id && !selectedMatiere) setSelectedMatiere(String(data.matieres[0].id));
-    } catch {
-      setStatusMsg({ type: 'error', text: 'Impossible de charger la liste d\'appel.' });
+      if (data.selectedClassId) setSelectedClass(String(data.selectedClassId));
+      if (data.selectedMatiereId) setSelectedMatiere(String(data.selectedMatiereId));
+      setSelectedSeance(data.selectedSeanceStart ? String(data.selectedSeanceStart) : '');
+    } catch (error) {
+      const status = error?.response?.status;
+      if (status === 401) {
+        redirectToLogin();
+        return;
+      } else if (status === 403) {
+        setStatusMsg({ type: 'error', text: 'Acces refuse a cette classe.' });
+      } else {
+        setStatusMsg({ type: 'error', text: 'Impossible de charger la liste d appel.' });
+      }
     } finally {
       setLoading(false);
     }
@@ -55,11 +79,17 @@ export default function Appel() {
   const absentCount = students.filter(s => s.status === 'absent').length;
 
   const handleSave = async () => {
+    if (!selectedSeance) {
+      setStatusMsg({ type: 'error', text: 'Selectionnez une seance avant de valider l appel.' });
+      return;
+    }
+
     setIsSaving(true);
     try {
       await professorPost('/api/professeur/appel', {
         classId: Number(selectedClass),
         matiereId: Number(selectedMatiere),
+        seanceStart: selectedSeance,
         date,
         statuses: students.map((student) => ({
           studentId: student.id,
@@ -67,11 +97,19 @@ export default function Appel() {
         })),
       });
 
-      setStatusMsg({ type: 'success', text: 'Feuille d\'appel enregistrÃ©e avec succÃ¨s.' });
+      setStatusMsg({ type: 'success', text: 'Feuille d\'appel enregistrée avec succès.' });
       setTimeout(() => setStatusMsg({ type: '', text: '' }), 4000);
-      await loadAttendance(selectedClass, date);
-    } catch {
-      setStatusMsg({ type: 'error', text: 'Ã‰chec de l\'enregistrement.' });
+      await loadAttendance(selectedClass, date, selectedMatiere, selectedSeance);
+    } catch (error) {
+      const status = error?.response?.status;
+      if (status === 401) {
+        redirectToLogin();
+        return;
+      } else if (status === 403) {
+        setStatusMsg({ type: 'error', text: 'Vous n etes pas assigne a cette classe/matiere.' });
+      } else {
+        setStatusMsg({ type: 'error', text: 'Echec de l enregistrement.' });
+      }
     } finally {
       setIsSaving(false);
     }
@@ -105,6 +143,20 @@ export default function Appel() {
           <p className="text-slate-500 text-sm mt-1 flex items-center gap-2">
             <Calendar size={14} /> {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
+          <div className="mt-3 inline-flex rounded-xl border border-slate-200 bg-white p-1">
+            <Link
+              to="/notes"
+              className="px-3 py-1.5 text-sm font-semibold rounded-lg text-slate-600 hover:bg-slate-100"
+            >
+              Notes
+            </Link>
+            <Link
+              to="/appel"
+              className="px-3 py-1.5 text-sm font-semibold rounded-lg bg-blue-600 text-white"
+            >
+              Absences
+            </Link>
+          </div>
         </div>
         <div className="flex gap-3">
           <motion.button 
@@ -112,7 +164,7 @@ export default function Appel() {
             onClick={markAllPresent}
             className="btn btn-outline bg-white text-emerald-600 border-emerald-100 hover:bg-emerald-50"
           >
-            <UserCheck size={16} /> Tout prÃ©sent
+            <UserCheck size={16} /> Tout présent
           </motion.button>
         </div>
       </header>
@@ -127,9 +179,15 @@ export default function Appel() {
             <select className="form-select min-w-[180px] shadow-sm" value={selectedMatiere} onChange={(e) => setSelectedMatiere(e.target.value)}>
               {matieres.map((m) => <option key={m.id} value={m.id}>{m.nom}</option>)}
             </select>
+            <select className="form-select min-w-[180px] shadow-sm" value={selectedSeance} onChange={(e) => setSelectedSeance(e.target.value)}>
+              <option value="">Selectionner une seance</option>
+              {seances.map((seance) => (
+                <option key={seance.value} value={seance.value}>{seance.label}</option>
+              ))}
+            </select>
             <input type="date" className="form-input w-auto shadow-sm" value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
-          <button className="btn btn-outline bg-white" onClick={() => loadAttendance(selectedClass, date)}>
+          <button className="btn btn-outline bg-white" onClick={() => loadAttendance(selectedClass, date, selectedMatiere, selectedSeance)}>
             <RotateCcw size={16} className="mr-2" /> Actualiser
           </button>
         </div>
@@ -139,16 +197,16 @@ export default function Appel() {
           {loading ? (
             <div className="flex flex-col justify-center items-center py-24">
               <span className="loading-spinner border-blue-500 mb-4"></span>
-              <p className="text-slate-500 font-medium">Chargement des Ã©lÃ¨ves...</p>
+              <p className="text-slate-500 font-medium">Chargement des élèves...</p>
             </div>
           ) : (
             <table className="table w-full">
               <thead>
                 <tr>
-                  <th className="w-12 text-center">NÂ°</th>
+                  <th className="w-12 text-center">N°</th>
                   <th className="w-16">Photo</th>
                   <th>Nom Complet</th>
-                  <th className="text-center w-64">Statut de prÃ©sence</th>
+                  <th className="text-center w-64">Statut de présence</th>
                 </tr>
               </thead>
               <tbody>
@@ -180,7 +238,7 @@ export default function Appel() {
                             : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
                           }`}
                         >
-                          <Check size={14} /> PRÃ‰SENT
+                          <Check size={14} /> PRÉSENT
                         </button>
 
                         {/* Absent Button */}
@@ -223,7 +281,7 @@ export default function Appel() {
           <div className="flex gap-8">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black text-lg">{presentCount}</div>
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">PrÃ©sents</span>
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Présents</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center font-black text-lg">{absentCount}</div>
@@ -244,3 +302,4 @@ export default function Appel() {
     </div>
   );
 }
+

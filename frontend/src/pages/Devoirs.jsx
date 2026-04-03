@@ -81,7 +81,7 @@ export default function Devoirs() {
       <div className="dvr-header">
         <div className="dvr-title-section">
           <h2>Devoirs & Ressources</h2>
-          <p>GÃ©rez vos supports de cours et assignations. Publiez de nouveaux Ã©lÃ©ments pour vos Ã©tudiants en quelques clics.</p>
+          <p>Gérez vos supports de cours et assignations. Publiez de nouveaux éléments pour vos étudiants en quelques clics.</p>
         </div>
         
         <div className="dvr-filters">
@@ -94,7 +94,7 @@ export default function Devoirs() {
             </select>
           </div>
           <div className="filter-group">
-            <label>MATIÃˆRE</label>
+            <label>MATIÈRE</label>
             <select className="filter-select">
               {matieres.map((m) => (
                 <option key={m.id} value={m.id}>{m.nom}</option>
@@ -181,8 +181,8 @@ export default function Devoirs() {
             <label>Documents joints</label>
             <div className="upload-zone">
               <FiUploadCloud size={24} color="#2563EB" />
-              <strong>Glissez-dÃ©posez vos fichiers ici</strong>
-              <span className="upload-desc">PDF, DOCX ou ZIP jusqu'Ã  25MB</span>
+              <strong>Glissez-déposez vos fichiers ici</strong>
+              <span className="upload-desc">PDF, DOCX ou ZIP jusqu'à 25MB</span>
               <button type="button" className="upload-btn">Ou parcourir vos dossiers</button>
               <input
                 type="file"
@@ -192,7 +192,7 @@ export default function Devoirs() {
           </div>
 
           <button className="primary-btn publish-btn" onClick={handleSubmit}>
-            â–¸ Publier le {activeTab}
+            ▸ Publier le {activeTab}
           </button>
         </div>
 
@@ -211,7 +211,7 @@ export default function Devoirs() {
               <span className="stat-icon"><FiFolder size={20} /></span>
               <div className="stat-info">
                 <strong>{stats.shared_resources}</strong>
-                <p>RESSOURCES PARTAGÃ‰ES</p>
+                <p>RESSOURCES PARTAGÉES</p>
               </div>
             </div>
           </div>
@@ -219,7 +219,7 @@ export default function Devoirs() {
           {/* RECENT PUBS */}
           <div className="recent-pubs">
             <div className="recent-header">
-              <h3>Publications rÃ©centes</h3>
+              <h3>Publications récentes</h3>
               <a href="#" className="link-all">Voir tout</a>
             </div>
             
@@ -231,7 +231,7 @@ export default function Devoirs() {
                   </div>
                   <div className="item-details">
                     <h4>{item.title}</h4>
-                    <p>{item.type} â€¢ {item.published_at || '-'}</p>
+                    <p>{item.type} • {item.published_at || '-'}</p>
                     <div className="item-meta">
                       <span className="meta-badge">{item.class || 'Toutes'}</span>
                       <span className="meta-text">{item.matiere || '-'}</span>
@@ -246,8 +246,8 @@ export default function Devoirs() {
           {/* GUIDE CARD */}
           <div className="guide-card">
             <div className="guide-content">
-              <h4>Guide PÃ©dagogique</h4>
-              <p>Structurez vos ressources pour maximiser l'intÃ©rÃªt de vos Ã©tudiants.</p>
+              <h4>Guide Pédagogique</h4>
+              <p>Structurez vos ressources pour maximiser l'intérêt de vos étudiants.</p>
             </div>
           </div>
         </div>
@@ -255,3 +255,4 @@ export default function Devoirs() {
     </div>
   );
 }
+
