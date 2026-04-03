@@ -64,7 +64,7 @@ Route::middleware(['auth:sanctum', 'role:directeur'])->group(function () {
     Route::delete('/emplois/{id}', [EmploiDuTempsController::class, 'destroy']);     
 });
 
-Route::middleware(['auth:sanctum', 'role:admin,directeur'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:admin,directeur,secretaire'])->group(function () {
     Route::get('/admin/dashboard-stats', [AdminDashboardController::class, 'getStats']);
     Route::get('/admin/classes', [AdminDashboardController::class, 'getClasses']);
 });
@@ -101,6 +101,7 @@ Route::middleware(['auth:sanctum', 'role:professeur'])->prefix('professeur')->gr
     // Ã‰lÃ¨ves, Appel et Notes
     Route::get('/classes/{class_id}/eleves', [ProfessorController::class, 'getStudents']);
     Route::get('/eleves', [ProfessorController::class, 'getStudents']); // All classes
+    Route::get('/eleves/{student_id}/absences', [ProfessorController::class, 'getStudentAbsences']);
 
     // Annonces
     Route::get('/annonces', [ProfessorController::class, 'getAnnouncements']);

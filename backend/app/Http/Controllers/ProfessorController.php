@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class ProfessorController extends Controller
 {
@@ -352,6 +353,125 @@ class ProfessorController extends Controller
         ]);
     }
 
+    public function getStudentAbsences(Request $request, int $student_id): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user || $user->role !== 'professeur') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $assignedClassIds = $this->getAssignedClassIds((int) $user->id);
+
+        $student = DB::table('etudiants')
+            ->join('users', 'etudiants.id_etudiant', '=', 'users.id')
+            ->join('classes', 'etudiants.id_classe', '=', 'classes.id_classe')
+            ->where('etudiants.id_etudiant', $student_id)
+            ->first([
+                'users.id',
+                'users.nom',
+                'users.prenom',
+                'etudiants.matricule',
+                'etudiants.id_classe',
+                'classes.nom as classe_nom',
+                'classes.niveau as classe_niveau',
+            ]);
+
+        if (! $student) {
+            return response()->json(['message' => 'Eleve introuvable.'], 404);
+        }
+
+        if (! $assignedClassIds->contains((int) $student->id_classe)) {
+            return response()->json(['message' => 'Unauthorized student access'], 403);
+        }
+
+        $matieres = DB::table('enseigner')
+            ->join('matieres', 'enseigner.id_matiere', '=', 'matieres.id_matiere')
+            ->where('enseigner.id_professeur', $user->id)
+            ->where('enseigner.id_classe', $student->id_classe)
+            ->distinct()
+            ->orderBy('matieres.nom')
+            ->get(['matieres.id_matiere as id', 'matieres.nom']);
+
+        $requestedMatiereId = (int) $request->query('matiere_id', 0);
+        $selectedMatiereId = $requestedMatiereId > 0 && $matieres->contains('id', $requestedMatiereId)
+            ? $requestedMatiereId
+            : 0;
+
+        $scheduleMap = [];
+        $scheduleRows = DB::table('emploi_du_temps')
+            ->join('matieres', 'emploi_du_temps.id_matiere', '=', 'matieres.id_matiere')
+            ->where('emploi_du_temps.id_professeur', $user->id)
+            ->where('emploi_du_temps.id_classe', $student->id_classe)
+            ->get([
+                'emploi_du_temps.jour',
+                'emploi_du_temps.heure_debut',
+                'emploi_du_temps.heure_fin',
+                'matieres.id_matiere as matiere_id',
+                'matieres.nom as matiere_nom',
+            ]);
+
+        foreach ($scheduleRows as $row) {
+            $key = (string) $row->jour . '|' . substr((string) $row->heure_debut, 0, 8);
+            if (! isset($scheduleMap[$key])) {
+                $scheduleMap[$key] = [
+                    'matiere_id' => (int) $row->matiere_id,
+                    'matiere_nom' => $row->matiere_nom,
+                    'seance_label' => substr((string) $row->heure_debut, 0, 5) . ' - ' . substr((string) $row->heure_fin, 0, 5),
+                ];
+            }
+        }
+
+        $absenceRows = DB::table('absences')
+            ->where('id_professeur', $user->id)
+            ->where('id_etudiant', $student_id)
+            ->orderByDesc('date_abs')
+            ->orderByDesc('heure_seance')
+            ->get([
+                'id_absence',
+                'date_abs',
+                'heure_seance',
+                'motif',
+            ]);
+
+        $absences = $absenceRows
+            ->map(function ($row) use ($scheduleMap) {
+                $date = (string) $row->date_abs;
+                $jour = $this->toFrenchWeekday($date);
+                $heureSeance = $row->heure_seance ? substr((string) $row->heure_seance, 0, 8) : null;
+                $mapKey = $heureSeance ? ($jour . '|' . $heureSeance) : null;
+                $slot = $mapKey ? ($scheduleMap[$mapKey] ?? null) : null;
+
+                return [
+                    'id' => (int) $row->id_absence,
+                    'date' => $date,
+                    'jour' => $jour,
+                    'seance' => $row->heure_seance ? substr((string) $row->heure_seance, 0, 5) : null,
+                    'seanceLabel' => $slot['seance_label'] ?? ($row->heure_seance ? substr((string) $row->heure_seance, 0, 5) : 'N/A'),
+                    'matiereId' => $slot['matiere_id'] ?? null,
+                    'matiere' => $slot['matiere_nom'] ?? 'Matiere non determinee',
+                    'motif' => $row->motif ?: 'Absence non justifiee',
+                ];
+            })
+            ->filter(function ($row) use ($selectedMatiereId) {
+                return $selectedMatiereId === 0 || (int) ($row['matiereId'] ?? 0) === $selectedMatiereId;
+            })
+            ->values();
+
+        return response()->json([
+            'student' => [
+                'id' => (int) $student->id,
+                'firstName' => $student->prenom,
+                'lastName' => $student->nom,
+                'matricule' => $student->matricule,
+                'class' => trim($student->classe_nom . ' - ' . $student->classe_niveau),
+            ],
+            'matieres' => $matieres,
+            'selectedMatiereId' => $selectedMatiereId,
+            'absences' => $absences,
+        ]);
+    }
+
     /**
      * Announcements
      */
@@ -438,21 +558,45 @@ class ProfessorController extends Controller
         $classIds = $this->getAssignedClassIds((int) $user->id);
 
         $classes = DB::table('classes')->whereIn('id_classe', $classIds)->get(['id_classe as id', 'nom', 'niveau']);
+
+        if ($classes->isEmpty()) {
+            return response()->json([
+                'classes' => [],
+                'matieres' => [],
+                'selectedClassId' => 0,
+                'selectedMatiereId' => 0,
+                'students' => [],
+            ]);
+        }
+
+        $requestedClassId = (int) $request->query('class_id', 0);
+        $classId = $requestedClassId > 0 && $classIds->contains($requestedClassId)
+            ? $requestedClassId
+            : (int) ($classes->first()->id ?? 0);
+
         $matieres = DB::table('enseigner')
             ->join('matieres', 'enseigner.id_matiere', '=', 'matieres.id_matiere')
             ->where('enseigner.id_professeur', $user->id)
+            ->where('enseigner.id_classe', $classId)
             ->distinct()
             ->orderBy('matieres.nom')
             ->get(['matieres.id_matiere as id', 'matieres.nom']);
 
-        $classId = (int) ($request->query('class_id') ?: ($classes->first()->id ?? 0));
-        $matiereId = (int) ($request->query('matiere_id') ?: ($matieres->first()->id ?? 0));
+        $requestedMatiereId = (int) $request->query('matiere_id', 0);
+        $matiereId = $requestedMatiereId > 0 && $matieres->contains('id', $requestedMatiereId)
+            ? $requestedMatiereId
+            : (int) ($matieres->first()->id ?? 0);
 
         $notesSub = DB::table('notes')
             ->select('id_etudiant', DB::raw('MAX(id_note) as last_note_id'))
             ->where('id_professeur', $user->id)
-            ->where('id_matiere', $matiereId)
             ->groupBy('id_etudiant');
+
+        if ($matiereId > 0) {
+            $notesSub->where('id_matiere', $matiereId);
+        } else {
+            $notesSub->whereRaw('1 = 0');
+        }
 
         $students = DB::table('etudiants')
             ->join('users', 'etudiants.id_etudiant', '=', 'users.id')
@@ -468,6 +612,7 @@ class ProfessorController extends Controller
                 'users.nom',
                 'users.prenom',
                 'etudiants.matricule',
+                'notes.id_note as note_id',
                 'notes.valeur as note',
                 'notes.appreciation',
             ])
@@ -477,6 +622,7 @@ class ProfessorController extends Controller
                     'firstName' => $row->prenom,
                     'lastName' => $row->nom,
                     'matricule' => $row->matricule,
+                    'noteId' => $row->note_id ? (int) $row->note_id : null,
                     'note' => $row->note !== null ? (string) $row->note : '',
                     'appreciation' => $row->appreciation,
                     'avatar' => null,
@@ -501,12 +647,31 @@ class ProfessorController extends Controller
             'matiereId' => 'required|integer|exists:matieres,id_matiere',
             'notes' => 'required|array|min:1',
             'notes.*.studentId' => 'required|integer|exists:users,id',
+            'notes.*.noteId' => 'nullable|integer|exists:notes,id_note',
             'notes.*.note' => 'nullable|numeric|min:0|max:20',
             'notes.*.appreciation' => 'nullable|string|max:1000',
         ]);
 
+        $canTeach = DB::table('enseigner')
+            ->where('id_professeur', $user->id)
+            ->where('id_classe', $validated['classId'])
+            ->where('id_matiere', $validated['matiereId'])
+            ->exists();
+
+        if (! $canTeach) {
+            return response()->json(['message' => 'Vous n etes pas assigne a cette classe/matiere.'], 403);
+        }
+
         foreach ($validated['notes'] as $line) {
+            $noteId = $line['noteId'] ?? null;
+
             if ($line['note'] === null || $line['note'] === '') {
+                if ($noteId) {
+                    DB::table('notes')
+                        ->where('id_note', $noteId)
+                        ->where('id_professeur', $user->id)
+                        ->delete();
+                }
                 continue;
             }
 
@@ -517,6 +682,23 @@ class ProfessorController extends Controller
 
             if (! $isInClass) {
                 continue;
+            }
+
+            if ($noteId) {
+                $updated = DB::table('notes')
+                    ->where('id_note', $noteId)
+                    ->where('id_professeur', $user->id)
+                    ->where('id_etudiant', $line['studentId'])
+                    ->where('id_matiere', $validated['matiereId'])
+                    ->update([
+                        'valeur' => $line['note'],
+                        'appreciation' => $line['appreciation'] ?? null,
+                        'updated_at' => now(),
+                    ]);
+
+                if ($updated) {
+                    continue;
+                }
             }
 
             DB::table('notes')->insert([
@@ -539,19 +721,91 @@ class ProfessorController extends Controller
         $classIds = $this->getAssignedClassIds((int) $user->id);
         $classes = DB::table('classes')->whereIn('id_classe', $classIds)->get(['id_classe as id', 'nom', 'niveau']);
 
+        if ($classes->isEmpty()) {
+            return response()->json([
+                'classes' => [],
+                'matieres' => [],
+                'seances' => [],
+                'selectedClassId' => 0,
+                'selectedMatiereId' => 0,
+                'selectedSeanceStart' => null,
+                'selectedDate' => (string) ($request->query('date') ?: now()->toDateString()),
+                'students' => [],
+            ]);
+        }
+
+        $requestedClassId = (int) $request->query('class_id', 0);
+        $classId = $requestedClassId > 0 && $classIds->contains($requestedClassId)
+            ? $requestedClassId
+            : (int) ($classes->first()->id ?? 0);
+
         $matieres = DB::table('enseigner')
             ->join('matieres', 'enseigner.id_matiere', '=', 'matieres.id_matiere')
             ->where('enseigner.id_professeur', $user->id)
+            ->where('enseigner.id_classe', $classId)
             ->distinct()
             ->orderBy('matieres.nom')
             ->get(['matieres.id_matiere as id', 'matieres.nom']);
 
-        $classId = (int) ($request->query('class_id') ?: ($classes->first()->id ?? 0));
-        $date = $request->query('date') ?: now()->toDateString();
+        $requestedMatiereId = (int) $request->query('matiere_id', 0);
+        $matiereId = $requestedMatiereId > 0 && $matieres->contains('id', $requestedMatiereId)
+            ? $requestedMatiereId
+            : (int) ($matieres->first()->id ?? 0);
+
+        $date = (string) ($request->query('date') ?: now()->toDateString());
+        $dayName = $this->toFrenchWeekday($date);
+
+        $seances = DB::table('emploi_du_temps')
+            ->where('id_professeur', $user->id)
+            ->where('id_classe', $classId)
+            ->where('jour', $dayName)
+            ->when($matiereId > 0, function ($query) use ($matiereId) {
+                $query->where('id_matiere', $matiereId);
+            })
+            ->orderBy('heure_debut')
+            ->get(['heure_debut', 'heure_fin'])
+            ->map(function ($row) {
+                return [
+                    'value' => $row->heure_debut,
+                    'label' => substr((string) $row->heure_debut, 0, 5) . ' - ' . substr((string) $row->heure_fin, 0, 5),
+                ];
+            })
+            ->unique('value')
+            ->values();
+
+        if ($seances->isEmpty()) {
+            $seances = DB::table('emploi_du_temps')
+                ->where('id_professeur', $user->id)
+                ->where('id_classe', $classId)
+                ->when($matiereId > 0, function ($query) use ($matiereId) {
+                    $query->where('id_matiere', $matiereId);
+                })
+                ->orderBy('jour')
+                ->orderBy('heure_debut')
+                ->get(['heure_debut', 'heure_fin'])
+                ->map(function ($row) {
+                    return [
+                        'value' => $row->heure_debut,
+                        'label' => substr((string) $row->heure_debut, 0, 5) . ' - ' . substr((string) $row->heure_fin, 0, 5),
+                    ];
+                })
+                ->unique('value')
+                ->values();
+        }
+
+        $requestedSeanceStart = (string) $request->query('seance_start', '');
+        $selectedSeanceStart = $seances->contains(function ($seance) use ($requestedSeanceStart) {
+            return ($seance['value'] ?? null) === $requestedSeanceStart;
+        })
+            ? $requestedSeanceStart
+            : ($seances->first()['value'] ?? null);
 
         $absenceIds = DB::table('absences')
             ->where('id_professeur', $user->id)
             ->whereDate('date_abs', $date)
+            ->when($selectedSeanceStart, function ($query) use ($selectedSeanceStart) {
+                $query->where('heure_seance', $selectedSeanceStart);
+            })
             ->pluck('id_etudiant')
             ->flip();
 
@@ -581,7 +835,10 @@ class ProfessorController extends Controller
         return response()->json([
             'classes' => $classes,
             'matieres' => $matieres,
+            'seances' => $seances,
             'selectedClassId' => $classId,
+            'selectedMatiereId' => $matiereId,
+            'selectedSeanceStart' => $selectedSeanceStart,
             'selectedDate' => $date,
             'students' => $students,
         ]);
@@ -594,17 +851,33 @@ class ProfessorController extends Controller
             'classId' => 'required|integer|exists:classes,id_classe',
             'matiereId' => 'required|integer|exists:matieres,id_matiere',
             'date' => 'required|date',
+            'seanceStart' => ['required', 'regex:/^\d{2}:\d{2}(:\d{2})?$/'],
             'statuses' => 'required|array|min:1',
             'statuses.*.studentId' => 'required|integer|exists:users,id',
             'statuses.*.status' => 'required|in:present,absent',
             'statuses.*.motif' => 'nullable|string|max:255',
         ]);
 
+        $canTeach = DB::table('enseigner')
+            ->where('id_professeur', $user->id)
+            ->where('id_classe', $validated['classId'])
+            ->where('id_matiere', $validated['matiereId'])
+            ->exists();
+
+        if (! $canTeach) {
+            return response()->json(['message' => 'Vous n etes pas assigne a cette classe/matiere.'], 403);
+        }
+
+        $seanceStart = strlen($validated['seanceStart']) === 5
+            ? $validated['seanceStart'] . ':00'
+            : $validated['seanceStart'];
+
         foreach ($validated['statuses'] as $line) {
             if ($line['status'] === 'absent') {
                 DB::table('absences')->updateOrInsert(
                     [
                         'date_abs' => $validated['date'],
+                        'heure_seance' => $seanceStart,
                         'id_etudiant' => $line['studentId'],
                         'id_professeur' => $user->id,
                     ],
@@ -619,6 +892,7 @@ class ProfessorController extends Controller
                     ->where('id_etudiant', $line['studentId'])
                     ->where('id_professeur', $user->id)
                     ->whereDate('date_abs', $validated['date'])
+                    ->where('heure_seance', $seanceStart)
                     ->delete();
             }
         }
@@ -766,5 +1040,21 @@ class ProfessorController extends Controller
             ->pluck('id_classe')
             ->unique()
             ->values();
+    }
+
+    private function toFrenchWeekday(string $date): string
+    {
+        $days = [
+            1 => 'Lundi',
+            2 => 'Mardi',
+            3 => 'Mercredi',
+            4 => 'Jeudi',
+            5 => 'Vendredi',
+            6 => 'Samedi',
+            7 => 'Dimanche',
+        ];
+
+        $index = Carbon::parse($date)->dayOfWeekIso;
+        return $days[$index] ?? 'Lundi';
     }
 }

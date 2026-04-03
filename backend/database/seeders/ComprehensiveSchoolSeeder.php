@@ -17,6 +17,13 @@ class ComprehensiveSchoolSeeder extends Seeder
         $faker = Factory::create('fr_FR');
         $now = now();
 
+        // Generate timestamps away from DST transition hours to avoid invalid local times.
+        $safeDateTime = static function ($faker, string $start, string $end = 'now') {
+            $dt = $faker->dateTimeBetween($start, $end, 'UTC');
+            $dt->setTime(random_int(8, 20), random_int(0, 59), random_int(0, 59));
+            return $dt;
+        };
+
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
 
         $tablesToTruncate = [
@@ -475,12 +482,19 @@ class ComprehensiveSchoolSeeder extends Seeder
         DB::table('lecons')->insert($leconRows);
 
         $annonceRows = [];
+        $announcementTypes = ['Info', 'Urgent', 'Rappel', 'Evenement'];
         for ($i = 0; $i < 120; $i++) {
             $annonceRows[] = [
                 'titre' => $faker->sentence(6),
                 'contenu' => $faker->paragraph(3),
-                'date_publication' => $faker->dateTimeBetween('-120 days', 'now'),
-                'id_professeur' => $professeurs[array_rand($professeurs)],
+                'date_publication' => $safeDateTime($faker, '-120 days', 'now'),
+                'type' => $faker->randomElement($announcementTypes),
+                'auteur' => $faker->randomElement([
+                    'Direction',
+                    'Vie scolaire',
+                    'Administration',
+                    'Conseil pedagogique',
+                ]),
                 'created_at' => $now,
                 'updated_at' => $now,
             ];
@@ -511,8 +525,8 @@ class ComprehensiveSchoolSeeder extends Seeder
             for ($i = 0; $i < 16; $i++) {
                 $pick = $assignments[array_rand($assignments)];
                 $deadline = $i % 4 === 0
-                    ? $faker->dateTimeBetween('-25 days', '-1 day')
-                    : $faker->dateTimeBetween('+2 days', '+30 days');
+                    ? $safeDateTime($faker, '-25 days', '-1 day')
+                    : $safeDateTime($faker, '+2 days', '+30 days');
 
                 $devoirRows[] = [
                     'titre' => 'DM ' . $faker->words(4, true),
@@ -550,7 +564,7 @@ class ComprehensiveSchoolSeeder extends Seeder
                         'id_etudiant' => $studentId,
                         'id_matiere' => $pick['id_matiere'],
                         'id_professeur' => $pick['id_professeur'],
-                        'created_at' => $faker->dateTimeBetween('-140 days', 'now'),
+                        'created_at' => $safeDateTime($faker, '-140 days', 'now'),
                         'updated_at' => $now,
                     ];
                 }
@@ -571,8 +585,10 @@ class ComprehensiveSchoolSeeder extends Seeder
                 $count = random_int(0, 4);
                 for ($i = 0; $i < $count; $i++) {
                     $pick = $assignments[array_rand($assignments)];
+                    $slot = $slots[array_rand($slots)];
                     $absenceRows[] = [
-                        'date_abs' => $faker->dateTimeBetween('-100 days', 'now'),
+                        'date_abs' => $safeDateTime($faker, '-100 days', 'now'),
+                        'heure_seance' => $slot[0],
                         'motif' => $faker->randomElement([
                             'Maladie',
                             'Rendez-vous familial',
@@ -605,7 +621,7 @@ class ComprehensiveSchoolSeeder extends Seeder
                         'Demande de rendez-vous',
                     ]),
                     'message' => $faker->paragraph(2),
-                    'date_soumission' => $faker->dateTimeBetween('-70 days', 'now'),
+                    'date_soumission' => $safeDateTime($faker, '-70 days', 'now'),
                     'statut' => $faker->randomElement(['en_attente', 'traitee', 'rejetee']),
                     'id_parent' => $parentId,
                     'created_at' => $now,
@@ -628,7 +644,7 @@ class ComprehensiveSchoolSeeder extends Seeder
             $pickedStudents = array_slice($classStudentIds, 0, $take);
 
             foreach ($pickedStudents as $studentId) {
-                $submittedAt = $faker->dateTimeBetween('-20 days', 'now');
+                $submittedAt = $safeDateTime($faker, '-20 days', 'now');
                 $status = $submittedAt > $devoir->date_limite ? 'en_retard' : 'soumis';
 
                 $soumissionRows[] = [
@@ -660,7 +676,7 @@ class ComprehensiveSchoolSeeder extends Seeder
                 'category' => $faker->randomElement(['Technique', 'Materiel', 'Administratif', 'Organisation']),
                 'message' => $faker->paragraph(2),
                 'status' => $faker->randomElement(['en_attente', 'traitee', 'rejetee']),
-                'created_at' => $faker->dateTimeBetween('-120 days', 'now'),
+                'created_at' => $safeDateTime($faker, '-120 days', 'now'),
                 'updated_at' => $now,
             ];
         }
@@ -685,7 +701,7 @@ class ComprehensiveSchoolSeeder extends Seeder
             $rows = [];
             for ($i = 0; $i < $count; $i++) {
                 $rows[] = [
-                    'created_at' => $faker->dateTimeBetween('-120 days', 'now'),
+                    'created_at' => $safeDateTime($faker, '-120 days', 'now'),
                     'updated_at' => $now,
                 ];
             }

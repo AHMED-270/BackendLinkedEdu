@@ -52,18 +52,20 @@ class StudentParentDemoSeeder extends Seeder
             ]
         );
 
-        $classeId = (int) DB::table('classes')->updateOrInsert(
-            ['nom' => '1ere Bac SM A', 'niveau' => 'Lycée'],
-            ['updated_at' => now(), 'created_at' => now()]
+        // Keep this aligned with ComprehensiveSchoolSeeder to avoid duplicate demo classes.
+        DB::table('classes')->updateOrInsert(
+            ['nom' => '1ere Bac SM A', 'niveau' => 'Lycee'],
+            [
+                'id_professeur' => $professor->id,
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
         );
 
-        // updateOrInsert does not return id; resolve explicitly.
-        $classe = DB::table('classes')
+        $classeId = (int) DB::table('classes')
             ->where('nom', '1ere Bac SM A')
-            ->where('niveau', 'Lycée')
-            ->first();
-
-        $classeId = (int) ($classe->id_classe ?? $classe->id ?? 0);
+            ->where('niveau', 'Lycee')
+            ->value('id_classe');
 
         DB::table('etudiants')->updateOrInsert(
             ['id_etudiant' => $studentUser->id],
@@ -140,11 +142,12 @@ class StudentParentDemoSeeder extends Seeder
         DB::table('annonces')->updateOrInsert(
             [
                 'titre' => 'Controle Continu Semaine Prochaine',
-                'id_professeur' => $professor->id,
+                'auteur' => trim(($professor->prenom ?? '') . ' ' . ($professor->nom ?? 'Professeur')),
             ],
             [
                 'contenu' => 'Le controle de mathematiques aura lieu mardi prochain.',
                 'date_publication' => now(),
+                'type' => 'Professeur',
                 'updated_at' => now(),
                 'created_at' => now(),
             ]
@@ -196,6 +199,7 @@ class StudentParentDemoSeeder extends Seeder
                 'id_etudiant' => $studentUser->id,
                 'id_professeur' => $professor->id,
                 'date_abs' => now()->subDays(3)->toDateString(),
+                'heure_seance' => '08:00:00',
             ],
             [
                 'motif' => 'Rendez-vous medical',
