@@ -7,6 +7,7 @@ export default function Devoirs() {
   const [activeTab, setActiveTab] = useState('devoir');
   const [classes, setClasses] = useState([]);
   const [matieres, setMatieres] = useState([]);
+  const [matieresByClass, setMatieresByClass] = useState({});
   const [publications, setPublications] = useState([]);
   const [stats, setStats] = useState({ active_assignments: 0, shared_resources: 0 });
   const [loading, setLoading] = useState(true);
@@ -28,14 +29,15 @@ export default function Devoirs() {
       const data = await professorGet('/api/professeur/publications');
       const nextClasses = data.classes || [];
       const nextMatieres = data.matieres || [];
+      const nextMatieresByClass = data.matieres_by_class || {};
       setClasses(nextClasses);
       setMatieres(nextMatieres);
+      setMatieresByClass(nextMatieresByClass);
       setPublications(data.publications || []);
       setStats(data.stats || { active_assignments: 0, shared_resources: 0 });
       setForm((prev) => ({
         ...prev,
         classId: prev.classId || (nextClasses[0]?.id ? String(nextClasses[0].id) : ''),
-        matiereId: prev.matiereId || (nextMatieres[0]?.id ? String(nextMatieres[0].id) : ''),
       }));
     } catch {
       setError('Impossible de charger les publications.');
@@ -48,20 +50,58 @@ export default function Devoirs() {
     loadData();
   }, []);
 
+  const classMatieres = useMemo(() => {
+    const byClass = matieresByClass?.[String(form.classId)];
+    if (Array.isArray(byClass)) return byClass;
+
+    if (!form.classId) return [];
+    return matieres;
+  }, [form.classId, matieresByClass, matieres]);
+
+  const showMatiereField = classMatieres.length > 1;
+
+  useEffect(() => {
+    if (!form.classId) return;
+
+    if (classMatieres.length === 1) {
+      const onlyMatiereId = String(classMatieres[0].id);
+      if (String(form.matiereId) !== onlyMatiereId) {
+        setForm((prev) => ({ ...prev, matiereId: onlyMatiereId }));
+      }
+      return;
+    }
+
+    if (classMatieres.length > 1 && !classMatieres.some((m) => String(m.id) === String(form.matiereId))) {
+      setForm((prev) => ({ ...prev, matiereId: '' }));
+    }
+  }, [form.classId, form.matiereId, classMatieres]);
+
   const handleSubmit = async () => {
     try {
       if (activeTab === 'devoir') {
+        const resolvedMatiereId = showMatiereField
+          ? Number(form.matiereId || 0)
+          : Number(classMatieres[0]?.id || 0);
+
         await professorPost('/api/professeur/devoirs', {
           title: form.title,
           description: form.description,
           deadline: form.deadline,
           classId: Number(form.classId),
-          matiereId: Number(form.matiereId),
+          matiereId: resolvedMatiereId > 0 ? resolvedMatiereId : null,
         });
       } else {
+        const resolvedMatiereId = showMatiereField
+          ? Number(form.matiereId || 0)
+          : Number(classMatieres[0]?.id || 0);
+
         const formData = new FormData();
         formData.append('title', form.title);
         formData.append('type', form.type);
+        formData.append('classId', String(form.classId || ''));
+        if (resolvedMatiereId > 0) {
+          formData.append('matiereId', String(resolvedMatiereId));
+        }
         if (form.file) formData.append('file', form.file);
         await professorPost('/api/professeur/ressources', formData, true);
       }
@@ -87,20 +127,31 @@ export default function Devoirs() {
         <div className="dvr-filters">
           <div className="filter-group">
             <label>CLASSE</label>
-            <select className="filter-select">
+            <select
+              className="filter-select"
+              value={form.classId}
+              onChange={(e) => setForm((prev) => ({ ...prev, classId: e.target.value }))}
+            >
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>{c.nom} - {c.niveau}</option>
               ))}
             </select>
           </div>
-          <div className="filter-group">
-            <label>MATIÈRE</label>
-            <select className="filter-select">
-              {matieres.map((m) => (
-                <option key={m.id} value={m.id}>{m.nom}</option>
-              ))}
-            </select>
-          </div>
+          {showMatiereField && (
+            <div className="filter-group">
+              <label>MATIÈRE</label>
+              <select
+                className="filter-select"
+                value={form.matiereId}
+                onChange={(e) => setForm((prev) => ({ ...prev, matiereId: e.target.value }))}
+              >
+                <option value="">Choisir</option>
+                {classMatieres.map((m) => (
+                  <option key={m.id} value={m.id}>{m.nom}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </div>
 
@@ -166,13 +217,22 @@ export default function Devoirs() {
                 >
                   {classes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
                 </select>
-                <select
-                  className="input-field"
-                  value={form.matiereId}
-                  onChange={(e) => setForm((prev) => ({ ...prev, matiereId: e.target.value }))}
-                >
-                  {matieres.map((m) => <option key={m.id} value={m.id}>{m.nom}</option>)}
-                </select>
+                {showMatiereField ? (
+                  <select
+                    className="input-field"
+                    value={form.matiereId}
+                    onChange={(e) => setForm((prev) => ({ ...prev, matiereId: e.target.value }))}
+                  >
+                    <option value="">Choisir matiere</option>
+                    {classMatieres.map((m) => <option key={m.id} value={m.id}>{m.nom}</option>)}
+                  </select>
+                ) : (
+                  <input
+                    className="input-field"
+                    value={classMatieres[0]?.nom || 'Matiere auto'}
+                    disabled
+                  />
+                )}
               </div>
             </div>
           </div>

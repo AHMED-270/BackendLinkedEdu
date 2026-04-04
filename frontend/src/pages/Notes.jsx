@@ -12,6 +12,7 @@ export default function Notes() {
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [matieres, setMatieres] = useState([]);
+  const [showMatiereField, setShowMatiereField] = useState(true);
   
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedMatiere, setSelectedMatiere] = useState('');
@@ -37,6 +38,7 @@ export default function Notes() {
       
       setClasses(data.classes || []);
       setMatieres(data.matieres || []);
+      setShowMatiereField(Boolean(data.showMatiereField ?? (data.matieres || []).length > 1));
       setStudents(data.students || []);
       
       if (!classId && data.selectedClassId) setSelectedClass(String(data.selectedClassId));
@@ -198,12 +200,14 @@ export default function Notes() {
               ))}
             </select>
             
-            <select className="form-select min-w-[180px] shadow-sm" value={selectedMatiere} onChange={(e) => setSelectedMatiere(e.target.value)}>
-              <option value="">Sélectionner une matière</option>
-              {matieres.map((matiere) => (
-                <option key={matiere.id} value={matiere.id}>{matiere.nom}</option>
-              ))}
-            </select>
+            {showMatiereField && (
+              <select className="form-select min-w-[180px] shadow-sm" value={selectedMatiere} onChange={(e) => setSelectedMatiere(e.target.value)}>
+                <option value="">Sélectionner une matière</option>
+                {matieres.map((matiere) => (
+                  <option key={matiere.id} value={matiere.id}>{matiere.nom}</option>
+                ))}
+              </select>
+            )}
             
             <select className="form-select min-w-[160px] shadow-sm" value={evaluationType} onChange={(e) => setEvaluationType(e.target.value)}>
               <option value="Contrôle 1">Contrôle 1</option>

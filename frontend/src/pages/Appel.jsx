@@ -15,6 +15,7 @@ export default function Appel() {
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [matieres, setMatieres] = useState([]);
+  const [showMatiereField, setShowMatiereField] = useState(true);
   const [seances, setSeances] = useState([]);
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedMatiere, setSelectedMatiere] = useState('');
@@ -42,6 +43,7 @@ export default function Appel() {
       });
       setClasses(data.classes || []);
       setMatieres(data.matieres || []);
+      setShowMatiereField(Boolean(data.showMatiereField ?? (data.matieres || []).length > 1));
       setSeances(data.seances || []);
       setStudents(data.students?.map(s => ({ ...s, status: s.status || 'present' })) || []);
       
@@ -176,9 +178,11 @@ export default function Appel() {
             <select className="form-select min-w-[180px] shadow-sm" value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)}>
               {classes.map((c) => <option key={c.id} value={c.id}>{c.nom} - {c.niveau}</option>)}
             </select>
-            <select className="form-select min-w-[180px] shadow-sm" value={selectedMatiere} onChange={(e) => setSelectedMatiere(e.target.value)}>
-              {matieres.map((m) => <option key={m.id} value={m.id}>{m.nom}</option>)}
-            </select>
+            {showMatiereField && (
+              <select className="form-select min-w-[180px] shadow-sm" value={selectedMatiere} onChange={(e) => setSelectedMatiere(e.target.value)}>
+                {matieres.map((m) => <option key={m.id} value={m.id}>{m.nom}</option>)}
+              </select>
+            )}
             <select className="form-select min-w-[180px] shadow-sm" value={selectedSeance} onChange={(e) => setSelectedSeance(e.target.value)}>
               <option value="">Selectionner une seance</option>
               {seances.map((seance) => (

@@ -1,15 +1,7 @@
-﻿import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { AnimatePresence, motion } from 'framer-motion';
-
-// Layout & Admin
 import Layout from './components/Layout';
 import AdminDashboard from './components/AdminDashboard';
-import DirecteurDashboard from './components/DirecteurDashboard';
-import AuthHero from './components/AuthHero';
-import LoginCard from './components/LoginCard';
-
-// Pages
 import Dashboard from './pages/Dashboard';
 import Devoirs from './pages/Devoirs';
 import Ressources from './pages/Ressources';
@@ -21,37 +13,38 @@ import Notes from './pages/Notes';
 import Avancement from './pages/Avancement';
 import Reclamation from './pages/Reclamation';
 import Parametres from './pages/Parametres';
-// import Login from './pages/Login';
-import StudentPortal from './pages/StudentPortal';
-import ParentPortal from './pages/ParentPortal';
-import { ROLE, getHomeRouteByRole } from './constants/roles';
-
+import Login from './pages/Login';
+import SecretaireLayout from './components/SecretaireLayout';
+import SecretaireDashboard from './pages/SecretaireDashboard';
+import SecretaireEtudiants from './pages/SecretaireEtudiants';
+import SecretaireClasses from './pages/SecretaireClasses';
+import SecretaireAbsences from './pages/SecretaireAbsences';
+import SecretaireAnnonces from './pages/SecretaireAnnonces';
+import SecretaireReclamations from './pages/SecretaireReclamations';
+import Paiements from './pages/Paiements';
 import './App.css';
 
-// Global Loading Component
-const FullScreenLoader = () => (
-  <div className="loading-screen">
-    <div className="loader-core"></div>
-    <p>Chargement de LinkedU...</p>
-  </div>
-);
+const getHomeRouteByRole = (role) => {
+  const normalizedRole = String(role || '').toLowerCase();
+  if (normalizedRole === 'admin' || normalizedRole === 'directeur') return '/admin';
+  if (normalizedRole === 'professeur') return '/dashboard';
+  if (normalizedRole === 'secretaire') return '/secretaire/dashboard';
+  return '/login';
+};
 
 // Root Route - Redirects based on auth status
 const RootRoute = () => {
   const { user, loading } = useAuth();
   
-  if (loading) return <FullScreenLoader />;
-  if (user) {
-    return <Navigate to={getHomeRouteByRole(user?.role)} replace />;
-  }
-  return <Navigate to="/login" replace />;
+  if (loading) return <div className="loading-screen">Chargement...</div>;
+  return user ? <Navigate to={getHomeRouteByRole(user?.role)} replace /> : <Navigate to="/login" replace />;
 };
 
 // Protected Layout Wrapper
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { user, loading } = useAuth();
   
-  if (loading) return <FullScreenLoader />;
+  if (loading) return <div className="loading-screen">Chargement...</div>;
   if (!user) return <Navigate to="/login" replace />;
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
@@ -61,94 +54,56 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   return children;
 };
 
-// Animated Route Wrapper
-const PageTransition = ({ children }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -10 }}
-    transition={{ duration: 0.4, ease: "easeInOut" }}
-    className="page-transition-wrapper"
-  >
-    {children}
-  </motion.div>
-);
-
-// Animated Routes Component
+// Title updates per route
 const AppRoutes = () => {
-  const { user, loading, logout, login } = useAuth();
-  const location = useLocation();
+  const { user, loading, logout } = useAuth();
 
-  if (loading) return <FullScreenLoader />;
+  if (loading) return <div className="loading-screen">Chargement...</div>;
 
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<PageTransition><RootRoute /></PageTransition>} />
-        
-        {/* Authentication */}
-        <Route 
-          path="/login" 
-          element={user ? <Navigate to={getHomeRouteByRole(user?.role)} replace /> : (
-            <PageTransition>
-              <main className="auth-page">
-                <AuthHero />
-                <LoginCard onLoginSuccess={login} />
-              </main>
-            </PageTransition>
-          )} 
-        />
-        
-        {/* Administrator Routes */}
-        <Route
-          path="/admin/*"
-          element={
-            <ProtectedRoute allowedRoles={[ROLE.ADMIN, ROLE.SECRETAIRE]}>
-              <PageTransition>
-                <AdminDashboard onLogout={logout} userRole={user?.role || ROLE.ADMIN} user={user} />
-              </PageTransition>
-            </ProtectedRoute>
-          }
-        />
+    <Routes>
+      <Route path="/" element={<RootRoute />} />
+      <Route path="/login" element={user ? <Navigate to={getHomeRouteByRole(user?.role)} replace /> : <Login />} />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute allowedRoles={['admin', 'directeur']}>
+            <AdminDashboard onLogout={logout} userRole={user?.role || 'admin'} user={user} />
+          </ProtectedRoute>
+        }
+      />
+      
+      {/* Professeur routes */}
+      <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['professeur']}><Layout title="Tableau de Bord"><Dashboard /></Layout></ProtectedRoute>} />
+      <Route path="/devoirs" element={<ProtectedRoute allowedRoles={['professeur']}><Layout title="Devoirs & Ressources"><Devoirs /></Layout></ProtectedRoute>} />
+      <Route path="/ressources" element={<ProtectedRoute allowedRoles={['professeur']}><Layout title="Publier une Ressource"><Ressources /></Layout></ProtectedRoute>} />
+      <Route path="/emploi-du-temps" element={<ProtectedRoute allowedRoles={['professeur']}><Layout title="Emploi du Temps"><EmploiDuTemps /></Layout></ProtectedRoute>} />
+      <Route path="/annonces" element={<ProtectedRoute allowedRoles={['professeur']}><Layout title="Annonces"><Annonces /></Layout></ProtectedRoute>} />
+      <Route path="/mes-classes" element={<ProtectedRoute allowedRoles={['professeur']}><Layout title="Mes Classes"><Eleves /></Layout></ProtectedRoute>} />
+      <Route path="/appel" element={<ProtectedRoute allowedRoles={['professeur']}><Layout title="Feuille d'Appel"><Appel /></Layout></ProtectedRoute>} />
+      <Route path="/notes-absences" element={<ProtectedRoute allowedRoles={['professeur']}><Layout title="Notes & Absences"><Notes /></Layout></ProtectedRoute>} />
+      <Route path="/avancement" element={<ProtectedRoute allowedRoles={['professeur']}><Layout title="Avancement"><Avancement /></Layout></ProtectedRoute>} />
+      <Route path="/reclamation" element={<ProtectedRoute allowedRoles={['professeur']}><Layout title="Réclamation"><Reclamation /></Layout></ProtectedRoute>} />
+      <Route path="/profil" element={<ProtectedRoute allowedRoles={['professeur']}><Layout title="Profil"><Parametres /></Layout></ProtectedRoute>} />
+      <Route path="/parametres" element={<ProtectedRoute allowedRoles={['professeur']}><Layout title="Paramètres"><Parametres /></Layout></ProtectedRoute>} />
 
-        <Route
-          path="/directeur/*"
-          element={
-            <ProtectedRoute allowedRoles={[ROLE.DIRECTEUR]}>
-              <PageTransition>
-                <DirecteurDashboard onLogout={logout} user={user} />
-              </PageTransition>
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Student and Parent Routes */}
-        <Route path="/etudiant/*" element={<ProtectedRoute allowedRoles={[ROLE.ETUDIANT]}><PageTransition><StudentPortal /></PageTransition></ProtectedRoute>} />
-        <Route path="/parent/*" element={<ProtectedRoute allowedRoles={[ROLE.PARENT]}><PageTransition><ParentPortal /></PageTransition></ProtectedRoute>} />
-        
-        {/* Professeur Routes */}
-        <Route path="/dashboard" element={<ProtectedRoute allowedRoles={[ROLE.PROFESSEUR]}><PageTransition><Layout title="Tableau de Bord"><Dashboard /></Layout></PageTransition></ProtectedRoute>} />
-        <Route path="/devoirs" element={<ProtectedRoute allowedRoles={[ROLE.PROFESSEUR]}><PageTransition><Layout title="Devoirs & Ressources"><Devoirs /></Layout></PageTransition></ProtectedRoute>} />
-        <Route path="/ressources" element={<ProtectedRoute allowedRoles={[ROLE.PROFESSEUR]}><PageTransition><Layout title="Publier une Ressource"><Ressources /></Layout></PageTransition></ProtectedRoute>} />
-        <Route path="/emploi-du-temps" element={<ProtectedRoute allowedRoles={[ROLE.PROFESSEUR]}><PageTransition><Layout title="Emploi du Temps"><EmploiDuTemps /></Layout></PageTransition></ProtectedRoute>} />
-        <Route path="/annonces" element={<ProtectedRoute allowedRoles={[ROLE.PROFESSEUR]}><PageTransition><Layout title="Annonces"><Annonces /></Layout></PageTransition></ProtectedRoute>} />
-        <Route path="/mes-classes" element={<ProtectedRoute allowedRoles={[ROLE.PROFESSEUR]}><PageTransition><Layout title="Mes Classes"><Eleves /></Layout></PageTransition></ProtectedRoute>} />
-        <Route path="/appel" element={<ProtectedRoute allowedRoles={[ROLE.PROFESSEUR]}><PageTransition><Layout title="Absences"><Appel /></Layout></PageTransition></ProtectedRoute>} />
-        <Route path="/notes" element={<ProtectedRoute allowedRoles={[ROLE.PROFESSEUR]}><PageTransition><Layout title="Notes"><Notes /></Layout></PageTransition></ProtectedRoute>} />
-        <Route path="/notes-absences" element={<Navigate to="/notes" replace />} />
-        <Route path="/avancement" element={<ProtectedRoute allowedRoles={[ROLE.PROFESSEUR]}><PageTransition><Layout title="Avancement"><Avancement /></Layout></PageTransition></ProtectedRoute>} />
-        <Route path="/reclamation" element={<ProtectedRoute allowedRoles={[ROLE.PROFESSEUR]}><PageTransition><Layout title="Réclamation"><Reclamation /></Layout></PageTransition></ProtectedRoute>} />
-        <Route path="/profil" element={<ProtectedRoute allowedRoles={[ROLE.PROFESSEUR]}><PageTransition><Layout title="Profil"><Parametres /></Layout></PageTransition></ProtectedRoute>} />
-        <Route path="/parametres" element={<ProtectedRoute allowedRoles={[ROLE.PROFESSEUR]}><PageTransition><Layout title="Paramètres"><Parametres /></Layout></PageTransition></ProtectedRoute>} />
-        
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to={user ? getHomeRouteByRole(user?.role) : '/login'} replace />} />
-      </Routes>
-    </AnimatePresence>
+      {/* Secretaire routes */}
+      <Route path="/secretaire/dashboard" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><SecretaireDashboard /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/etudiants" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><SecretaireEtudiants /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/classes" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><SecretaireClasses /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/paiements" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><Paiements /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/absences" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><SecretaireAbsences /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/annonces" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><SecretaireAnnonces /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/reclamations" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><SecretaireReclamations /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/profil" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><Parametres /></SecretaireLayout></ProtectedRoute>} />
+      
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to={user ? getHomeRouteByRole(user?.role) : '/login'} replace />} />
+    </Routes>
   );
 };
 
-export default function App() {
+function App() {
   return (
     <AuthProvider>
       <Router>
@@ -157,3 +112,5 @@ export default function App() {
     </AuthProvider>
   );
 }
+
+export default App;
