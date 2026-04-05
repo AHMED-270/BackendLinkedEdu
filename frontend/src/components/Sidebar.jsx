@@ -10,7 +10,7 @@ const navItems = [
   { path: '/dashboard', label: 'Tableau de bord', icon: FiGrid },
   { path: '/emploi-du-temps', label: 'Emploi du temps', icon: FiCalendar },
   { path: '/mes-classes', label: 'Mes Classes', icon: FiUsers },
-  { path: '/notes', label: 'Notes', icon: FiStar },
+  { path: '/notes-absences', label: 'Notes', icon: FiStar },
   { path: '/appel', label: 'Absences', icon: FiCalendar },
   { path: '/devoirs', label: 'Devoirs & Ressources', icon: FiFileText },
   { path: '/annonces', label: 'Annonces', icon: FiMessageCircle },

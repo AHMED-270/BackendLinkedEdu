@@ -18,6 +18,7 @@ class Paiement extends Model
         'mois',
         'annee',
         'montant',
+        'reste',
         'type',
         'statut',
         'date_paiement',
@@ -27,6 +28,7 @@ class Paiement extends Model
         'mois' => 'integer',
         'annee' => 'integer',
         'montant' => 'decimal:2',
+        'reste' => 'decimal:2',
         'date_paiement' => 'date',
     ];
 

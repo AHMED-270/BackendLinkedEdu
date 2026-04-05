@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { CreditCard, PlusCircle, RefreshCw, X, Printer } from 'lucide-react';
 import FilterClasse from '../components/FilterClasse';
@@ -15,6 +15,7 @@ const emptyForm = {
   id_etudiant: '',
   mois: 9,
   montant: '',
+  reste: '0.00',
   type: 'mensuel',
   date_paiement: '',
 };
@@ -45,6 +46,8 @@ export default function Paiements() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [receiptData, setReceiptData] = useState(null);
+  const previousTypeRef = useRef(form.type);
+  const previousClassRef = useRef(form.id_classe);
 
   const studentsForSelect = useMemo(() => {
     return students.map((student) => ({
@@ -67,6 +70,18 @@ export default function Paiements() {
     () => students.find((student) => String(student.id_etudiant) === String(form.id_etudiant)) || null,
     [students, form.id_etudiant]
   );
+
+  const selectedClass = useMemo(
+    () => classes.find((classe) => String(classe.id_classe) === String(form.id_classe)) || null,
+    [classes, form.id_classe]
+  );
+
+  const expectedAmount = useMemo(() => {
+    if (!selectedClass) return 0;
+    const basePrice = Number(selectedClass.pricing || 0);
+    if (!Number.isFinite(basePrice) || basePrice <= 0) return 0;
+    return form.type === 'annuel' ? basePrice * 10 : basePrice;
+  }, [selectedClass, form.type]);
 
   const availableMonths = useMemo(() => {
     if (form.type !== 'mensuel') {
@@ -161,6 +176,73 @@ export default function Paiements() {
     }
   }, [form.id_classe, form.id_etudiant, studentsForSelectedClass]);
 
+  // Auto-calculate amount when class or type changes (monthly <-> annual).
+  useEffect(() => {
+    if (!form.id_classe || editingId) {
+      previousTypeRef.current = form.type;
+      previousClassRef.current = form.id_classe;
+      return;
+    }
+
+    const typeChanged = previousTypeRef.current !== form.type;
+    const classChanged = previousClassRef.current !== form.id_classe;
+    let autoAmount = null;
+
+    if (typeChanged) {
+      if (expectedAmount > 0) {
+        autoAmount = expectedAmount;
+      } else {
+        const currentAmount = Number(form.montant || 0);
+        if (Number.isFinite(currentAmount) && currentAmount > 0) {
+          if (previousTypeRef.current === 'mensuel' && form.type === 'annuel') {
+            autoAmount = currentAmount * 10;
+          } else if (previousTypeRef.current === 'annuel' && form.type === 'mensuel') {
+            autoAmount = currentAmount / 10;
+          }
+        }
+      }
+    } else if (classChanged || form.montant === '') {
+      if (expectedAmount > 0) {
+        autoAmount = expectedAmount;
+      }
+    }
+
+    previousTypeRef.current = form.type;
+    previousClassRef.current = form.id_classe;
+
+    if (autoAmount === null) {
+      return;
+    }
+
+    const amountValue = Number(autoAmount).toFixed(2);
+    if (amountValue !== form.montant) {
+      setForm((prev) => ({ ...prev, montant: amountValue }));
+    }
+  }, [form.id_classe, form.type, form.montant, expectedAmount, editingId]);
+
+  // Keep remaining balance in sync with the paid amount and selected payment type.
+  useEffect(() => {
+    if (!form.id_classe) {
+      if (form.reste !== '0.00') {
+        setForm((prev) => ({ ...prev, reste: '0.00' }));
+      }
+      return;
+    }
+
+    const amountNumber = Number(form.montant || 0);
+    const computedReste = Math.max(expectedAmount - amountNumber, 0);
+    const resteValue = computedReste.toFixed(2);
+
+    if (resteValue === form.reste) {
+      return;
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      reste: resteValue,
+    }));
+  }, [form.id_classe, form.montant, form.reste, expectedAmount]);
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -198,6 +280,7 @@ export default function Paiements() {
         type: form.type,
         statut: 'paye',
         montant: Number(form.montant),
+        reste: Number(form.reste || 0),
         date_paiement: form.date_paiement || null,
       };
 
@@ -262,6 +345,7 @@ export default function Paiements() {
       id_etudiant: String(student.id_etudiant),
       mois: month,
       montant: payment.montant ?? '',
+      reste: Number(payment.reste || 0).toFixed(2),
       type: payment.type || 'mensuel',
       date_paiement: payment.date_paiement || '',
     });
@@ -324,6 +408,7 @@ export default function Paiements() {
             <div class="item"><div class="label">Annee</div><div class="value">${escapeHtml(payment?.annee || '-')}</div></div>
             <div class="item"><div class="label">Type</div><div class="value">${escapeHtml(payment?.type || '-')}</div></div>
             <div class="item"><div class="label">Montant</div><div class="value">${escapeHtml(Number(payment?.montant || 0).toFixed(2))} MAD</div></div>
+            <div class="item"><div class="label">Reste</div><div class="value">${escapeHtml(Number(payment?.reste || 0).toFixed(2))} MAD</div></div>
             <div class="item"><div class="label">Statut</div><div class="value ${payment?.statut === 'paye' ? 'status-ok' : 'status-ko'}">${escapeHtml(payment?.statut || '-')}</div></div>
             <div class="item"><div class="label">Date paiement</div><div class="value">${escapeHtml(payment?.date_paiement || '-')}</div></div>
           </div>
@@ -375,17 +460,7 @@ export default function Paiements() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              resetForm();
-              setErrorMessage('');
-            }}
-            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
-          >
-            <PlusCircle className="h-4 w-4" />
-            Nouveau paiement
-          </button>
+          
         </div>
 
         <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
@@ -520,7 +595,7 @@ export default function Paiements() {
                 <div>
                   <div>
                     <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-gray-500">
-                      Montant (MAD)
+                      Montant paye par parent (MAD)
                     </label>
                     <input
                       type="number"
@@ -531,7 +606,27 @@ export default function Paiements() {
                       onChange={(event) => setForm((prev) => ({ ...prev, montant: event.target.value }))}
                       className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
                     />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Tarif attendu: {Number(expectedAmount || 0).toFixed(2)} MAD ({form.type === 'mensuel' ? 'pour ce mois' : 'pour toute l annee, calcule depuis le mensuel'}).
+                    </p>
                   </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                    Reste (MAD)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.reste}
+                    readOnly
+                    className="w-full rounded-xl border border-gray-200 bg-gray-100 px-3 py-2.5 text-sm font-semibold text-gray-700 outline-none"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Calcul automatique: reste = tarif attendu - montant paye.
+                  </p>
                 </div>
 
                 <div>
@@ -620,6 +715,10 @@ export default function Paiements() {
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Montant</p>
                 <p className="mt-1 text-sm font-semibold text-gray-900">{Number(receiptData.payment?.montant || 0).toFixed(2)} MAD</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Reste</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900">{Number(receiptData.payment?.reste || 0).toFixed(2)} MAD</p>
               </div>
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Statut</p>

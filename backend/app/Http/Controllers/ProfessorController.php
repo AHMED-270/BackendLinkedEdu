@@ -352,9 +352,7 @@ class ProfessorController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $assignedClassIds = DB::table('classe_professeur_assignments')
-            ->where('id_professeur', $user->id)
-            ->pluck('id_classe');
+        $assignedClassIds = $this->getAssignedClassIds((int) $user->id);
 
         if ($assignedClassIds->isEmpty()) {
             return response()->json([
@@ -373,11 +371,16 @@ class ProfessorController extends Controller
 
         $classes = DB::table('classes')
             ->leftJoin('etudiants', 'classes.id_classe', '=', 'etudiants.id_classe')
+            ->leftJoin('absences', function ($join) use ($user) {
+                $join->on('absences.id_etudiant', '=', 'etudiants.id_etudiant')
+                    ->where('absences.id_professeur', '=', $user->id);
+            })
             ->select(
                 'classes.id_classe',
                 'classes.nom',
                 'classes.niveau',
-                DB::raw('COUNT(DISTINCT etudiants.id_etudiant) as students_count')
+                DB::raw('COUNT(DISTINCT etudiants.id_etudiant) as students_count'),
+                DB::raw('COUNT(absences.id_absence) as absences_count')
             )
             ->whereIn('classes.id_classe', $classIdsToUse)
             ->groupBy('classes.id_classe', 'classes.nom', 'classes.niveau')
@@ -391,14 +394,23 @@ class ProfessorController extends Controller
                     'niveau' => $classe->niveau,
                     'label' => trim($classe->nom . ' - ' . $classe->niveau),
                     'students_count' => (int) $classe->students_count,
+                    'absences_count' => (int) $classe->absences_count,
                 ];
             })
             ->values();
+
+        $absenceByStudentSubQuery = DB::table('absences')
+            ->select('id_etudiant', DB::raw('COUNT(*) as absences_count'))
+            ->where('id_professeur', $user->id)
+            ->groupBy('id_etudiant');
 
         $students = DB::table('etudiants')
             ->join('users', 'etudiants.id_etudiant', '=', 'users.id')
             ->join('classes', 'etudiants.id_classe', '=', 'classes.id_classe')
             ->leftJoin('parents', 'etudiants.id_parent', '=', 'parents.id_parent')
+            ->leftJoinSub($absenceByStudentSubQuery, 'student_absences', function ($join) {
+                $join->on('student_absences.id_etudiant', '=', 'etudiants.id_etudiant');
+            })
             ->select(
                 'users.id',
                 'users.name',
@@ -409,12 +421,14 @@ class ProfessorController extends Controller
                 'classes.nom as classe_nom',
                 'classes.niveau as classe_niveau',
                 'etudiants.matricule',
-                'parents.telephone as parent_phone'
+                'parents.telephone as parent_phone',
+                DB::raw('COALESCE(student_absences.absences_count, 0) as absences_count')
             )
             ->whereIn('etudiants.id_classe', $classIdsToUse)
             ->orderBy('classes.niveau')
             ->orderBy('classes.nom')
-            ->orderBy('users.name')
+            ->orderBy('users.nom')
+            ->orderBy('users.prenom')
             ->get()
             ->map(function ($student) {
                 $firstName = $student->prenom ?: $student->name;
@@ -432,6 +446,7 @@ class ProfessorController extends Controller
                     'rank' => null,
                     'average' => null,
                     'matricule' => $student->matricule,
+                    'absenceCount' => (int) $student->absences_count,
                 ];
             })
             ->values();

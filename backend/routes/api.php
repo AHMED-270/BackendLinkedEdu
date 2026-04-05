@@ -87,6 +87,7 @@ Route::middleware(['auth:sanctum', 'role:professeur'])->prefix('professeur')->gr
     // Élèves, Appel et Notes
     Route::get('/classes/{class_id}/eleves', [ProfessorController::class, 'getStudents']);
     Route::get('/eleves', [ProfessorController::class, 'getStudents']); // All classes
+    Route::get('/eleves/{student_id}/absences', [ProfessorController::class, 'getStudentAbsences']);
     Route::get('/notes', [ProfessorController::class, 'getNotes']);
     Route::post('/notes', [ProfessorController::class, 'saveNotes']);
     Route::get('/appel', [ProfessorController::class, 'getAttendance']);
