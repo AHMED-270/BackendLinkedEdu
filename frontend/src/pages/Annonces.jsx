@@ -97,7 +97,8 @@ export default function Annonces() {
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              className="form-input pl-9"
+              className="form-input"
+              style={{ paddingLeft: '2.5rem' }}
               placeholder="Rechercher par titre d'annonce..."
               value={searchTitle}
               onChange={(e) => setSearchTitle(e.target.value)}

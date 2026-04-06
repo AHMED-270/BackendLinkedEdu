@@ -1,6 +1,6 @@
 ﻿import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { FiGrid, FiCalendar, FiUsers, FiStar, FiFileText, FiMessageCircle, FiSettings, FiLogOut, FiAlertCircle } from 'react-icons/fi';
+import { FiGrid, FiCalendar, FiUsers, FiStar, FiFileText, FiMessageCircle, FiLogOut, FiAlertCircle } from 'react-icons/fi';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,7 +15,6 @@ const navItems = [
   { path: '/devoirs', label: 'Devoirs & Ressources', icon: FiFileText },
   { path: '/reclamation', label: 'Réclamations', icon: FiAlertCircle },
   { path: '/annonces', label: 'Annonces', icon: FiMessageCircle },
-  { path: '/parametres', label: 'Paramètres', icon: FiSettings },
 ];
 
 export default function Sidebar() {
