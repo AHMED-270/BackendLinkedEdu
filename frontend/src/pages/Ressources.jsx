@@ -1,14 +1,10 @@
-import { useState } from 'react';
-import { FiUpload, FiFile, FiCheck, FiX } from 'react-icons/fi';
+<<<<<<<<< Temporary merge branch 1
+﻿import { useState } from 'react';
+import { UploadCloud, FileText, CheckCircle2, X, File, BookOpen, Clock } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+=========
 import './Ressources.css';
-
-const existingResources = [
-  { id: 1, title: 'Cours - Mécanique Newtonienne', type: 'Cours', matiere: 'Physique', class: '2BAC - G1', date: '20 Mars 2026' },
-  { id: 2, title: 'Fiche - Tableau périodique', type: 'Fiche', matiere: 'Chimie', class: 'Toutes', date: '18 Mars 2026' },
-  { id: 3, title: 'Exercices corrigés - Optique', type: 'Exercice', matiere: 'Physique', class: '1BAC - G3', date: '15 Mars 2026' },
-  { id: 4, title: 'TP - Extraction liquide-liquide', type: 'TP', matiere: 'Chimie', class: 'TCS - G2', date: '12 Mars 2026' },
-  { id: 5, title: 'Résumé - Cinématique', type: 'Cours', matiere: 'Physique', class: '2BAC - G2', date: '10 Mars 2026' },
-];
+>>>>>>>>> Temporary merge branch 2
 
 export default function Ressources() {
   const [title, setTitle] = useState('');
@@ -125,8 +121,34 @@ export default function Ressources() {
               </table>
             </div>
           </div>
+        </motion.div>
+
+      </motion.div>
+=========
+  return (
+    <div className="ressources-page">
+      <div className="ressources-header animate-fade-in">
+        <h2>Publier une Ressource</h2>
+        <p>Les ressources seront gérées depuis la base de données.</p>
+      </div>
+
+      <div className="card animate-fade-in" style={{ animationDelay: '0.1s' }}>
+        <div className="card-body" style={{ padding: 0 }}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Titre</th>
+                <th>Type</th>
+                <th>Matière</th>
+                <th>Classe</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
         </div>
       </div>
+>>>>>>>>> Temporary merge branch 2
     </div>
   );
 }

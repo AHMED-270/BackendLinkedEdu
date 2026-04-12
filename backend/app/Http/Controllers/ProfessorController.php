@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+<<<<<<<<< Temporary merge branch 1
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 
@@ -20,13 +21,7 @@ class ProfessorController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => [
-                'required',
-                'string',
-                'email',
-                'max:255',
-                \Illuminate\Validation\Rule::unique('users')->ignore($user->id)->where(fn ($query) => $query->where('role', 'professeur'))
-            ],
+            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
         ]);
 
         $user->name = $validated['name'];
@@ -125,15 +120,31 @@ class ProfessorController extends Controller
             ->orderBy('nom')
             ->get(['id_classe as id', 'nom', 'niveau']);
 
-        $matiereIds = DB::table('enseigner')
-            ->where('id_professeur', $user->id)
-            ->pluck('id_matiere')
-            ->unique();
+        $matieresByClassRows = DB::table('enseigner')
+            ->join('matieres', 'enseigner.id_matiere', '=', 'matieres.id_matiere')
+            ->where('enseigner.id_professeur', $user->id)
+            ->whereIn('enseigner.id_classe', $classIds)
+            ->orderBy('matieres.nom')
+            ->get([
+                'enseigner.id_classe',
+                'matieres.id_matiere as id',
+                'matieres.nom',
+            ]);
 
-        $matieres = DB::table('matieres')
-            ->whereIn('id_matiere', $matiereIds)
-            ->orderBy('nom')
-            ->get(['id_matiere as id', 'nom']);
+        $matieresByClass = $matieresByClassRows
+            ->groupBy('id_classe')
+            ->map(function ($rows) {
+                return $rows
+                    ->map(fn ($row) => ['id' => (int) $row->id, 'nom' => $row->nom])
+                    ->unique('id')
+                    ->values();
+            })
+            ->mapWithKeys(fn ($rows, $classId) => [(string) $classId => $rows]);
+
+        $matieres = $matieresByClassRows
+            ->map(fn ($row) => ['id' => (int) $row->id, 'nom' => $row->nom])
+            ->unique('id')
+            ->values();
 
         $devoirs = DB::table('devoirs')
             ->join('classes', 'devoirs.id_classe', '=', 'classes.id_classe')
@@ -145,6 +156,8 @@ class ProfessorController extends Controller
                 'devoirs.titre as title',
                 'devoirs.description',
                 'devoirs.date_limite',
+                'devoirs.id_classe',
+                'devoirs.id_matiere',
                 'classes.nom as classe_nom',
                 'classes.niveau as classe_niveau',
                 'matieres.nom as matiere_nom',
@@ -153,30 +166,96 @@ class ProfessorController extends Controller
             ->map(fn ($row) => [
                 'id' => (int) $row->id,
                 'title' => $row->title,
+                'description' => $row->description,
                 'type' => 'Devoir',
                 'class' => trim($row->classe_nom . ' - ' . $row->classe_niveau),
+                'classId' => (int) $row->id_classe,
                 'matiere' => $row->matiere_nom,
+                'matiereId' => (int) $row->id_matiere,
                 'published_at' => optional($row->created_at)->toDateTimeString(),
                 'deadline' => $row->date_limite,
             ]);
 
-        $ressources = DB::table('ressources')
-            ->where('id_professeur', $user->id)
-            ->orderByDesc('created_at')
-            ->get(['id_ressource as id', 'fichier', 'type_ressource', 'created_at'])
-            ->map(fn ($row) => [
-                'id' => (int) $row->id,
-                'title' => $row->fichier,
-                'type' => 'Ressource',
-                'class' => 'Toutes',
-                'matiere' => $row->type_ressource,
-                'published_at' => optional($row->created_at)->toDateTimeString(),
-                'deadline' => null,
-            ]);
+        $hasResourceClassColumn = Schema::hasColumn('ressources', 'id_classe');
+        $hasResourceMatiereColumn = Schema::hasColumn('ressources', 'id_matiere');
+        $hasResourceTitleColumn = Schema::hasColumn('ressources', 'titre');
+        $hasResourceDescriptionColumn = Schema::hasColumn('ressources', 'description');
+
+        $ressourcesQuery = DB::table('ressources')
+            ->where('ressources.id_professeur', $user->id)
+            ->orderByDesc('ressources.created_at');
+
+        if ($hasResourceClassColumn) {
+            $ressourcesQuery->leftJoin('classes', 'ressources.id_classe', '=', 'classes.id_classe');
+        }
+
+        if ($hasResourceMatiereColumn) {
+            $ressourcesQuery->leftJoin('matieres', 'ressources.id_matiere', '=', 'matieres.id_matiere');
+        }
+
+        $resourceSelect = [
+            'ressources.id_ressource as id',
+            'ressources.fichier',
+            'ressources.type_ressource',
+            'ressources.created_at',
+        ];
+
+        if ($hasResourceTitleColumn) {
+            $resourceSelect[] = 'ressources.titre as title';
+        }
+
+        if ($hasResourceDescriptionColumn) {
+            $resourceSelect[] = 'ressources.description';
+        }
+
+        if ($hasResourceClassColumn) {
+            $resourceSelect[] = 'ressources.id_classe';
+            $resourceSelect[] = 'classes.nom as classe_nom';
+            $resourceSelect[] = 'classes.niveau as classe_niveau';
+        }
+
+        if ($hasResourceMatiereColumn) {
+            $resourceSelect[] = 'ressources.id_matiere';
+            $resourceSelect[] = 'matieres.nom as matiere_nom';
+        }
+
+        $ressources = $ressourcesQuery
+              ->get($resourceSelect)
+              ->map(function ($row) use ($hasResourceTitleColumn, $hasResourceDescriptionColumn) {
+                $classLabel = 'Toutes';
+                if (isset($row->id_classe) && (int) $row->id_classe > 0) {
+                    $classLabel = trim(((string) ($row->classe_nom ?? 'Classe')) . ' - ' . ((string) ($row->classe_niveau ?? '')));
+                }
+
+                $resolvedTitle = 'Ressource sans titre';
+                if ($hasResourceTitleColumn && isset($row->title) && trim((string) $row->title) !== '') {
+                    $resolvedTitle = trim((string) $row->title);
+                }
+
+                $resolvedDescription = '';
+                if ($hasResourceDescriptionColumn && isset($row->description)) {
+                    $resolvedDescription = (string) $row->description;
+                }
+
+                return [
+                    'id' => (int) $row->id,
+                    'title' => $resolvedTitle,
+                    'description' => $resolvedDescription,
+                    'type' => 'Ressource',
+                    'class' => $classLabel,
+                    'classId' => isset($row->id_classe) ? (int) $row->id_classe : null,
+                    'matiere' => $row->matiere_nom ?? '-',
+                    'matiereId' => isset($row->id_matiere) ? (int) $row->id_matiere : null,
+                    'resource_type' => $row->type_ressource,
+                    'published_at' => optional($row->created_at)->toDateTimeString(),
+                    'deadline' => null,
+                ];
+            });
 
         return response()->json([
             'classes' => $classes,
             'matieres' => $matieres,
+            'matieres_by_class' => $matieresByClass,
             'publications' => $devoirs->concat($ressources)->sortByDesc('published_at')->values(),
             'stats' => [
                 'active_assignments' => (int) DB::table('devoirs')->where('id_professeur', $user->id)->whereDate('date_limite', '>=', now()->toDateString())->count(),
@@ -194,17 +273,22 @@ class ProfessorController extends Controller
             'description' => 'required|string',
             'deadline' => 'required|date',
             'classId' => 'required|integer|exists:classes,id_classe',
-            'matiereId' => 'required|integer|exists:matieres,id_matiere',
+            'matiereId' => 'nullable|integer|exists:matieres,id_matiere',
         ]);
 
-        $canTeach = DB::table('enseigner')
-            ->where('id_professeur', $user->id)
-            ->where('id_classe', $validated['classId'])
-            ->where('id_matiere', $validated['matiereId'])
-            ->exists();
+        $classId = (int) $validated['classId'];
+        if (! $this->isAssignedToClass((int) $user->id, $classId)) {
+            return response()->json(['message' => 'Vous n etes pas assigne a cette classe.'], 403);
+        }
 
-        if (! $canTeach) {
-            return response()->json(['message' => 'Vous n etes pas assigne a cette classe/matiere.'], 403);
+        [$matiereId, $matiereError] = $this->resolveTeachingMatiereId(
+            (int) $user->id,
+            $classId,
+            isset($validated['matiereId']) ? (int) $validated['matiereId'] : null
+        );
+
+        if ($matiereError !== null || $matiereId === null) {
+            return response()->json(['message' => $matiereError ?? 'Selection de matiere invalide.'], 422);
         }
 
         $id = DB::table('devoirs')->insertGetId([
@@ -212,8 +296,8 @@ class ProfessorController extends Controller
             'description' => $validated['description'],
             'date_limite' => $validated['deadline'],
             'id_professeur' => $user->id,
-            'id_classe' => $validated['classId'],
-            'id_matiere' => $validated['matiereId'],
+            'id_classe' => $classId,
+            'id_matiere' => $matiereId,
             'created_at' => now(),
             'updated_at' => now(),
         ], 'id_devoir');
@@ -223,15 +307,138 @@ class ProfessorController extends Controller
             'devoir' => ['id_devoir' => $id],
         ], 201);
     }
-    
-    public function publishRessource(Request $request): JsonResponse
+
+    public function updateDevoir(Request $request, $id): JsonResponse
     {
         $user = $request->user();
         $validated = $request->validate([
             'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'deadline' => 'required|date',
+            'classId' => 'nullable|integer|exists:classes,id_classe',
+            'matiereId' => 'nullable|integer|exists:matieres,id_matiere',
+        ]);
+
+        $devoir = DB::table('devoirs')->where('id_devoir', $id)->first();
+        if (!$devoir || $devoir->id_professeur != $user->id) {
+            return response()->json(['message' => 'Devoir introuvable.'], 404);
+        }
+
+        $updateData = [
+            'titre' => $validated['title'],
+            'description' => $validated['description'],
+            'date_limite' => $validated['deadline'],
+            'updated_at' => now(),
+        ];
+
+        if (isset($validated['classId'])) {
+            $updateData['id_classe'] = $validated['classId'];
+        }
+        if (isset($validated['matiereId'])) {
+            $updateData['id_matiere'] = $validated['matiereId'];
+        }
+
+        DB::table('devoirs')->where('id_devoir', $id)->update($updateData);
+
+        return response()->json(['message' => 'Devoir mis a jour avec succes.']);
+    }
+
+    public function deleteDevoir(Request $request, $id): JsonResponse
+    {
+        $user = $request->user();
+        $devoir = DB::table('devoirs')->where('id_devoir', $id)->first();
+        if (!$devoir || $devoir->id_professeur != $user->id) {
+            return response()->json(['message' => 'Devoir introuvable.'], 404);
+        }
+
+        DB::table('devoir_soumissions')->where('id_devoir', $id)->delete();
+        DB::table('devoirs')->where('id_devoir', $id)->delete();
+
+        return response()->json(['message' => 'Devoir supprime avec succes.']);
+    }
+
+    public function getDevoirSoumissions(Request $request, $id): JsonResponse
+    {
+        $user = $request->user();
+        $devoir = DB::table('devoirs')->where('id_devoir', $id)->first();
+        if (!$devoir || $devoir->id_professeur != $user->id) {
+            return response()->json(['message' => 'Devoir introuvable.'], 404);
+        }
+
+        $soumissions = DB::table('devoir_soumissions')
+            ->join('users', 'devoir_soumissions.id_etudiant', '=', 'users.id')
+            ->where('devoir_soumissions.id_devoir', $id)
+            ->select('devoir_soumissions.*', 'users.name as etudiant_nom', 'users.email')
+            ->get()
+            ->map(function($s) use ($devoir) {
+                // Check if $s->date_soumission is after $devoir->date_limite
+                $status_retard = false;
+                if ($s->date_soumission && $devoir->date_limite) {
+                    $status_retard = strtotime($s->date_soumission) > strtotime($devoir->date_limite . ' 23:59:59');
+                }
+                return [
+                    'id_soumission' => $s->id_soumission,
+                    'etudiant_nom' => $s->etudiant_nom,
+                    'date_soumission' => date('Y-m-d H:i', strtotime($s->date_soumission)),
+                    'statut' => $s->statut ?: 'soumis', // 'soumis', 'bien_recu'
+                    'en_retard' => $status_retard,
+                    'fichier_path' => $s->fichier_path
+                ];
+            });
+
+        return response()->json(['soumissions' => $soumissions, 'devoir' => $devoir]);
+    }
+
+    public function markSoumissionReceived(Request $request, $id): JsonResponse
+    {
+        $user = $request->user();
+        $soumission = DB::table('devoir_soumissions')
+            ->join('devoirs', 'devoir_soumissions.id_devoir', '=', 'devoirs.id_devoir')
+            ->where('devoir_soumissions.id_soumission', $id)
+            ->select('devoir_soumissions.*', 'devoirs.id_professeur')
+            ->first();
+
+        if (!$soumission || $soumission->id_professeur != $user->id) {
+            return response()->json(['message' => 'Soumission introuvable.'], 404);
+        }
+
+        DB::table('devoir_soumissions')->where('id_soumission', $id)->update([
+            'statut' => 'bien_recu',
+            'updated_at' => now()
+        ]);
+
+        return response()->json(['message' => 'Soumission marquee comme bien recue.']);
+    }
+
+    public function publishRessource(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255', 'regex:/.*\S.*/'],
+            'description' => ['required', 'string', 'regex:/.*\S.*/'],
             'type' => 'required|string|max:100',
+            'classId' => 'required|integer|exists:classes,id_classe',
+            'matiereId' => 'nullable|integer|exists:matieres,id_matiere',
             'file' => 'nullable|file|max:25600', // 25MB max
         ]);
+
+        $validated['title'] = trim((string) $validated['title']);
+        $validated['description'] = trim((string) $validated['description']);
+
+        $classId = (int) $validated['classId'];
+        if (! $this->isAssignedToClass((int) $user->id, $classId)) {
+            return response()->json(['message' => 'Vous n etes pas assigne a cette classe.'], 403);
+        }
+
+        [$matiereId, $matiereError] = $this->resolveTeachingMatiereId(
+            (int) $user->id,
+            $classId,
+            isset($validated['matiereId']) ? (int) $validated['matiereId'] : null
+        );
+
+        if ($matiereError !== null || $matiereId === null) {
+            return response()->json(['message' => $matiereError ?? 'Selection de matiere invalide.'], 422);
+        }
 
         $filename = $validated['title'];
         if ($request->hasFile('file')) {
@@ -241,13 +448,31 @@ class ProfessorController extends Controller
             $filename = Str::slug($validated['title']) . '.txt';
         }
 
-        $id = DB::table('ressources')->insertGetId([
+        $resourcePayload = [
             'fichier' => $filename,
             'type_ressource' => $validated['type'],
             'id_professeur' => $user->id,
             'created_at' => now(),
             'updated_at' => now(),
-        ], 'id_ressource');
+        ];
+
+        if (Schema::hasColumn('ressources', 'titre')) {
+            $resourcePayload['titre'] = $validated['title'];
+        }
+
+        if (Schema::hasColumn('ressources', 'description')) {
+            $resourcePayload['description'] = $validated['description'];
+        }
+
+        if (Schema::hasColumn('ressources', 'id_classe')) {
+            $resourcePayload['id_classe'] = $classId;
+        }
+
+        if (Schema::hasColumn('ressources', 'id_matiere')) {
+            $resourcePayload['id_matiere'] = $matiereId;
+        }
+
+        $id = DB::table('ressources')->insertGetId($resourcePayload, 'id_ressource');
 
         return response()->json([
             'message' => 'Ressource publiee avec succes.',
@@ -256,6 +481,70 @@ class ProfessorController extends Controller
                 'fichier' => $filename,
             ],
         ], 201);
+    }
+
+    public function updateRessource(Request $request, $id): JsonResponse
+    {
+        $user = $request->user();
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255', 'regex:/.*\S.*/'],
+            'description' => ['required', 'string', 'regex:/.*\S.*/'],
+            'type' => 'required|string|max:100',
+            'file' => 'nullable|file|max:25600', // 25MB max
+            'classId' => 'nullable|integer|exists:classes,id_classe',
+            'matiereId' => 'nullable|integer|exists:matieres,id_matiere',
+        ]);
+
+        $validated['title'] = trim((string) $validated['title']);
+        $validated['description'] = trim((string) $validated['description']);
+
+        $ressource = DB::table('ressources')->where('id_ressource', $id)->first();
+        if (!$ressource || $ressource->id_professeur != $user->id) {
+            return response()->json(['message' => 'Ressource introuvable.'], 404);
+        }
+
+        $filename = $ressource->fichier;
+        if ($request->hasFile('file')) {
+            $path = $request->file('file')->store('ressources_professeurs', 'public');
+            $filename = $path;
+        }
+
+        $updateData = [
+            'fichier' => $filename,
+            'type_ressource' => $validated['type'],
+            'updated_at' => now(),
+        ];
+
+        if (Schema::hasColumn('ressources', 'titre')) {
+            $updateData['titre'] = $validated['title'];
+        }
+
+        if (Schema::hasColumn('ressources', 'description')) {
+            $updateData['description'] = $validated['description'];
+        }
+
+        if (isset($validated['classId']) && Schema::hasColumn('ressources', 'id_classe')) {
+            $updateData['id_classe'] = $validated['classId'];
+        }
+        if (isset($validated['matiereId']) && Schema::hasColumn('ressources', 'id_matiere')) {
+            $updateData['id_matiere'] = $validated['matiereId'];
+        }
+
+        DB::table('ressources')->where('id_ressource', $id)->update($updateData);
+
+        return response()->json(['message' => 'Ressource mise a jour avec succes.']);
+    }
+
+    public function deleteRessource(Request $request, $id): JsonResponse
+    {
+        $user = $request->user();
+        $ressource = DB::table('ressources')->where('id_ressource', $id)->first();
+        if (!$ressource || $ressource->id_professeur != $user->id) {
+            return response()->json(['message' => 'Ressource introuvable.'], 404);
+        }
+
+        DB::table('ressources')->where('id_ressource', $id)->delete();
+        return response()->json(['message' => 'Ressource supprimee avec succes.']);
     }
 
     /**
@@ -269,9 +558,7 @@ class ProfessorController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $assignedClassIds = DB::table('classe_professeur_assignments')
-            ->where('id_professeur', $user->id)
-            ->pluck('id_classe');
+        $assignedClassIds = $this->getAssignedClassIds((int) $user->id);
 
         if ($assignedClassIds->isEmpty()) {
             return response()->json([
@@ -290,11 +577,16 @@ class ProfessorController extends Controller
 
         $classes = DB::table('classes')
             ->leftJoin('etudiants', 'classes.id_classe', '=', 'etudiants.id_classe')
+            ->leftJoin('absences', function ($join) use ($user) {
+                $join->on('absences.id_etudiant', '=', 'etudiants.id_etudiant')
+                    ->where('absences.id_professeur', '=', $user->id);
+            })
             ->select(
                 'classes.id_classe',
                 'classes.nom',
                 'classes.niveau',
-                DB::raw('COUNT(DISTINCT etudiants.id_etudiant) as students_count')
+                DB::raw('COUNT(DISTINCT etudiants.id_etudiant) as students_count'),
+                DB::raw('COUNT(absences.id_absence) as absences_count')
             )
             ->whereIn('classes.id_classe', $classIdsToUse)
             ->groupBy('classes.id_classe', 'classes.nom', 'classes.niveau')
@@ -308,14 +600,23 @@ class ProfessorController extends Controller
                     'niveau' => $classe->niveau,
                     'label' => trim($classe->nom . ' - ' . $classe->niveau),
                     'students_count' => (int) $classe->students_count,
+                    'absences_count' => (int) $classe->absences_count,
                 ];
             })
             ->values();
+
+        $absenceByStudentSubQuery = DB::table('absences')
+            ->select('id_etudiant', DB::raw('COUNT(*) as absences_count'))
+            ->where('id_professeur', $user->id)
+            ->groupBy('id_etudiant');
 
         $students = DB::table('etudiants')
             ->join('users', 'etudiants.id_etudiant', '=', 'users.id')
             ->join('classes', 'etudiants.id_classe', '=', 'classes.id_classe')
             ->leftJoin('parents', 'etudiants.id_parent', '=', 'parents.id_parent')
+            ->leftJoinSub($absenceByStudentSubQuery, 'student_absences', function ($join) {
+                $join->on('student_absences.id_etudiant', '=', 'etudiants.id_etudiant');
+            })
             ->select(
                 'users.id',
                 'users.name',
@@ -326,12 +627,14 @@ class ProfessorController extends Controller
                 'classes.nom as classe_nom',
                 'classes.niveau as classe_niveau',
                 'etudiants.matricule',
-                'parents.telephone as parent_phone'
+                'parents.telephone as parent_phone',
+                DB::raw('COALESCE(student_absences.absences_count, 0) as absences_count')
             )
             ->whereIn('etudiants.id_classe', $classIdsToUse)
             ->orderBy('classes.niveau')
             ->orderBy('classes.nom')
-            ->orderBy('users.name')
+            ->orderBy('users.nom')
+            ->orderBy('users.prenom')
             ->get()
             ->map(function ($student) {
                 $firstName = $student->prenom ?: $student->name;
@@ -349,6 +652,7 @@ class ProfessorController extends Controller
                     'rank' => null,
                     'average' => null,
                     'matricule' => $student->matricule,
+                    'absenceCount' => (int) $student->absences_count,
                 ];
             })
             ->values();
@@ -483,17 +787,48 @@ class ProfessorController extends Controller
      */
     public function getAnnouncements(Request $request): JsonResponse
     {
-        $annonces = DB::table('annonces')
+        $hasTargetColumn = Schema::hasColumn('annonces', 'cible');
+        $hasPhotoColumn = Schema::hasColumn('annonces', 'photo_path');
+
+        $query = DB::table('annonces')
             ->orderByDesc('date_publication')
-            ->get([
-                'id_annonce as id',
-                'titre as title',
-                'contenu as content',
-                'date_publication as date',
-                'type',
-                'auteur'
-            ])
-            ->map(function ($row) {
+            ->orderByDesc('created_at');
+
+        if ($hasTargetColumn) {
+            $query->where(function ($targetQuery) {
+                $targetQuery
+                    ->whereNull('cible')
+                    ->orWhere('cible', '')
+                    ->orWhereRaw('LOWER(cible) = ?', ['tous'])
+                    ->orWhereRaw('LOWER(cible) = ?', ['professeurs'])
+                    ->orWhereRaw('LOWER(cible) = ?', ['professeur']);
+            });
+        }
+
+        $columns = [
+            'id_annonce as id',
+            'titre as title',
+            'contenu as content',
+            'date_publication as date',
+            'type',
+            'auteur',
+        ];
+
+        if ($hasTargetColumn) {
+            $columns[] = 'cible';
+        }
+
+        if ($hasPhotoColumn) {
+            $columns[] = 'photo_path';
+        }
+
+        $annonces = $query
+            ->get($columns)
+            ->map(function ($row) use ($hasTargetColumn, $hasPhotoColumn) {
+                $photoUrl = $hasPhotoColumn && !empty($row->photo_path)
+                    ? Storage::disk('public')->url($row->photo_path)
+                    : null;
+
                 return [
                     'id' => (int) $row->id,
                     'title' => $row->title,
@@ -501,6 +836,10 @@ class ProfessorController extends Controller
                     'author' => $row->auteur,
                     'type' => $row->type,
                     'date' => $row->date,
+                    'target' => $hasTargetColumn ? ($row->cible ?: 'Tous') : 'Tous',
+                    'photoUrl' => $photoUrl,
+                    'attachmentUrl' => $photoUrl,
+                    'hasAttachment' => (bool) $photoUrl,
                     'read' => false,
                 ];
             })
@@ -511,27 +850,9 @@ class ProfessorController extends Controller
 
     public function publishAnnouncement(Request $request): JsonResponse
     {
-        $user = $request->user();
-
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string|max:5000',
-        ]);
-
-        $id = DB::table('annonces')->insertGetId([
-            'titre' => $validated['title'],
-            'contenu' => $validated['content'],
-            'date_publication' => now(),
-            'type' => 'Professeur',
-            'auteur' => trim(($user->prenom ?? '') . ' ' . ($user->nom ?? 'Professeur')),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ], 'id_annonce');
-
         return response()->json([
-            'message' => 'Annonce publiee avec succes.',
-            'announcement' => ['id_annonce' => $id],
-        ], 201);
+            'message' => 'Les professeurs peuvent uniquement consulter et telecharger les annonces.',
+        ], 403);
     }
 
     public function getSchedule(Request $request): JsonResponse
@@ -569,6 +890,7 @@ class ProfessorController extends Controller
             return response()->json([
                 'classes' => [],
                 'matieres' => [],
+                'showMatiereField' => false,
                 'selectedClassId' => 0,
                 'selectedMatiereId' => 0,
                 'students' => [],
@@ -639,6 +961,7 @@ class ProfessorController extends Controller
         return response()->json([
             'classes' => $classes,
             'matieres' => $matieres,
+            'showMatiereField' => $matieres->count() > 1,
             'selectedClassId' => $classId,
             'selectedMatiereId' => $matiereId,
             'students' => $students,
@@ -650,7 +973,7 @@ class ProfessorController extends Controller
         $user = $request->user();
         $validated = $request->validate([
             'classId' => 'required|integer|exists:classes,id_classe',
-            'matiereId' => 'required|integer|exists:matieres,id_matiere',
+            'matiereId' => 'nullable|integer|exists:matieres,id_matiere',
             'notes' => 'required|array|min:1',
             'notes.*.studentId' => 'required|integer|exists:users,id',
             'notes.*.noteId' => 'nullable|integer|exists:notes,id_note',
@@ -658,14 +981,19 @@ class ProfessorController extends Controller
             'notes.*.appreciation' => 'nullable|string|max:1000',
         ]);
 
-        $canTeach = DB::table('enseigner')
-            ->where('id_professeur', $user->id)
-            ->where('id_classe', $validated['classId'])
-            ->where('id_matiere', $validated['matiereId'])
-            ->exists();
+        $classId = (int) $validated['classId'];
+        if (! $this->isAssignedToClass((int) $user->id, $classId)) {
+            return response()->json(['message' => 'Vous n etes pas assigne a cette classe.'], 403);
+        }
 
-        if (! $canTeach) {
-            return response()->json(['message' => 'Vous n etes pas assigne a cette classe/matiere.'], 403);
+        [$matiereId, $matiereError] = $this->resolveTeachingMatiereId(
+            (int) $user->id,
+            $classId,
+            isset($validated['matiereId']) ? (int) $validated['matiereId'] : null
+        );
+
+        if ($matiereError !== null || $matiereId === null) {
+            return response()->json(['message' => $matiereError ?? 'Selection de matiere invalide.'], 422);
         }
 
         foreach ($validated['notes'] as $line) {
@@ -683,7 +1011,7 @@ class ProfessorController extends Controller
 
             $isInClass = DB::table('etudiants')
                 ->where('id_etudiant', $line['studentId'])
-                ->where('id_classe', $validated['classId'])
+                ->where('id_classe', $classId)
                 ->exists();
 
             if (! $isInClass) {
@@ -695,7 +1023,7 @@ class ProfessorController extends Controller
                     ->where('id_note', $noteId)
                     ->where('id_professeur', $user->id)
                     ->where('id_etudiant', $line['studentId'])
-                    ->where('id_matiere', $validated['matiereId'])
+                    ->where('id_matiere', $matiereId)
                     ->update([
                         'valeur' => $line['note'],
                         'appreciation' => $line['appreciation'] ?? null,
@@ -711,7 +1039,7 @@ class ProfessorController extends Controller
                 'valeur' => $line['note'],
                 'appreciation' => $line['appreciation'] ?? null,
                 'id_etudiant' => $line['studentId'],
-                'id_matiere' => $validated['matiereId'],
+                'id_matiere' => $matiereId,
                 'id_professeur' => $user->id,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -731,6 +1059,7 @@ class ProfessorController extends Controller
             return response()->json([
                 'classes' => [],
                 'matieres' => [],
+                'showMatiereField' => false,
                 'seances' => [],
                 'selectedClassId' => 0,
                 'selectedMatiereId' => 0,
@@ -799,21 +1128,25 @@ class ProfessorController extends Controller
                 ->values();
         }
 
-        $requestedSeanceStart = (string) $request->query('seance_start', '');
-        $selectedSeanceStart = $seances->contains(function ($seance) use ($requestedSeanceStart) {
-            return ($seance['value'] ?? null) === $requestedSeanceStart;
-        })
-            ? $requestedSeanceStart
-            : ($seances->first()['value'] ?? null);
+        $seance1Start = $seances->get(0)['value'] ?? null;
+        $seance2Start = $seances->get(1)['value'] ?? null;
 
-        $absenceIds = DB::table('absences')
+        $absencesByStudent = DB::table('absences')
             ->where('id_professeur', $user->id)
             ->whereDate('date_abs', $date)
-            ->when($selectedSeanceStart, function ($query) use ($selectedSeanceStart) {
-                $query->where('heure_seance', $selectedSeanceStart);
+            ->when($seance1Start || $seance2Start, function ($query) use ($seance1Start, $seance2Start) {
+                $seancesToFilter = collect([$seance1Start, $seance2Start])->filter()->values()->all();
+                if (! empty($seancesToFilter)) {
+                    $query->whereIn('heure_seance', $seancesToFilter);
+                }
             })
-            ->pluck('id_etudiant')
-            ->flip();
+            ->get(['id_etudiant', 'heure_seance'])
+            ->groupBy('id_etudiant')
+            ->map(function ($rows) {
+                return $rows->pluck('heure_seance')->map(function ($value) {
+                    return strlen((string) $value) === 5 ? $value . ':00' : (string) $value;
+                });
+            });
 
         $students = DB::table('etudiants')
             ->join('users', 'etudiants.id_etudiant', '=', 'users.id')
@@ -826,13 +1159,21 @@ class ProfessorController extends Controller
                 'users.prenom',
                 'etudiants.matricule',
             ])
-            ->map(function ($row) use ($absenceIds) {
+            ->map(function ($row) use ($absencesByStudent, $seance1Start, $seance2Start) {
+                $studentSeances = $absencesByStudent->get($row->id, collect());
+                $normalizedSeance1 = $seance1Start ? (strlen((string) $seance1Start) === 5 ? $seance1Start . ':00' : (string) $seance1Start) : null;
+                $normalizedSeance2 = $seance2Start ? (strlen((string) $seance2Start) === 5 ? $seance2Start . ':00' : (string) $seance2Start) : null;
+                $isSeance1Absent = $normalizedSeance1 ? $studentSeances->contains($normalizedSeance1) : false;
+                $isSeance2Absent = $normalizedSeance2 ? $studentSeances->contains($normalizedSeance2) : false;
+
                 return [
                     'id' => (int) $row->id,
                     'firstName' => $row->prenom,
                     'lastName' => $row->nom,
                     'matricule' => $row->matricule,
-                    'status' => $absenceIds->has($row->id) ? 'absent' : 'present',
+                    'status' => ($isSeance1Absent || $isSeance2Absent) ? 'absent' : 'present',
+                    'seance1Absent' => $isSeance1Absent,
+                    'seance2Absent' => $isSeance2Absent,
                     'avatar' => null,
                 ];
             })
@@ -841,10 +1182,11 @@ class ProfessorController extends Controller
         return response()->json([
             'classes' => $classes,
             'matieres' => $matieres,
+            'showMatiereField' => $matieres->count() > 1,
             'seances' => $seances,
             'selectedClassId' => $classId,
             'selectedMatiereId' => $matiereId,
-            'selectedSeanceStart' => $selectedSeanceStart,
+            'selectedSeanceStart' => $seance1Start,
             'selectedDate' => $date,
             'students' => $students,
         ]);
@@ -855,35 +1197,123 @@ class ProfessorController extends Controller
         $user = $request->user();
         $validated = $request->validate([
             'classId' => 'required|integer|exists:classes,id_classe',
-            'matiereId' => 'required|integer|exists:matieres,id_matiere',
+            'matiereId' => 'nullable|integer|exists:matieres,id_matiere',
             'date' => 'required|date',
-            'seanceStart' => ['required', 'regex:/^\d{2}:\d{2}(:\d{2})?$/'],
+            'seanceStart' => ['nullable', 'regex:/^\d{2}:\d{2}(:\d{2})?$/'],
             'statuses' => 'required|array|min:1',
             'statuses.*.studentId' => 'required|integer|exists:users,id',
             'statuses.*.status' => 'required|in:present,absent',
+            'statuses.*.seance1' => 'nullable|boolean',
+            'statuses.*.seance2' => 'nullable|boolean',
             'statuses.*.motif' => 'nullable|string|max:255',
         ]);
 
-        $canTeach = DB::table('enseigner')
-            ->where('id_professeur', $user->id)
-            ->where('id_classe', $validated['classId'])
-            ->where('id_matiere', $validated['matiereId'])
-            ->exists();
-
-        if (! $canTeach) {
-            return response()->json(['message' => 'Vous n etes pas assigne a cette classe/matiere.'], 403);
+        $classId = (int) $validated['classId'];
+        if (! $this->isAssignedToClass((int) $user->id, $classId)) {
+            return response()->json(['message' => 'Vous n etes pas assigne a cette classe.'], 403);
         }
 
-        $seanceStart = strlen($validated['seanceStart']) === 5
-            ? $validated['seanceStart'] . ':00'
-            : $validated['seanceStart'];
+        [$matiereId, $matiereError] = $this->resolveTeachingMatiereId(
+            (int) $user->id,
+            $classId,
+            isset($validated['matiereId']) ? (int) $validated['matiereId'] : null
+        );
+
+        if ($matiereError !== null || $matiereId === null) {
+            return response()->json(['message' => $matiereError ?? 'Selection de matiere invalide.'], 422);
+        }
+
+        $dayName = $this->toFrenchWeekday((string) $validated['date']);
+        $seances = DB::table('emploi_du_temps')
+            ->where('id_professeur', $user->id)
+            ->where('id_classe', $classId)
+            ->where('jour', $dayName)
+            ->when($matiereId > 0, function ($query) use ($matiereId) {
+                $query->where('id_matiere', $matiereId);
+            })
+            ->orderBy('heure_debut')
+            ->get(['heure_debut'])
+            ->pluck('heure_debut')
+            ->map(function ($value) {
+                return strlen((string) $value) === 5 ? $value . ':00' : (string) $value;
+            })
+            ->unique()
+            ->values();
+
+        if ($seances->isEmpty()) {
+            $seances = DB::table('emploi_du_temps')
+                ->where('id_professeur', $user->id)
+                ->where('id_classe', $classId)
+                ->when($matiereId > 0, function ($query) use ($matiereId) {
+                    $query->where('id_matiere', $matiereId);
+                })
+                ->orderBy('jour')
+                ->orderBy('heure_debut')
+                ->get(['heure_debut'])
+                ->pluck('heure_debut')
+                ->map(function ($value) {
+                    return strlen((string) $value) === 5 ? $value . ':00' : (string) $value;
+                })
+                ->unique()
+                ->values();
+        }
+
+        $seance1Start = $seances->get(0);
+        $seance2Start = $seances->get(1);
+        $legacySeanceStart = isset($validated['seanceStart']) && $validated['seanceStart'] !== null
+            ? (strlen($validated['seanceStart']) === 5 ? $validated['seanceStart'] . ':00' : $validated['seanceStart'])
+            : null;
 
         foreach ($validated['statuses'] as $line) {
+            $hasPerSeanceFlags = array_key_exists('seance1', $line) || array_key_exists('seance2', $line);
+
+            if ($hasPerSeanceFlags) {
+                $seanceFlags = [
+                    ['start' => $seance1Start, 'absent' => (bool) ($line['seance1'] ?? false)],
+                    ['start' => $seance2Start, 'absent' => (bool) ($line['seance2'] ?? false)],
+                ];
+
+                foreach ($seanceFlags as $entry) {
+                    if (! $entry['start']) {
+                        continue;
+                    }
+
+                    if ($entry['absent']) {
+                        DB::table('absences')->updateOrInsert(
+                            [
+                                'date_abs' => $validated['date'],
+                                'heure_seance' => $entry['start'],
+                                'id_etudiant' => $line['studentId'],
+                                'id_professeur' => $user->id,
+                            ],
+                            [
+                                'motif' => $line['motif'] ?? 'Absence non justifiee',
+                                'updated_at' => now(),
+                                'created_at' => now(),
+                            ]
+                        );
+                    } else {
+                        DB::table('absences')
+                            ->where('id_etudiant', $line['studentId'])
+                            ->where('id_professeur', $user->id)
+                            ->whereDate('date_abs', $validated['date'])
+                            ->where('heure_seance', $entry['start'])
+                            ->delete();
+                    }
+                }
+
+                continue;
+            }
+
+            if (! $legacySeanceStart) {
+                continue;
+            }
+
             if ($line['status'] === 'absent') {
                 DB::table('absences')->updateOrInsert(
                     [
                         'date_abs' => $validated['date'],
-                        'heure_seance' => $seanceStart,
+                        'heure_seance' => $legacySeanceStart,
                         'id_etudiant' => $line['studentId'],
                         'id_professeur' => $user->id,
                     ],
@@ -898,7 +1328,7 @@ class ProfessorController extends Controller
                     ->where('id_etudiant', $line['studentId'])
                     ->where('id_professeur', $user->id)
                     ->whereDate('date_abs', $validated['date'])
-                    ->where('heure_seance', $seanceStart)
+                    ->where('heure_seance', $legacySeanceStart)
                     ->delete();
             }
         }
@@ -987,6 +1417,7 @@ class ProfessorController extends Controller
                 'subject',
                 'category',
                 'message',
+                'cible',
                 'status',
                 'created_at',
             ])
@@ -996,6 +1427,7 @@ class ProfessorController extends Controller
                     'subject' => $row->subject,
                     'category' => $row->category,
                     'message' => $row->message,
+                    'cible' => $row->cible ?? 'directeur',
                     'status' => $row->status,
                     'date' => optional($row->created_at)->toDateTimeString(),
                 ];
@@ -1013,6 +1445,7 @@ class ProfessorController extends Controller
             'subject' => 'required|string|max:255',
             'category' => 'required|string',
             'message' => 'required|string',
+            'cible' => 'required|string|in:directeur,secretaire,les_deux',
         ]);
 
         $id = DB::table('complaints')->insertGetId([
@@ -1020,6 +1453,7 @@ class ProfessorController extends Controller
             'subject' => $validated['subject'],
             'category' => $validated['category'],
             'message' => $validated['message'],
+            'cible' => $validated['cible'],
             'status' => 'en_attente',
             'created_at' => now(),
             'updated_at' => now(),
@@ -1029,6 +1463,52 @@ class ProfessorController extends Controller
             'message' => 'Reclamation enregistree avec succes.',
             'complaint' => ['id' => $id],
         ], 201);
+    }
+
+    private function isAssignedToClass(int $professorId, int $classId): bool
+    {
+        $fromAssignments = DB::table('classe_professeur_assignments')
+            ->where('id_professeur', $professorId)
+            ->where('id_classe', $classId)
+            ->exists();
+
+        if ($fromAssignments) {
+            return true;
+        }
+
+        return DB::table('enseigner')
+            ->where('id_professeur', $professorId)
+            ->where('id_classe', $classId)
+            ->exists();
+    }
+
+    private function resolveTeachingMatiereId(int $professorId, int $classId, ?int $requestedMatiereId): array
+    {
+        $assignedMatiereIds = DB::table('enseigner')
+            ->where('id_professeur', $professorId)
+            ->where('id_classe', $classId)
+            ->pluck('id_matiere')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        if ($assignedMatiereIds->isEmpty()) {
+            return [null, 'Aucune matiere assignee a cette classe pour ce professeur.'];
+        }
+
+        if ($requestedMatiereId !== null && $requestedMatiereId > 0) {
+            if ($assignedMatiereIds->contains($requestedMatiereId)) {
+                return [$requestedMatiereId, null];
+            }
+
+            return [null, 'La matiere selectionnee ne correspond pas a cette classe.'];
+        }
+
+        if ($assignedMatiereIds->count() === 1) {
+            return [(int) $assignedMatiereIds->first(), null];
+        }
+
+        return [null, 'Veuillez selectionner une matiere pour cette classe.'];
     }
 
     private function getAssignedClassIds(int $professorId)

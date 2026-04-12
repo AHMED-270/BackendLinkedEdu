@@ -94,12 +94,13 @@ class PaiementController extends Controller
         $classes = Classe::query()
             ->orderBy('niveau')
             ->orderBy('nom')
-            ->get(['id_classe', 'nom', 'niveau'])
+            ->get(['id_classe', 'nom', 'niveau', 'pricing'])
             ->map(function ($classe) {
                 return [
                     'id_classe' => $classe->id_classe,
                     'nom' => $classe->nom,
                     'niveau' => $classe->niveau,
+                    'pricing' => $classe->pricing,
                     'label' => trim($classe->nom . ' - ' . $classe->niveau),
                 ];
             });
@@ -119,15 +120,19 @@ class PaiementController extends Controller
             'mois' => ['nullable', 'integer', Rule::in(self::SCHOOL_MONTHS)],
             'annee' => ['required', 'integer', 'min:2000', 'max:2100'],
             'montant' => ['required', 'numeric', 'min:0.01'],
+            'reste' => ['nullable', 'numeric', 'min:0'],
             'type' => ['required', 'in:mensuel,annuel'],
             'date_paiement' => ['nullable', 'date'],
         ]);
 
         $type = $validated['type'];
         $amount = (float) ($validated['montant'] ?? 0);
+        $remaining = (float) ($validated['reste'] ?? 0);
 
         if ($type === 'annuel') {
-            $payments = DB::transaction(function () use ($validated, $amount) {
+            $monthlyAmount = $amount / count(self::SCHOOL_MONTHS);
+            $monthlyReste = $remaining / count(self::SCHOOL_MONTHS);
+            $payments = DB::transaction(function () use ($validated, $monthlyAmount, $monthlyReste) {
                 $result = [];
                 foreach (self::SCHOOL_MONTHS as $month) {
                     $payment = Paiement::updateOrCreate(
@@ -137,7 +142,8 @@ class PaiementController extends Controller
                             'annee' => $validated['annee'],
                         ],
                         [
-                            'montant' => $amount,
+                            'montant' => $monthlyAmount,
+                            'reste' => $monthlyReste,
                             'type' => 'annuel',
                             'statut' => 'paye',
                             'date_paiement' => $validated['date_paiement'] ?? now()->toDateString(),
@@ -172,6 +178,7 @@ class PaiementController extends Controller
             ],
             [
                 'montant' => $amount,
+                'reste' => $remaining,
                 'type' => 'mensuel',
                 'statut' => $status,
                 'date_paiement' => $status === 'paye'
@@ -194,6 +201,7 @@ class PaiementController extends Controller
             'mois' => ['nullable', 'integer', Rule::in(self::SCHOOL_MONTHS)],
             'annee' => ['nullable', 'integer', 'min:2000', 'max:2100'],
             'montant' => ['required', 'numeric', 'min:0.01'],
+            'reste' => ['nullable', 'numeric', 'min:0'],
             'type' => ['nullable', 'in:mensuel,annuel'],
             'date_paiement' => ['nullable', 'date'],
         ]);
@@ -203,8 +211,11 @@ class PaiementController extends Controller
 
         if ($type === 'annuel') {
             $amount = (float) ($validated['montant'] ?? $payment->montant);
+            $remaining = (float) ($validated['reste'] ?? 0);
+            $monthlyAmount = $amount / count(self::SCHOOL_MONTHS);
+            $monthlyReste = $remaining / count(self::SCHOOL_MONTHS);
 
-            $payments = DB::transaction(function () use ($payment, $year, $amount, $validated) {
+            $payments = DB::transaction(function () use ($payment, $year, $monthlyAmount, $monthlyReste, $validated) {
                 $result = [];
 
                 foreach (self::SCHOOL_MONTHS as $month) {
@@ -215,7 +226,8 @@ class PaiementController extends Controller
                             'annee' => $year,
                         ],
                         [
-                            'montant' => $amount,
+                            'montant' => $monthlyAmount,
+                            'reste' => $monthlyReste,
                             'type' => 'annuel',
                             'statut' => 'paye',
                             'date_paiement' => $validated['date_paiement'] ?? now()->toDateString(),
@@ -244,6 +256,10 @@ class PaiementController extends Controller
 
         if (array_key_exists('montant', $validated) && $validated['montant'] !== null) {
             $payment->montant = (float) $validated['montant'];
+        }
+
+        if (array_key_exists('reste', $validated) && $validated['reste'] !== null) {
+            $payment->reste = (float) $validated['reste'];
         }
 
         if (array_key_exists('type', $validated) && $validated['type'] !== null) {
@@ -334,6 +350,7 @@ class PaiementController extends Controller
             'mois' => (int) $payment->mois,
             'annee' => (int) $payment->annee,
             'montant' => (float) $payment->montant,
+            'reste' => (float) ($payment->reste ?? 0),
             'type' => $payment->type,
             'statut' => $payment->statut,
             'date_paiement' => $payment->date_paiement?->toDateString(),

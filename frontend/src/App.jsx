@@ -1,14 +1,13 @@
-﻿import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { motion } from 'framer-motion';
-import './App.css';
-import { getHomeRouteByRole } from './constants/roles';
+import { AnimatePresence, motion } from 'framer-motion';
 
 // Layout & Admin
 import Layout from './components/Layout';
 import AdminDashboard from './components/AdminDashboard';
 import DirecteurDashboard from './components/DirecteurDashboard';
-import SecretaireLayout from './components/SecretaireLayout';
+import AuthHero from './components/AuthHero';
+import LoginCard from './components/LoginCard';
 
 // Pages
 import Dashboard from './pages/Dashboard';
@@ -22,9 +21,24 @@ import Notes from './pages/Notes';
 import Avancement from './pages/Avancement';
 import Reclamation from './pages/Reclamation';
 import Parametres from './pages/Parametres';
-import Login from './pages/Login';
+<<<<<<<<< Temporary merge branch 1
+// import Login from './pages/Login';
 import StudentPortal from './pages/StudentPortal';
 import ParentPortal from './pages/ParentPortal';
+import { ROLE, getHomeRouteByRole } from './constants/roles';
+
+import './App.css';
+
+// Global Loading Component
+const FullScreenLoader = () => (
+  <div className="loading-screen">
+    <div className="loader-core"></div>
+    <p>Chargement de LinkedU...</p>
+  </div>
+);
+=========
+import Login from './pages/Login';
+import SecretaireLayout from './components/SecretaireLayout';
 import SecretaireDashboard from './pages/SecretaireDashboard';
 import SecretaireEtudiants from './pages/SecretaireEtudiants';
 import SecretaireClasses from './pages/SecretaireClasses';
@@ -33,17 +47,14 @@ import SecretaireAnnonces from './pages/SecretaireAnnonces';
 import SecretaireReclamations from './pages/SecretaireReclamations';
 import Paiements from './pages/Paiements';
 
-const resolveHomeRoute = (role) => {
-  const route = getHomeRouteByRole(role);
-  return route && route !== '/login' ? route : null;
+const getHomeRouteByRole = (role) => {
+  const normalizedRole = String(role || '').toLowerCase();
+  if (normalizedRole === 'admin' || normalizedRole === 'directeur') return '/admin';
+  if (normalizedRole === 'professeur') return '/dashboard';
+  if (normalizedRole === 'secretaire') return '/secretaire/dashboard';
+  return '/login';
 };
-
-const FullScreenLoader = () => (
-  <div className="loading-screen" role="status" aria-live="polite">
-    <div className="loader-core" aria-hidden="true"></div>
-    <p>Chargement...</p>
-  </div>
-);
+>>>>>>>>> Temporary merge branch 2
 
 // Root Route - Redirects based on auth status
 const RootRoute = () => {
@@ -51,10 +62,7 @@ const RootRoute = () => {
   
   if (loading) return <FullScreenLoader />;
   if (user) {
-    const homeRoute = resolveHomeRoute(user?.role);
-    if (homeRoute) {
-      return <Navigate to={homeRoute} replace />;
-    }
+    return <Navigate to={getHomeRouteByRole(user?.role)} replace />;
   }
   return <Navigate to="/login" replace />;
 };
@@ -63,7 +71,7 @@ const RootRoute = () => {
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { user, loading } = useAuth();
   
-  if (loading) return <FullScreenLoader />;
+  if (loading) return <div className="loading-screen">Chargement...</div>;
   if (!user) return <Navigate to="/login" replace />;
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
@@ -74,25 +82,12 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   return children;
 };
 
-// Animated Route Wrapper
-const PageTransition = ({ children }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -10 }}
-    transition={{ duration: 0.4, ease: "easeInOut" }}
-    className="page-transition-wrapper"
-  >
-    {children}
-  </motion.div>
-);
-
-// Animated Routes Component
+// Title updates per route
 const AppRoutes = () => {
   const { user, loading, logout, login } = useAuth();
-  const userHome = resolveHomeRoute(user?.role);
+  const location = useLocation();
 
-  if (loading) return <FullScreenLoader />;
+  if (loading) return <div className="loading-screen">Chargement...</div>;
 
   return (
     <Routes>
@@ -161,7 +156,7 @@ const AppRoutes = () => {
   );
 };
 
-export default function App() {
+function App() {
   return (
     <AuthProvider>
       <Router>
@@ -170,3 +165,5 @@ export default function App() {
     </AuthProvider>
   );
 }
+
+export default App;

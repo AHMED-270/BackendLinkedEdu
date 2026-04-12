@@ -2,17 +2,19 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProfessorController;
 use App\Http\Controllers\AdminLoginController;
 use App\Http\Controllers\AdminDashboardController;
+<<<<<<<<< Temporary merge branch 1
 use App\Http\Controllers\DirecteurLoginController;
 use App\Http\Controllers\DirecteurController;
-use App\Http\Controllers\StudentParentController;
-use App\Http\Controllers\PaiementController;
-use App\Http\Controllers\SecretaireController;
 use App\Http\Controllers\AnnonceController;
 use App\Http\Controllers\EmploiDuTempsController;
+use App\Http\Controllers\StudentParentController;
+=========
+use App\Http\Controllers\PaiementController;
+use App\Http\Controllers\SecretaireController;
+>>>>>>>>> Temporary merge branch 2
 
 /*
 |--------------------------------------------------------------------------
@@ -28,6 +30,10 @@ use App\Http\Controllers\EmploiDuTempsController;
 Route::any('/health', function (Request $request) {
     return response()->json([
         'status' => 'ok',
+        'service' => 'LinkEdu API',
+        'method' => $request->method(),
+        'received' => $request->all(),
+        'timestamp' => now()->toIso8601String(),
     ]);
 });
 
@@ -39,42 +45,30 @@ Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
     return $request->user();
 });
 
+<<<<<<<<< Temporary merge branch 1
+Route::post('/login', [AuthController::class, 'login']);
+=========
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/profile', [ProfileController::class, 'show']);
+    Route::post('/profile', [ProfileController::class, 'update']);
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword']);
+});
+>>>>>>>>> Temporary merge branch 2
+
 // Admin routes
+Route::post('/login', [AdminLoginController::class, 'login']);
+Route::post('/logout', [AdminLoginController::class, 'logout'])->middleware('auth:sanctum');
 Route::post('/admin/login', [AdminLoginController::class, 'login']);
 Route::post('/admin/logout', [AdminLoginController::class, 'logout'])->middleware('auth:sanctum');
 
-Route::post('/directeur/login', [DirecteurLoginController::class, 'login']);    
-Route::post('/directeur/logout', [DirecteurLoginController::class, 'logout'])->middleware('auth:sanctum', 'role:directeur');
-
-Route::middleware(['auth:sanctum', 'role:directeur'])->group(function () {      
-    Route::get('/directeur/dashboard', [DirecteurController::class, 'dashboard']);
-    Route::get('/directeur/professeurs', [DirecteurController::class, 'getProfessors']);
-    Route::get('/directeur/reclamations', [DirecteurController::class, 'getReclamations']);
-    Route::post('/directeur/reclamations', [DirecteurController::class, 'storeReclamation']);
-    Route::put('/directeur/reclamations/{id}', [DirecteurController::class, 'updateReclamation']);
-    Route::delete('/directeur/reclamations/{id}', [DirecteurController::class, 'deleteReclamation']);
-    Route::get('/directeur/profile', [DirecteurController::class, 'getProfile']);
-    Route::put('/directeur/profile', [DirecteurController::class, 'updateProfile']);
-    Route::put('/directeur/password', [DirecteurController::class, 'updatePassword']);
-    Route::get('/annonces', [AnnonceController::class, 'index']);
-    Route::post('/annonces', [AnnonceController::class, 'store']);
-    Route::put('/annonces/{id}', [AnnonceController::class, 'update']);
-    Route::delete('/annonces/{id}', [AnnonceController::class, 'destroy']);
-    Route::get('/emplois/lookups', [EmploiDuTempsController::class, 'lookups']);
-    Route::get('/emplois', [EmploiDuTempsController::class, 'index']);
-    Route::post('/emplois', [EmploiDuTempsController::class, 'store']);
-    Route::put('/emplois/{id}', [EmploiDuTempsController::class, 'update']);
-    Route::delete('/emplois/{id}', [EmploiDuTempsController::class, 'destroy']);     
-});
-
-Route::middleware(['auth:sanctum', 'role:admin,directeur,secretaire'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:admin,directeur'])->group(function () {
     Route::get('/admin/dashboard-stats', [AdminDashboardController::class, 'getStats']);
     Route::get('/admin/classes', [AdminDashboardController::class, 'getClasses']);
 });
 
 Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::put('/admin/profile', [AdminDashboardController::class, 'updateProfile']);
-    Route::get('/admin/users', [AdminDashboardController::class, 'getUsers']);  
+    Route::get('/admin/users', [AdminDashboardController::class, 'getUsers']);
     Route::post('/admin/users', [AdminDashboardController::class, 'createUser']);
     Route::put('/admin/users/{id}', [AdminDashboardController::class, 'updateUser']);
     Route::delete('/admin/users/{id}', [AdminDashboardController::class, 'deleteUser']);
@@ -91,7 +85,47 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::post('/admin/reports/generate', [AdminDashboardController::class, 'generateReport']);
 });
 
-// Student API routes
+// Professor Module Routes (RBAC protected)
+Route::middleware(['auth:sanctum', 'role:professeur'])->prefix('professeur')->group(function () {
+    Route::put('/profile', [ProfessorController::class, 'updateProfile']);
+
+    // Dashboard
+    Route::get('/dashboard', [ProfessorController::class, 'getDashboard']);
+    Route::get('/emploi-du-temps', [ProfessorController::class, 'getSchedule']);
+
+    // Devoirs et Ressources
+    Route::get('/publications', [ProfessorController::class, 'getDevoirsEtRessources']);
+    Route::post('/devoirs', [ProfessorController::class, 'publishDevoir']);
+    Route::post('/ressources', [ProfessorController::class, 'publishRessource']);
+
+    // Ã‰lÃ¨ves, Appel et Notes
+    Route::get('/classes/{class_id}/eleves', [ProfessorController::class, 'getStudents']);
+    Route::get('/eleves', [ProfessorController::class, 'getStudents']); // All classes
+    Route::get('/eleves/{student_id}/absences', [ProfessorController::class, 'getStudentAbsences']);
+
+    // Annonces
+    Route::get('/annonces', [ProfessorController::class, 'getAnnouncements']);
+    Route::post('/annonces', [ProfessorController::class, 'publishAnnouncement']);
+
+    // Notes
+    Route::get('/notes', [ProfessorController::class, 'getNotes']);
+    Route::post('/notes', [ProfessorController::class, 'saveNotes']);
+
+    // Appel
+    Route::get('/appel', [ProfessorController::class, 'getAttendance']);
+    Route::post('/appel', [ProfessorController::class, 'saveAttendance']);
+
+    // Avancement
+    Route::get('/avancement', [ProfessorController::class, 'getProgress']);
+    Route::post('/avancement', [ProfessorController::class, 'updateProgress']);
+
+    // RÃ©clamations
+    Route::get('/reclamations', [ProfessorController::class, 'getComplaints']);
+    Route::post('/reclamations', [ProfessorController::class, 'submitComplaint']);
+});
+
+<<<<<<<<< Temporary merge branch 1
+// Student Module Routes
 Route::middleware(['auth:sanctum', 'role:etudiant'])->prefix('etudiant')->group(function () {
     Route::get('/dashboard', [StudentParentController::class, 'studentDashboard']);
     Route::get('/notes', [StudentParentController::class, 'studentNotes']);
@@ -103,7 +137,7 @@ Route::middleware(['auth:sanctum', 'role:etudiant'])->prefix('etudiant')->group(
     Route::get('/ressources', [StudentParentController::class, 'studentResources']);
 });
 
-// Parent API routes
+// Parent Module Routes
 Route::middleware(['auth:sanctum', 'role:parent'])->prefix('parent')->group(function () {
     Route::get('/dashboard', [StudentParentController::class, 'parentDashboard']);
     Route::get('/enfants', [StudentParentController::class, 'parentChildren']);
@@ -115,8 +149,7 @@ Route::middleware(['auth:sanctum', 'role:parent'])->prefix('parent')->group(func
     Route::get('/professeurs', [StudentParentController::class, 'parentProfessors']);
     Route::get('/reclamations', [StudentParentController::class, 'parentComplaints']);
     Route::post('/reclamations', [StudentParentController::class, 'submitParentComplaint']);
-});
-
+=========
 // Secretaire Module Routes
 Route::middleware(['auth:sanctum', 'role:secretaire,admin,directeur'])->prefix('secretaire')->group(function () {
     Route::get('/dashboard', [SecretaireController::class, 'dashboard']);
@@ -161,43 +194,5 @@ Route::middleware(['auth:sanctum', 'role:secretaire,admin,directeur'])->prefix('
     Route::delete('/reclamations/{id}', [SecretaireController::class, 'deleteReclamation']);
     Route::put('/reclamations/{id}/status', [SecretaireController::class, 'updateReclamationStatus']);
     Route::get('/parents', [SecretaireController::class, 'listParents']);
-});
-
-// Professor Module Routes (RBAC protected)
-Route::middleware(['auth:sanctum', 'role:professeur'])->prefix('professeur')->group(function () {
-    Route::put('/profile', [ProfessorController::class, 'updateProfile']);
-
-    // Dashboard
-    Route::get('/dashboard', [ProfessorController::class, 'getDashboard']);
-    Route::get('/emploi-du-temps', [ProfessorController::class, 'getSchedule']);
-
-    // Devoirs et Ressources
-    Route::get('/publications', [ProfessorController::class, 'getDevoirsEtRessources']);
-    Route::post('/devoirs', [ProfessorController::class, 'publishDevoir']);
-    Route::post('/ressources', [ProfessorController::class, 'publishRessource']);
-
-    // Ã‰lÃ¨ves, Appel et Notes
-    Route::get('/classes/{class_id}/eleves', [ProfessorController::class, 'getStudents']);
-    Route::get('/eleves', [ProfessorController::class, 'getStudents']); // All classes
-    Route::get('/eleves/{student_id}/absences', [ProfessorController::class, 'getStudentAbsences']);
-
-    // Annonces
-    Route::get('/annonces', [ProfessorController::class, 'getAnnouncements']);
-    Route::post('/annonces', [ProfessorController::class, 'publishAnnouncement']);
-
-    // Notes
-    Route::get('/notes', [ProfessorController::class, 'getNotes']);
-    Route::post('/notes', [ProfessorController::class, 'saveNotes']);
-
-    // Appel
-    Route::get('/appel', [ProfessorController::class, 'getAttendance']);
-    Route::post('/appel', [ProfessorController::class, 'saveAttendance']);
-
-    // Avancement
-    Route::get('/avancement', [ProfessorController::class, 'getProgress']);
-    Route::post('/avancement', [ProfessorController::class, 'updateProgress']);
-
-    // RÃ©clamations
-    Route::get('/reclamations', [ProfessorController::class, 'getComplaints']);
-    Route::post('/reclamations', [ProfessorController::class, 'submitComplaint']);
+>>>>>>>>> Temporary merge branch 2
 });

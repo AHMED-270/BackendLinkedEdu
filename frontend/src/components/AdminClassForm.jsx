@@ -251,13 +251,6 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
       return;
     }
 
-    const unassignedMatieres = configuredMatieres.filter((matiere) => !matiereProfesseurs[matiere.matiereId]);
-    if (unassignedMatieres.length > 0) {
-      setFormMsg('Veuillez selectionner un professeur pour chaque matiere du cadre pedagogique.');
-      setSaving(false);
-      return;
-    }
-
     const professeurMatieresPayload = {};
     configuredMatieres.forEach((matiere) => {
       const professeurId = String(matiereProfesseurs[matiere.matiereId] || '').trim();
@@ -276,6 +269,7 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
     const professeurIds = Object.keys(professeurMatieresPayload).map((id) => Number(id));
     if (professeurIds.length === 0) {
       setFormMsg('Veuillez assigner au moins un professeur.');
+>>>>>>>>> Temporary merge branch 2
       setSaving(false);
       return;
     }
@@ -668,7 +662,7 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
                       value={formData.pricing}
                       onChange={(e) => setFormData({ ...formData, pricing: e.target.value })}
                       min="0"
-                      step="100"
+                      step="0.01"
                       placeholder="Entrer le cout de scolarite"
                       className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
                     />

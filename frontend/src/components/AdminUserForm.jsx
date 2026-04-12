@@ -255,12 +255,6 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
     e.preventDefault();
     setFormError('');
     setSaving(true);
-
-    if (formData.role === 'professeur' && formData.matieres_enseignement.length === 0) {
-      setFormError('Veuillez selectionner au moins une matiere configuree pour ce niveau.');
-      setSaving(false);
-      return;
-    }
   
 
     const payload = {
@@ -425,7 +419,6 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
                     name="telephone"
                     value={formData.telephone}
                     onChange={handleInputChange}
-                    required
                     placeholder="Ex: 0612345678"
                     className={inputClassName}
                   />
@@ -439,7 +432,6 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
                         name="niveau_enseignement"
                         value={formData.niveau_enseignement}
                         onChange={handleInputChange}
-                        required
                         className={selectClassName}
                       >
                         <option value="">Selectionner un niveau</option>

@@ -62,21 +62,48 @@ export default function LoginCard() {
         } catch {
           // Ignore storage failures.
         }
-      }
-
-      setAuthenticatedUser(connectedUser);
-      setFeedback({ type: 'success', msg: 'Authentification reussie !' });
-
-      const role = connectedUser?.role;
+=========
+      const role = connectedUser?.role
       const roleHome = role === 'admin' || role === 'directeur'
         ? '/admin'
         : role === 'professeur'
           ? '/dashboard'
-          : role === 'etudiant'
-            ? '/etudiant'
-            : role === 'parent'
-              ? '/parent'
-              : '/login';
+          : role === 'secretaire'
+            ? '/secretaire/dashboard'
+          : '/login'
+
+      navigate(roleHome, { replace: true })
+    } catch (error) {
+      const status = error?.response?.status
+      let message = 'Echec de connexion.'
+      const backendMessage = error?.response?.data?.message
+      const backendEmailError = error?.response?.data?.errors?.email?.[0]
+
+      if (backendEmailError) {
+        message = backendEmailError
+      } else if (backendMessage && backendMessage !== 'The given data was invalid.') {
+        message = backendMessage
+      } else if (status === 422 || status === 401) {
+        message = 'Email ou mot de passe incorrect.'
+      } else if (status === 419) {
+        message = 'Session expiree. Reessayez.'
+      } else if (error?.message) {
+        message = error.message
+>>>>>>>>> Temporary merge branch 2
+      }
+
+      if (setAuthenticatedUser) {
+        setAuthenticatedUser(connectedUser);
+      }
+      
+      if (onLoginSuccess && typeof onLoginSuccess === 'function') {
+        onLoginSuccess(connectedUser);
+      }
+
+      setLoginFeedback('Authentification réussie !');
+      setLoginFeedbackType('success');
+
+      const roleHome = getHomeRouteByRole(connectedUser?.role);
 
       setTimeout(() => navigate(roleHome, { replace: true }), 500);
     } catch (err) {

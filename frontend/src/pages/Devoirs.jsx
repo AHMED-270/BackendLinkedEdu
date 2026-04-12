@@ -1,14 +1,89 @@
-import { useState } from 'react';
-import { FiList, FiFolder, FiFileText, FiCalendar, FiVideo, FiUploadCloud } from 'react-icons/fi';
+<<<<<<<<< Temporary merge branch 1
+﻿import { useEffect, useMemo, useState } from 'react';
+import { FiList, FiFolder, FiFileText, FiCalendar, FiUploadCloud } from 'react-icons/fi';
+import { professorGet, professorPost } from '../services/professorApi';
 import './Devoirs.css';
 
 export default function Devoirs() {
   const [activeTab, setActiveTab] = useState('devoir');
-  const [loading] = useState(false);
-  const [error] = useState('');
+  const [classes, setClasses] = useState([]);
+  const [matieres, setMatieres] = useState([]);
+  const [publications, setPublications] = useState([]);
+  const [stats, setStats] = useState({ active_assignments: 0, shared_resources: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [form, setForm] = useState({
+    classId: '',
+    matiereId: '',
+    title: '',
+    description: '',
+    deadline: '',
+    type: 'PDF',
+    file: null,
+  });
 
+  const loadData = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await professorGet('/api/professeur/publications');
+      const nextClasses = data.classes || [];
+      const nextMatieres = data.matieres || [];
+      setClasses(nextClasses);
+      setMatieres(nextMatieres);
+      setPublications(data.publications || []);
+      setStats(data.stats || { active_assignments: 0, shared_resources: 0 });
+      setForm((prev) => ({
+        ...prev,
+        classId: prev.classId || (nextClasses[0]?.id ? String(nextClasses[0].id) : ''),
+        matiereId: prev.matiereId || (nextMatieres[0]?.id ? String(nextMatieres[0].id) : ''),
+      }));
+    } catch {
+      setError('Impossible de charger les publications.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleSubmit = async () => {
+    try {
+      if (activeTab === 'devoir') {
+        await professorPost('/api/professeur/devoirs', {
+          title: form.title,
+          description: form.description,
+          deadline: form.deadline,
+          classId: Number(form.classId),
+          matiereId: Number(form.matiereId),
+        });
+      } else {
+        const formData = new FormData();
+        formData.append('title', form.title);
+        formData.append('type', form.type);
+        if (form.file) formData.append('file', form.file);
+        await professorPost('/api/professeur/ressources', formData, true);
+      }
+
+      setForm((prev) => ({ ...prev, title: '', description: '', deadline: '', file: null }));
+      await loadData();
+    } catch {
+      setError('Publication impossible. Verifiez les champs obligatoires.');
+    }
+  };
+
+  const recentPublications = useMemo(() => publications.slice(0, 12), [publications]);
+
+=========
+import './Devoirs.css';
+
+export default function Devoirs() {
+>>>>>>>>> Temporary merge branch 2
   return (
     <div className="dvr-page">
+      {/* HEADER SECTION */}
       <div className="dvr-header">
         <div className="dvr-title-section">
           <h2>Devoirs & Ressources</h2>
@@ -19,13 +94,17 @@ export default function Devoirs() {
           <div className="filter-group">
             <label>CLASSE</label>
             <select className="filter-select">
-              <option>Master 2 - IA</option>
+              {classes.map((c) => (
+                <option key={c.id} value={c.id}>{c.nom} - {c.niveau}</option>
+              ))}
             </select>
           </div>
           <div className="filter-group">
             <label>MATIÈRE</label>
             <select className="filter-select">
-              <option>Astrophysique</option>
+              {matieres.map((m) => (
+                <option key={m.id} value={m.id}>{m.nom}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -65,11 +144,31 @@ export default function Devoirs() {
           <div className="form-row">
             <div className="form-group flex-1">
               <label>Date limite</label>
-              <input type="date" className="input-field" />
+              <input
+                type="date"
+                className="input-field"
+                value={form.deadline}
+                onChange={(e) => setForm((prev) => ({ ...prev, deadline: e.target.value }))}
+              />
             </div>
             <div className="form-group flex-1">
-              <label>Points / Barème</label>
-              <input type="text" placeholder="20" className="input-field" />
+              <label>Classe / Matiere</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <select
+                  className="input-field"
+                  value={form.classId}
+                  onChange={(e) => setForm((prev) => ({ ...prev, classId: e.target.value }))}
+                >
+                  {classes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+                </select>
+                <select
+                  className="input-field"
+                  value={form.matiereId}
+                  onChange={(e) => setForm((prev) => ({ ...prev, matiereId: e.target.value }))}
+                >
+                  {matieres.map((m) => <option key={m.id} value={m.id}>{m.nom}</option>)}
+                </select>
+              </div>
             </div>
           </div>
 
@@ -83,9 +182,14 @@ export default function Devoirs() {
             </div>
           </div>
 
-          <button className="primary-btn publish-btn">
+          <button className="primary-btn publish-btn" onClick={handleSubmit}>
             ▸ Publier le {activeTab}
           </button>
+          {editingId && (
+            <button className="cancel-btn" onClick={cancelEdit} style={{ marginTop: '0.5rem', width: '100%', padding: '0.75rem', backgroundColor: '#f1f5f9', color: '#475569', borderRadius: '8px', border: 'none', fontWeight: 600, cursor: 'pointer' }}>
+              ✕ Annuler la modification
+            </button>
+          )}
         </div>
 
         {/* RIGHT COLUMN: STATS & LIST */}
@@ -109,64 +213,111 @@ export default function Devoirs() {
           </div>
 
           {/* RECENT PUBS */}
-          <div className="recent-pubs">
-            <div className="recent-header">
-              <h3>Publications récentes</h3>
-              <a href="#" className="link-all">Voir tout</a>
+          <div className="recent-pubs" style={{ flex: 1, padding: '1.5rem', backgroundColor: '#fff', borderRadius: '16px', border: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column' }}>
+            <div className="recent-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
+                Liste des {activeTab === 'devoir' ? 'Devoirs' : 'Ressources'}
+              </h3>
+              <select 
+                value={filterGroup} 
+                onChange={(e) => setFilterGroup(e.target.value)}
+                className="input-field" 
+                style={{ width: 'auto', padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.85rem' }}
+              >
+                <option value="all">Tous les groupes</option>
+                {classes.map(c => <option key={c.id} value={c.nom}>{c.nom}</option>)}
+              </select>
             </div>
             
             <div className="recent-list">
-              <div className="recent-item">
-                <div className="item-icon-box bg-orange">
-                  <FiFileText color="#EA580C" />
-                </div>
-                <div className="item-details">
-                  <h4>Théorie de la Relativité Générale</h4>
-                  <p>Cours • Publié il y a 2h</p>
-                  <div className="item-meta">
-                    <span className="meta-badge">M2 - IA</span>
-                    <span className="meta-text">👁 24 vues</span>
+              {recentPublications.map((item) => (
+                <div className="recent-item" key={`${item.type}-${item.id}`}>
+                  <div className={`item-icon-box ${item.type === 'Devoir' ? 'bg-blue' : 'bg-orange'}`}>
+                    {item.type === 'Devoir' ? <FiCalendar color="#2563EB" /> : <FiFileText color="#EA580C" />}
                   </div>
-                </div>
+                  <div className="item-details">
+                    <h4>{item.title}</h4>
+                    <p>{item.type} • {item.published_at || '-'}</p>
+                    <div className="item-meta">
+                      <span className="meta-badge">{item.class || 'Toutes'}</span>
+                      <span className="meta-text">{item.matiere || '-'}</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div className="recent-item">
-                <div className="item-icon-box bg-blue">
-                  <FiCalendar color="#2563EB" />
+              {detailsModal.data?.file_path && (
+                <div style={{ marginTop: '0.5rem' }}>
+                  <p style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.5rem 0' }}>Fichier joint</p>
+                  <a 
+                    href={`/storage/${detailsModal.data?.file_path}`} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', backgroundColor: '#f8fafc', color: '#2563eb', border: '1px solid #e2e8f0', borderRadius: '0.5rem', fontWeight: 600, textDecoration: 'none', transition: 'all 150ms' }}
+                    onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; e.currentTarget.style.borderColor = '#bfdbfe'; }}
+                    onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+                  >
+                    <FiDownload size={18} /> Télécharger le fichier
+                  </a>
                 </div>
-                <div className="item-details">
-                  <h4>TD n°4 : Spectroscopie Stellaire</h4>
-                  <p>Devoir • Échéance : 15 Oct.</p>
-                  <div className="item-meta">
-                    <span className="meta-badge">L3 - CS</span>
-                    <span className="meta-text">👥 12/30 rendus</span>
-                  </div>
-                </div>
-              </div>
+              ))}
+              {recentPublications.length === 0 && <p>Aucune publication recente.</p>}
+            </div>
+            
+           
+          </div>
+        </div>,
+        document.body
+      )}
 
-              <div className="recent-item">
-                <div className="item-icon-box bg-purple">
-                  <FiVideo color="#9333EA" />
-                </div>
-                <div className="item-details">
-                  <h4>Webinaire : Carrières en Astro</h4>
-                  <p>Vidéo • Publié hier</p>
-                  <div className="item-meta">
-                    <span className="meta-badge">Tous</span>
-                    <span className="meta-text">⬇ 145 DL</span>
-                  </div>
-                </div>
-              </div>
+      {deleteModal.open && typeof document !== 'undefined' && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2147483647, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(8px)', padding: '2rem' }}>
+          <div style={{ backgroundColor: '#fff', borderRadius: '1.5rem', width: '100%', maxWidth: '28rem', overflow: 'hidden', padding: '2rem', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+            <div style={{ margin: '0 auto 1.5rem', width: '4rem', height: '4rem', backgroundColor: '#fee2e2', color: '#dc2626', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FiTrash2 size={28} />
+            </div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.75rem' }}>Confirmer la suppression</h2>
+            <p style={{ color: '#475569', marginBottom: '2rem', fontSize: '0.95rem', lineHeight: '1.5' }}>Êtes-vous sûr de vouloir supprimer cette publication ? Cette action est irréversible et supprimera également les données associées.</p>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+              <button 
+                onClick={() => setDeleteModal({ open: false, id: null, type: null })}
+                style={{ flex: 1, padding: '0.75rem 1.5rem', backgroundColor: '#f1f5f9', color: '#475569', borderRadius: '0.5rem', fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'background-color 150ms' }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#e2e8f0'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+              >
+                Annuler
+              </button>
+              <button 
+                onClick={confirmDelete}
+                style={{ flex: 1, padding: '0.75rem 1.5rem', backgroundColor: '#dc2626', color: '#fff', borderRadius: '0.5rem', fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'background-color 150ms' }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#b91c1c'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
+              >
+                Supprimer
+              </button>
             </div>
           </div>
+=========
+          <p>Les devoirs et ressources seront gérés depuis la base de données.</p>
+        </div>
+      </div>
 
-          {/* GUIDE CARD */}
-          <div className="guide-card">
-            <div className="guide-content">
-              <h4>Guide Pédagogique</h4>
-              <p>Structurez vos ressources pour maximiser l'intérêt de vos étudiants.</p>
-            </div>
-          </div>
+      <div className="card" style={{ marginTop: '16px' }}>
+        <div className="card-body" style={{ padding: 0 }}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Titre</th>
+                <th>Type</th>
+                <th>Classe</th>
+                <th>Matière</th>
+                <th>Date limite</th>
+                <th>Statut</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+>>>>>>>>> Temporary merge branch 2
         </div>
       </div>
     </div>

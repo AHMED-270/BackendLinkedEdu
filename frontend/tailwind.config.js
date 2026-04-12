@@ -1,8 +1,14 @@
 /** @type {import('tailwindcss').Config} */
+<<<<<<<<< Temporary merge branch 1
+module.exports = {
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  theme: {
+    extend: {},
+=========
 export default {
   content: [
-    './index.html',
-    './src/**/*.{js,ts,jsx,tsx}',
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
@@ -22,11 +28,12 @@ export default {
           800: '#155A80',
           900: '#1B2A4A',
         },
-      },
+      }
     },
   },
   corePlugins: {
-    preflight: false,
+    preflight: false, // Prevents conflicts with existing CSS resets
+>>>>>>>>> Temporary merge branch 2
   },
   plugins: [],  
 };

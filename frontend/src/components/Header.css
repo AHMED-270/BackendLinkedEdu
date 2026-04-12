@@ -1,133 +1,115 @@
-/* ===== HEADER CONTAINER ===== */
 .header {
-  height: var(--header-height, 64px);
-  /* Glassmorphism upgrade */
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  height: 64px;
+  background: white;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--space-6);
-  border-bottom: 1px solid var(--border-color);
+  padding: 0 24px;
+  border-bottom: 1px solid #E5E7EB;
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 100;
-  /* Soft shadow for depth */
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-  transition: all var(--transition-fast);
 }
 
-/* ===== LOGO ===== */
 .header-logo {
   font-size: 1.5rem;
   font-weight: 800;
-  width: var(--sidebar-width, 260px);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  letter-spacing: -0.02em;
+  width: 260px;
 }
 
 .logo-link {
-  color: var(--text-primary); 
+  color: #1a56db; /* Deep blue */
 }
 
 .logo-edu {
-  color: var(--primary-600);
-  position: relative;
+  color: #2563eb;
 }
 
-/* Adding a tiny tech-inspired dot to the logo */
-.logo-edu::after {
-  content: '';
-  position: absolute;
-  top: 4px;
-  right: -8px;
-  width: 6px;
-  height: 6px;
-  background: var(--accent-green);
-  border-radius: 50%;
-}
-
-/* ===== ACTIONS ===== */
 .header-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: 16px;
 }
 
 .icon-btn {
-  background: transparent;
+  background: none;
   border: none;
-  color: var(--text-secondary);
+  color: #4B5563;
   cursor: pointer;
-  padding: 10px;
-  width: 42px;
-  height: 42px;
+  padding: 8px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-bounce);
-  position: relative;
+  transition: background 0.2s;
 }
 
 .icon-btn:hover {
-  background: var(--gray-50);
-  color: var(--primary-600);
-  transform: translateY(-2px);
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+  background: #F3F4F6;
+  color: #111827;
 }
 
-/* ===== PROFILE BUTTON ===== */
 .header-profile {
   display: flex;
   align-items: center;
-  gap: 12px;
+<<<<<<<<< Temporary merge branch 1
+  gap: var(--space-3);
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   cursor: pointer;
+  padding: 4px 8px 4px 16px;
+  border-radius: var(--radius-full);
+  transition: all var(--transition-bounce);
+}
+
+.header-profile:hover {
+  background: white;
+  border-color: var(--border-color);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+=========
+  gap: 10px;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 9999px;
+  padding: 4px 12px 4px 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.header-profile:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+>>>>>>>>> Temporary merge branch 2
 }
 
 .header-profile-info {
   display: flex;
   flex-direction: column;
   text-align: right;
-  justify-content: center;
 }
 
 .header-profile-name {
   font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1.2;
+  font-weight: 600;
+  color: #1f2937;
 }
 
 .header-profile-role {
   font-size: 0.7rem;
-  color: var(--text-secondary);
+  color: #6b7280;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  font-weight: 600;
-  margin-top: 2px;
 }
 
 .header-profile-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-full);
+  width: 38px;
+  height: 38px;
+  border-radius: 9999px;
   object-fit: cover;
-  background: var(--gray-100);
-  border: 2px solid white;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-  transition: transform var(--transition-bounce);
-}
-
-.header-profile:hover .header-profile-avatar {
-  transform: scale(1.05);
+  background: #e2e8f0;
 }
 
 .header-profile-label {
@@ -274,8 +256,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+<<<<<<<<< Temporary merge branch 1
+  background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
   color: #fff;
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
+=========
+  background: #e5e7eb;
+  color: #6b7280;
+}
+.header-profile-avatar-fallback svg {
+  width: 24px;
+  height: 24px;
+}
+>>>>>>>>> Temporary merge branch 2

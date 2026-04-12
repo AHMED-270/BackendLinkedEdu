@@ -55,6 +55,92 @@ const AUTOMATIC_MATIERES = AUTOMATIC_LEVELS.flatMap((niveau) => {
 
 const LEVEL_DISPLAY_ORDER = ['maternelle', 'primaire', 'college', 'lycee', 'general'];
 
+const MATIERE_TYPE_OPTIONS = [
+  { value: 'generale', label: 'Generale' },
+  { value: 'specifique', label: 'Specifique' },
+];
+
+const NIVEAU_CODES_BY_LEVEL = {
+  maternelle: ['ms', 'mm', 'gs'],
+  primaire: ['1ap', '2ap', '3ap', '4ap', '5ap', '6ap'],
+  college: ['1ac', '2ac', '3ac'],
+  lycee: ['tc', '1bac', '2bac'],
+};
+
+const NIVEAU_CODE_LABELS = {
+  ms: 'Petite Section',
+  mm: 'Moyenne Section',
+  gs: 'Grande Section',
+  '1ap': '1AP',
+  '2ap': '2AP',
+  '3ap': '3AP',
+  '4ap': '4AP',
+  '5ap': '5AP',
+  '6ap': '6AP',
+  '1ac': '1AC',
+  '2ac': '2AC',
+  '3ac': '3AC',
+  tc: 'Tronc Commun',
+  '1bac': '1ere Bac',
+  '2bac': '2eme Bac',
+};
+
+const GENERAL_TYPE_NIVEAU_CODES = Object.values(NIVEAU_CODES_BY_LEVEL).flat();
+const LYCEE_NIVEAU_CODES = ['tc', '1bac', '2bac'];
+
+const NIVEAU_LEVEL_BY_CODE = Object.entries(NIVEAU_CODES_BY_LEVEL).reduce((acc, [level, codes]) => {
+  codes.forEach((code) => {
+    acc[code] = level;
+  });
+
+  return acc;
+}, {});
+
+const SPECIFIC_NIVEAU_OPTIONS = GENERAL_TYPE_NIVEAU_CODES.map((code) => ({
+  value: code,
+  label: `${NIVEAU_CODE_LABELS[code] || code} (${LEVEL_LABELS[NIVEAU_LEVEL_BY_CODE[code]] || NIVEAU_LEVEL_BY_CODE[code] || '-'})`,
+}));
+
+const isLyceeNiveauCode = (code = '') => LYCEE_NIVEAU_CODES.includes(String(code).toLowerCase());
+const getLevelForNiveauCode = (code = '') => NIVEAU_LEVEL_BY_CODE[String(code).toLowerCase()] || '';
+
+const buildDefaultGeneralTypeCoefficients = () => (
+  GENERAL_TYPE_NIVEAU_CODES.reduce((acc, code) => {
+    acc[code] = ['ms', 'mm', 'gs'].includes(code) ? 0 : 1;
+    return acc;
+  }, {})
+);
+
+const normalizeGeneralTypeCoefficients = (rawCoefficients, fallbackCoefficient = 1) => {
+  const source = rawCoefficients && typeof rawCoefficients === 'object' ? rawCoefficients : {};
+  const parsedFallback = Number.isFinite(Number(fallbackCoefficient)) ? Number(fallbackCoefficient) : 1;
+
+  return GENERAL_TYPE_NIVEAU_CODES.reduce((acc, code) => {
+    const rawValue = source[code];
+    acc[code] = Number.isFinite(Number(rawValue)) ? Number(rawValue) : parsedFallback;
+    return acc;
+  }, {});
+};
+
+const resolveSpecificNiveauCodeFromMatiere = (matiere = {}) => {
+  if (isLyceeNiveauCode(matiere?.lycee_niveau_code)) {
+    return String(matiere.lycee_niveau_code).toLowerCase();
+  }
+
+  const source = matiere?.coefficients_by_niveau_code && typeof matiere.coefficients_by_niveau_code === 'object'
+    ? matiere.coefficients_by_niveau_code
+    : {};
+
+  const level = String(matiere?.niveau || '').toLowerCase();
+  const preferredCodes = NIVEAU_CODES_BY_LEVEL[level] || GENERAL_TYPE_NIVEAU_CODES;
+  const firstPreferred = preferredCodes.find((code) => Number.isFinite(Number(source[code])));
+  if (firstPreferred) {
+    return firstPreferred;
+  }
+
+  return preferredCodes[0] || 'tc';
+};
+
 const buildMatiereKey = (nom, niveau) => `${String(niveau || '').toLowerCase()}::${normalizeSubjectToken(nom)}`;
 
 export default function AdminMatieres({ userRole = 'admin' }) {
@@ -64,16 +150,30 @@ export default function AdminMatieres({ userRole = 'admin' }) {
   const [formError, setFormError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
-  const [editFormData, setEditFormData] = useState({ nom: '', coefficient: 1 });
+  const [editFormData, setEditFormData] = useState({
+    nom: '',
+    type: 'generale',
+    niveau: 'general',
+    coefficient: 1,
+    coefficients_by_niveau_code: buildDefaultGeneralTypeCoefficients(),
+    specific_niveau_code: 'tc',
+    specific_coefficient: 1,
+    lycee_niveau_code: 'tc',
+    lycee_filiere: '',
+  });
   const [editFormError, setEditFormError] = useState('');
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [viewTarget, setViewTarget] = useState(null);
+  const [classOptions, setClassOptions] = useState({
+    filieres_by_niveau: {},
+  });
 
   const [selectedLevel, setSelectedLevel] = useState('all');
   const levelFilterOptions = [
     { value: 'all', label: 'Tous les niveaux' },
+    { value: 'general', label: 'General' },
     { value: 'maternelle', label: 'Maternelle' },
     { value: 'primaire', label: 'Primaire' },
     { value: 'college', label: 'College' },
@@ -82,8 +182,14 @@ export default function AdminMatieres({ userRole = 'admin' }) {
 
   const [formData, setFormData] = useState({
     nom: '',
-    niveau: 'college',
+    type: 'generale',
+    niveau: 'general',
     coefficient: 1,
+    coefficients_by_niveau_code: buildDefaultGeneralTypeCoefficients(),
+    specific_niveau_code: 'tc',
+    specific_coefficient: 1,
+    lycee_niveau_code: 'tc',
+    lycee_filiere: '',
   });
 
   const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
@@ -93,6 +199,36 @@ export default function AdminMatieres({ userRole = 'admin' }) {
       withCredentials: true,
       withXSRFToken: true,
     });
+  };
+
+  const getFilieresForNiveauCode = (niveauCode) => {
+    const rows = classOptions?.filieres_by_niveau?.[niveauCode];
+    return Array.isArray(rows) ? rows : [];
+  };
+
+  const getDefaultFiliereForNiveauCode = (niveauCode) => {
+    const list = getFilieresForNiveauCode(niveauCode);
+    return list[0] || '';
+  };
+
+  const buildGeneralTypeCoefficientsPayload = (source) => {
+    const payload = {};
+
+    for (const code of GENERAL_TYPE_NIVEAU_CODES) {
+      const rawValue = source?.[code];
+      if (rawValue === '' || rawValue === null || rawValue === undefined) {
+        return { error: `Le coefficient ${NIVEAU_CODE_LABELS[code] || code} est obligatoire.` };
+      }
+
+      const parsed = Number(rawValue);
+      if (!Number.isFinite(parsed) || parsed < 0 || parsed > 10) {
+        return { error: `Le coefficient ${NIVEAU_CODE_LABELS[code] || code} doit etre entre 0 et 10.` };
+      }
+
+      payload[code] = parsed;
+    }
+
+    return { payload };
   };
 
   const ensureAutomaticMatieres = async (existingMatieres) => {
@@ -127,7 +263,20 @@ export default function AdminMatieres({ userRole = 'admin' }) {
     let created = 0;
     for (const matiere of missing) {
       try {
-        await axios.post(apiBaseUrl + '/api/admin/matieres', matiere, {
+        const niveauCodes = NIVEAU_CODES_BY_LEVEL[matiere.niveau] || [];
+        const coefficientsByCode = niveauCodes.reduce((acc, code) => {
+          acc[code] = Number(matiere.coefficient);
+          return acc;
+        }, {});
+        const defaultLyceeNiveauCode = matiere.niveau === 'lycee' ? 'tc' : null;
+        const defaultLyceeFiliere = matiere.niveau === 'lycee' ? 'TC Scientifique' : null;
+
+        await axios.post(apiBaseUrl + '/api/admin/matieres', {
+          ...matiere,
+          coefficients_by_niveau_code: Object.keys(coefficientsByCode).length > 0 ? coefficientsByCode : null,
+          lycee_niveau_code: defaultLyceeNiveauCode,
+          lycee_filiere: defaultLyceeFiliere,
+        }, {
           withCredentials: true,
           withXSRFToken: true,
           headers: { Accept: 'application/json' },
@@ -145,10 +294,26 @@ export default function AdminMatieres({ userRole = 'admin' }) {
       const { current, expected } = updateItem;
 
       try {
+        const currentLevel = String(current.niveau || '').toLowerCase();
+        const niveauCodes = NIVEAU_CODES_BY_LEVEL[currentLevel] || [];
+        const coefficientsByCode = niveauCodes.reduce((acc, code) => {
+          acc[code] = Number(expected.coefficient);
+          return acc;
+        }, {});
+        const lyceeNiveauCode = currentLevel === 'lycee'
+          ? (current.lycee_niveau_code || 'tc')
+          : null;
+        const lyceeFiliere = currentLevel === 'lycee'
+          ? (current.lycee_filiere || 'TC Scientifique')
+          : null;
+
         await axios.put(`${apiBaseUrl}/api/admin/matieres/${current.id_matiere}`, {
           nom: current.nom,
           niveau: current.niveau,
           coefficient: Number(expected.coefficient),
+          coefficients_by_niveau_code: Object.keys(coefficientsByCode).length > 0 ? coefficientsByCode : null,
+          lycee_niveau_code: lyceeNiveauCode,
+          lycee_filiere: lyceeFiliere,
         }, {
           withCredentials: true,
           withXSRFToken: true,
@@ -190,12 +355,42 @@ export default function AdminMatieres({ userRole = 'admin' }) {
     }
   };
 
+  const fetchClassOptions = async () => {
+    try {
+      const response = await axios.get(apiBaseUrl + '/api/admin/class-options', {
+        withCredentials: true,
+        headers: { Accept: 'application/json' },
+      });
+
+      const data = response?.data || {};
+      setClassOptions({
+        filieres_by_niveau: data.filieres_by_niveau || {},
+      });
+    } catch (error) {
+      console.error('Erreur chargement options classes:', error);
+    }
+  };
+
   useEffect(() => {
     fetchMatieres();
+    fetchClassOptions();
   }, []);
 
   const openCreateForm = () => {
-    setFormData({ nom: '', niveau: selectedLevel !== 'all' ? selectedLevel : 'college', coefficient: 1 });
+    const defaultSpecificNiveauCode = 'tc';
+    const defaultSpecificFiliere = getDefaultFiliereForNiveauCode(defaultSpecificNiveauCode);
+
+    setFormData({
+      nom: '',
+      type: 'generale',
+      niveau: 'general',
+      coefficient: 1,
+      coefficients_by_niveau_code: buildDefaultGeneralTypeCoefficients(),
+      specific_niveau_code: defaultSpecificNiveauCode,
+      specific_coefficient: 1,
+      lycee_niveau_code: defaultSpecificNiveauCode,
+      lycee_filiere: defaultSpecificFiliere,
+    });
     setFormError('');
     setShowForm(true);
   };
@@ -206,11 +401,32 @@ export default function AdminMatieres({ userRole = 'admin' }) {
   };
 
   const openEditForm = (matiere) => {
+    const currentLevel = String(matiere.niveau || 'college').toLowerCase();
+    const isSpecificType = currentLevel !== 'general';
+    const defaultSpecificNiveauCode = isSpecificType ? resolveSpecificNiveauCodeFromMatiere(matiere) : 'tc';
+    const defaultSpecificFiliere = isSpecificType && isLyceeNiveauCode(defaultSpecificNiveauCode)
+      ? (matiere.lycee_filiere || getDefaultFiliereForNiveauCode(defaultSpecificNiveauCode))
+      : '';
+    const defaultSpecificCoefficient = Number(
+      (matiere.coefficients_by_niveau_code || {})[defaultSpecificNiveauCode]
+      ?? matiere.coefficient
+      ?? 1
+    );
+
     setEditTarget(matiere);
     setEditFormData({
       nom: matiere.nom || '',
-      niveau: matiere.niveau || 'college',
-      coefficient: matiere.coefficient || 1,
+      type: isSpecificType ? 'specifique' : 'generale',
+      niveau: isSpecificType ? getLevelForNiveauCode(defaultSpecificNiveauCode) || currentLevel : 'general',
+      coefficient: Number(matiere.coefficient || 1),
+      coefficients_by_niveau_code: normalizeGeneralTypeCoefficients(
+        matiere.coefficients_by_niveau_code,
+        matiere.coefficient || 1,
+      ),
+      specific_niveau_code: defaultSpecificNiveauCode,
+      specific_coefficient: Number.isFinite(defaultSpecificCoefficient) ? defaultSpecificCoefficient : 1,
+      lycee_niveau_code: isSpecificType && isLyceeNiveauCode(defaultSpecificNiveauCode) ? defaultSpecificNiveauCode : '',
+      lycee_filiere: defaultSpecificFiliere,
     });
     setEditFormError('');
   };
@@ -218,6 +434,7 @@ export default function AdminMatieres({ userRole = 'admin' }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
+    setIsSaving(true);
 
     const payload = {
       nom: formData.nom.trim(),
@@ -248,11 +465,64 @@ export default function AdminMatieres({ userRole = 'admin' }) {
     setEditFormError('');
     setIsSavingEdit(true);
 
-    const payload = {
-      nom: editFormData.nom.trim(),
-      niveau: editFormData.niveau,
-      coefficient: Number(editFormData.coefficient),
-    };
+    const isGeneralType = editFormData.type === 'generale';
+    const generalTypeResult = isGeneralType
+      ? buildGeneralTypeCoefficientsPayload(editFormData.coefficients_by_niveau_code)
+      : null;
+
+    if (generalTypeResult?.error) {
+      setEditFormError(generalTypeResult.error);
+      setIsSavingEdit(false);
+      return;
+    }
+
+    const specificCode = String(editFormData.specific_niveau_code || '').toLowerCase();
+    const specificLevel = getLevelForNiveauCode(specificCode);
+    const isLyceeSpecific = isLyceeNiveauCode(specificCode);
+
+    if (!isGeneralType) {
+      if (!specificCode || !specificLevel) {
+        setEditFormError('Veuillez choisir un niveau specifique valide.');
+        setIsSavingEdit(false);
+        return;
+      }
+
+      if (isLyceeSpecific) {
+        const allowedFilieres = getFilieresForNiveauCode(specificCode);
+        if (!editFormData.lycee_filiere || !allowedFilieres.includes(editFormData.lycee_filiere)) {
+          setEditFormError('Veuillez choisir une filiere valide pour le niveau specifique selectionne.');
+          setIsSavingEdit(false);
+          return;
+        }
+      }
+
+      const parsedSpecificCoefficient = Number(editFormData.specific_coefficient);
+      if (!Number.isFinite(parsedSpecificCoefficient) || parsedSpecificCoefficient < 0 || parsedSpecificCoefficient > 10) {
+        setEditFormError('Le coefficient specifique doit etre entre 0 et 10.');
+        setIsSavingEdit(false);
+        return;
+      }
+    }
+
+    const payload = isGeneralType
+      ? {
+        nom: editFormData.nom.trim(),
+        niveau: 'general',
+        coefficient: Number(generalTypeResult?.payload?.['1ac'] ?? 1),
+        coefficients_by_niveau_code: generalTypeResult?.payload,
+        lycee_niveau_code: null,
+        lycee_filiere: null,
+      }
+      : {
+        nom: editFormData.nom.trim(),
+        niveau: specificLevel,
+        coefficient: Number(editFormData.specific_coefficient),
+        coefficients_by_niveau_code: {
+          [specificCode]: Number(editFormData.specific_coefficient),
+        },
+        lycee_niveau_code: isLyceeSpecific ? specificCode : null,
+        lycee_filiere: isLyceeSpecific ? editFormData.lycee_filiere : null,
+      };
 
     try {
       await ensureCsrfCookie();
@@ -629,32 +899,129 @@ export default function AdminMatieres({ userRole = 'admin' }) {
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="text-sm font-medium text-gray-700">Niveau assigne</label>
+                  <label className="text-sm font-medium text-gray-700">Type</label>
                   <select
-                    value={editFormData.niveau}
-                    onChange={(e) => setEditFormData((prev) => ({ ...prev, niveau: e.target.value }))}
+                    value={editFormData.type}
+                    onChange={(e) => {
+                      const nextType = e.target.value;
+                      const nextSpecificNiveauCode = editFormData.specific_niveau_code || 'tc';
+                      const isNextLyceeSpecific = isLyceeNiveauCode(nextSpecificNiveauCode);
+                      const nextSpecificFiliere = isNextLyceeSpecific
+                        ? (
+                          getFilieresForNiveauCode(nextSpecificNiveauCode).includes(editFormData.lycee_filiere)
+                            ? editFormData.lycee_filiere
+                            : getDefaultFiliereForNiveauCode(nextSpecificNiveauCode)
+                        )
+                        : '';
+
+                      setEditFormData((prev) => ({
+                        ...prev,
+                        type: nextType,
+                        niveau: nextType === 'generale' ? 'general' : (getLevelForNiveauCode(nextSpecificNiveauCode) || prev.niveau),
+                        coefficients_by_niveau_code: normalizeGeneralTypeCoefficients(prev.coefficients_by_niveau_code, prev.coefficient),
+                        specific_niveau_code: nextSpecificNiveauCode,
+                        specific_coefficient: Number(prev.specific_coefficient || prev.coefficient || 1),
+                        lycee_niveau_code: nextType === 'specifique' && isNextLyceeSpecific ? nextSpecificNiveauCode : '',
+                        lycee_filiere: nextType === 'specifique' && isNextLyceeSpecific ? nextSpecificFiliere : '',
+                      }));
+                    }}
                     required
                     className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   >
-                    <option value="general">General</option>
-                    <option value="maternelle">Maternelle</option>
-                    <option value="primaire">Primaire</option>
-                    <option value="college">College</option>
-                    <option value="lycee">Lycee</option>
+                    {MATIERE_TYPE_OPTIONS.map((option) => (
+                      <option key={`edit-type-${option.value}`} value={option.value}>{option.label}</option>
+                    ))}
                   </select>
                 </div>
-                <div className="sm:col-span-1">
-                  <label className="text-sm font-medium text-gray-700">Coefficient</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="10"
-                    value={editFormData.coefficient}
-                    onChange={(e) => setEditFormData((prev) => ({ ...prev, coefficient: e.target.value }))}
-                    required
-                    className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                  />
-                </div>
+
+                {editFormData.type === 'generale' ? (
+                  <div className="sm:col-span-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {GENERAL_TYPE_NIVEAU_CODES.map((code) => (
+                      <div key={`edit-${code}`}>
+                        <label className="text-sm font-medium text-gray-700">Coef. {NIVEAU_CODE_LABELS[code] || code}</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="10"
+                          value={editFormData.coefficients_by_niveau_code?.[code] ?? ''}
+                          onChange={(e) => setEditFormData((prev) => ({
+                            ...prev,
+                            coefficients_by_niveau_code: {
+                              ...normalizeGeneralTypeCoefficients(prev.coefficients_by_niveau_code, prev.coefficient),
+                              [code]: e.target.value,
+                            },
+                          }))}
+                          required
+                          className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <>
+                    <div className="sm:col-span-3">
+                      <label className="text-sm font-medium text-gray-700">Niveau specifique</label>
+                      <select
+                        value={editFormData.specific_niveau_code || 'tc'}
+                        onChange={(e) => {
+                          const nextCode = e.target.value;
+                          const isNextLyceeSpecific = isLyceeNiveauCode(nextCode);
+                          const filieres = getFilieresForNiveauCode(nextCode);
+                          const nextFiliere = isNextLyceeSpecific
+                            ? (
+                              filieres.includes(editFormData.lycee_filiere)
+                                ? editFormData.lycee_filiere
+                                : (filieres[0] || '')
+                            )
+                            : '';
+
+                          setEditFormData((prev) => ({
+                            ...prev,
+                            specific_niveau_code: nextCode,
+                            niveau: getLevelForNiveauCode(nextCode) || prev.niveau,
+                            lycee_niveau_code: isNextLyceeSpecific ? nextCode : '',
+                            lycee_filiere: nextFiliere,
+                          }));
+                        }}
+                        required
+                        className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      >
+                        {SPECIFIC_NIVEAU_OPTIONS.map((option) => (
+                          <option key={`edit-specific-code-${option.value}`} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {isLyceeNiveauCode(editFormData.specific_niveau_code || '') && (
+                      <div className="sm:col-span-3">
+                        <label className="text-sm font-medium text-gray-700">Filiere</label>
+                        <select
+                          value={editFormData.lycee_filiere || ''}
+                          onChange={(e) => setEditFormData((prev) => ({ ...prev, lycee_filiere: e.target.value }))}
+                          required
+                          className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        >
+                          <option value="">Choisir une filiere</option>
+                          {getFilieresForNiveauCode(editFormData.specific_niveau_code || '').map((filiere) => (
+                            <option key={`edit-filiere-${filiere}`} value={filiere}>{filiere}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    <div className="sm:col-span-2">
+                      <label className="text-sm font-medium text-gray-700">Coefficient</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="10"
+                        value={editFormData.specific_coefficient ?? ''}
+                        onChange={(e) => setEditFormData((prev) => ({ ...prev, specific_coefficient: e.target.value }))}
+                        required
+                        className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      />
+                    </div>
+                  </>
+                )}
 
                 <div className="sm:col-span-6 flex justify-end gap-3 mt-2">
                   <button
@@ -707,22 +1074,43 @@ export default function AdminMatieres({ userRole = 'admin' }) {
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="text-sm font-medium text-gray-700">Niveau assigne</label>
+                  <label className="text-sm font-medium text-gray-700">Type</label>
                   <select
-                    value={formData.niveau}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, niveau: e.target.value }))}
+                    value={formData.type}
+                    onChange={(e) => {
+                      const nextType = e.target.value;
+                      const nextSpecificNiveauCode = formData.specific_niveau_code || 'tc';
+                      const isNextLyceeSpecific = isLyceeNiveauCode(nextSpecificNiveauCode);
+                      const nextSpecificFiliere = isNextLyceeSpecific
+                        ? (
+                          getFilieresForNiveauCode(nextSpecificNiveauCode).includes(formData.lycee_filiere)
+                            ? formData.lycee_filiere
+                            : getDefaultFiliereForNiveauCode(nextSpecificNiveauCode)
+                        )
+                        : '';
+
+                      setFormData((prev) => ({
+                        ...prev,
+                        type: nextType,
+                        niveau: nextType === 'generale' ? 'general' : (getLevelForNiveauCode(nextSpecificNiveauCode) || prev.niveau),
+                        coefficients_by_niveau_code: normalizeGeneralTypeCoefficients(prev.coefficients_by_niveau_code, prev.coefficient),
+                        specific_niveau_code: nextSpecificNiveauCode,
+                        specific_coefficient: Number(prev.specific_coefficient || prev.coefficient || 1),
+                        lycee_niveau_code: nextType === 'specifique' && isNextLyceeSpecific ? nextSpecificNiveauCode : '',
+                        lycee_filiere: nextType === 'specifique' && isNextLyceeSpecific ? nextSpecificFiliere : '',
+                      }));
+                    }}
                     required
                     className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   >
-                    <option value="general">General</option>
-                    <option value="maternelle">Maternelle</option>
-                    <option value="primaire">Primaire</option>
-                    <option value="college">College</option>
-                    <option value="lycee">Lycee</option>
+                    {MATIERE_TYPE_OPTIONS.map((option) => (
+                      <option key={`create-type-${option.value}`} value={option.value}>{option.label}</option>
+                    ))}
                   </select>
                 </div>
                 <div className="sm:col-span-1">
                   <label className="text-sm font-medium text-gray-700">Coefficient</label>
+>>>>>>>>> Temporary merge branch 2
                   <input
                     type="number"
                     min="0"
@@ -730,6 +1118,135 @@ export default function AdminMatieres({ userRole = 'admin' }) {
                     value={formData.coefficient}
                     onChange={(e) => setFormData((prev) => ({ ...prev, coefficient: e.target.value }))}
                     required
+<<<<<<<<< Temporary merge branch 1
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-slate-100">
+                  <button type="button" onClick={closeCreateForm} className="btn btn-outline" disabled={isSaving}>
+                    Annuler
+                  </button>
+                  <button type="submit" className="btn btn-primary" disabled={isSaving}>
+                    {isSaving ? 'Création...' : 'Créer la matière'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal: Edit Matiere */}
+      <AnimatePresence>
+        {editTarget && (
+          <motion.div 
+            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
+            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            className="logout-modal-backdrop"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ type: "spring", bounce: 0.3 }}
+              className="card w-full max-w-lg p-6"
+            >
+              <h3 className="text-xl font-bold text-slate-800 mb-4 border-b border-slate-100 pb-3">Modifier Matière</h3>
+              
+              {editFormError && (
+                <div className="p-3 mb-4 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2">
+                  <AlertCircle size={16} /> {editFormError}
+                </div>
+              )}
+
+              <form onSubmit={handleEditSubmit} className="flex flex-col gap-4">
+                <div className="form-group">
+                  <label className="form-label">Nom de la matière</label>
+                  <input
+                    type="text"
+                    value={editFormData.nom}
+                    onChange={(e) => setEditFormData((prev) => ({ ...prev, nom: e.target.value }))}
+                    required
+                    className="form-input"
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label className="form-label">Coefficient</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={editFormData.coefficient}
+                    onChange={(e) => setEditFormData((prev) => ({ ...prev, coefficient: e.target.value }))}
+                    required
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-slate-100">
+                  <button type="button" onClick={() => setEditTarget(null)} className="btn btn-outline" disabled={isSavingEdit}>
+                    Annuler
+                  </button>
+                  <button type="submit" className="btn btn-primary" disabled={isSavingEdit}>
+                    {isSavingEdit ? 'Enregistrement...' : 'Enregistrer'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal: Delete Confirmation */}
+      <AnimatePresence>
+        {deleteTarget && (
+          <motion.div 
+            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
+            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            className="logout-modal-backdrop"
+          >
+            <motion.div 
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: "spring", bounce: 0.4 }}
+              className="logout-modal-card card"
+            >
+              <div className="logout-modal-icon">
+                <Trash2 size={36} color="#ef4444" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Confirmer la suppression</h3>
+              <p className="text-slate-500 mb-6">
+                Voulez-vous vraiment supprimer la matière <strong className="text-slate-800">{deleteTarget.nom}</strong> ? Cette action est irréversible.
+              </p>
+
+              <div className="flex gap-3 w-full">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(null)}
+                  disabled={isDeleting}
+                  className="btn btn-outline flex-1"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="btn btn-danger flex-1"
+                >
+                  {isDeleting ? 'Suppression...' : 'Supprimer'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+=========
                     className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   />
                 </div>
