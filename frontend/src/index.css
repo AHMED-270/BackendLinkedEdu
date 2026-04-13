@@ -389,6 +389,27 @@ button {
   background: rgba(0, 0, 0, 0.01);
 }
 
+.table-skeleton-row td {
+  background: transparent;
+}
+
+.table-skeleton-bar {
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #e2e8f0 8%, #f8fafc 32%, #e2e8f0 56%);
+  background-size: 240% 100%;
+  animation: tableSkeletonShimmer 1.25s ease-in-out infinite;
+}
+
+@keyframes tableSkeletonShimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
 .badge {
   display: inline-flex;
   align-items: center;

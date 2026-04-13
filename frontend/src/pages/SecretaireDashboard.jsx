@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import TableSkeletonRows from '../components/TableSkeletonRows';
 import './Dashboard.css';
 
 export default function SecretaireDashboard() {
@@ -73,12 +74,7 @@ export default function SecretaireDashboard() {
               </thead>
               <tbody>
                 {loading ? (
-                  [...Array(2)].map((_, index) => (
-                    <tr key={`dash-skeleton-${index}`} className="animate-pulse">
-                      <td><div className="h-3.5 w-36 rounded bg-slate-200"></div></td>
-                      <td><div className="h-3.5 w-12 rounded bg-slate-200"></div></td>
-                    </tr>
-                  ))
+                  <TableSkeletonRows rowCount={2} colCount={2} />
                 ) : (
                   <>
                     <tr><td>Etudiants</td><td>{stats.etudiants}</td></tr>
