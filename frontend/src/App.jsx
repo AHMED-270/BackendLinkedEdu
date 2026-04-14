@@ -1,15 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { AnimatePresence, motion } from 'framer-motion';
-
-// Layout & Admin
 import Layout from './components/Layout';
 import AdminDashboard from './components/AdminDashboard';
 import DirecteurDashboard from './components/DirecteurDashboard';
-import AuthHero from './components/AuthHero';
-import LoginCard from './components/LoginCard';
-
-// Pages
+import SecretaireLayout from './components/SecretaireLayout';
 import Dashboard from './pages/Dashboard';
 import Devoirs from './pages/Devoirs';
 import Ressources from './pages/Ressources';
@@ -21,24 +15,7 @@ import Notes from './pages/Notes';
 import Avancement from './pages/Avancement';
 import Reclamation from './pages/Reclamation';
 import Parametres from './pages/Parametres';
-<<<<<<<<< Temporary merge branch 1
-// import Login from './pages/Login';
-import StudentPortal from './pages/StudentPortal';
-import ParentPortal from './pages/ParentPortal';
-import { ROLE, getHomeRouteByRole } from './constants/roles';
-
-import './App.css';
-
-// Global Loading Component
-const FullScreenLoader = () => (
-  <div className="loading-screen">
-    <div className="loader-core"></div>
-    <p>Chargement de LinkedU...</p>
-  </div>
-);
-=========
 import Login from './pages/Login';
-import SecretaireLayout from './components/SecretaireLayout';
 import SecretaireDashboard from './pages/SecretaireDashboard';
 import SecretaireEtudiants from './pages/SecretaireEtudiants';
 import SecretaireClasses from './pages/SecretaireClasses';
@@ -46,53 +23,48 @@ import SecretaireAbsences from './pages/SecretaireAbsences';
 import SecretaireAnnonces from './pages/SecretaireAnnonces';
 import SecretaireReclamations from './pages/SecretaireReclamations';
 import Paiements from './pages/Paiements';
+import StudentPortal from './pages/StudentPortal';
+import ParentPortal from './pages/ParentPortal';
+import { getHomeRouteByRole } from './constants/roles';
+import './App.css';
 
-const getHomeRouteByRole = (role) => {
-  const normalizedRole = String(role || '').toLowerCase();
-  if (normalizedRole === 'admin' || normalizedRole === 'directeur') return '/admin';
-  if (normalizedRole === 'professeur') return '/dashboard';
-  if (normalizedRole === 'secretaire') return '/secretaire/dashboard';
-  return '/login';
-};
->>>>>>>>> Temporary merge branch 2
+const FullScreenLoader = () => (
+  <div className="loading-screen">Chargement...</div>
+);
 
-// Root Route - Redirects based on auth status
+const SECRETARIAT_STAFF_ROLES = ['secretaire'];
+const FINANCE_PORTAL_ROLES = ['secretaire', 'comptable'];
+
 const RootRoute = () => {
   const { user, loading } = useAuth();
-  
+
   if (loading) return <FullScreenLoader />;
-  if (user) {
-    return <Navigate to={getHomeRouteByRole(user?.role)} replace />;
-  }
-  return <Navigate to="/login" replace />;
+  return user ? <Navigate to={getHomeRouteByRole(user?.role)} replace /> : <Navigate to="/login" replace />;
 };
 
-// Protected Layout Wrapper
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { user, loading } = useAuth();
-  
-  if (loading) return <div className="loading-screen">Chargement...</div>;
+
+  if (loading) return <FullScreenLoader />;
   if (!user) return <Navigate to="/login" replace />;
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-    const homeRoute = resolveHomeRoute(user?.role);
-    return <Navigate to={homeRoute ?? '/login'} replace />;
+    return <Navigate to={getHomeRouteByRole(user.role)} replace />;
   }
-  
+
   return children;
 };
 
-// Title updates per route
 const AppRoutes = () => {
-  const { user, loading, logout, login } = useAuth();
-  const location = useLocation();
+  const { user, loading, logout } = useAuth();
 
-  if (loading) return <div className="loading-screen">Chargement...</div>;
+  if (loading) return <FullScreenLoader />;
 
   return (
     <Routes>
       <Route path="/" element={<RootRoute />} />
       <Route path="/login" element={<Login />} />
+
       <Route
         path="/admin"
         element={
@@ -101,6 +73,7 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/directeur/*"
         element={
@@ -109,6 +82,7 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/etudiant"
         element={
@@ -117,6 +91,7 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/parent"
         element={
@@ -126,17 +101,15 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Secretaire routes */}
-      <Route path="/secretaire/dashboard" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><SecretaireDashboard /></SecretaireLayout></ProtectedRoute>} />
-      <Route path="/secretaire/etudiants" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><SecretaireEtudiants /></SecretaireLayout></ProtectedRoute>} />
-      <Route path="/secretaire/classes" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><SecretaireClasses /></SecretaireLayout></ProtectedRoute>} />
-      <Route path="/secretaire/paiements" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><Paiements /></SecretaireLayout></ProtectedRoute>} />
-      <Route path="/secretaire/absences" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><SecretaireAbsences /></SecretaireLayout></ProtectedRoute>} />
-      <Route path="/secretaire/annonces" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><SecretaireAnnonces /></SecretaireLayout></ProtectedRoute>} />
-      <Route path="/secretaire/reclamations" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><SecretaireReclamations /></SecretaireLayout></ProtectedRoute>} />
-      <Route path="/secretaire/profil" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><Parametres /></SecretaireLayout></ProtectedRoute>} />
-      
-      {/* Professeur routes */}
+      <Route path="/secretaire/dashboard" element={<ProtectedRoute allowedRoles={FINANCE_PORTAL_ROLES}><SecretaireLayout><SecretaireDashboard /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/etudiants" element={<ProtectedRoute allowedRoles={SECRETARIAT_STAFF_ROLES}><SecretaireLayout><SecretaireEtudiants /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/classes" element={<ProtectedRoute allowedRoles={SECRETARIAT_STAFF_ROLES}><SecretaireLayout><SecretaireClasses /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/paiements" element={<ProtectedRoute allowedRoles={FINANCE_PORTAL_ROLES}><SecretaireLayout><Paiements /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/absences" element={<ProtectedRoute allowedRoles={SECRETARIAT_STAFF_ROLES}><SecretaireLayout><SecretaireAbsences /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/annonces" element={<ProtectedRoute allowedRoles={SECRETARIAT_STAFF_ROLES}><SecretaireLayout><SecretaireAnnonces /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/reclamations" element={<ProtectedRoute allowedRoles={SECRETARIAT_STAFF_ROLES}><SecretaireLayout><SecretaireReclamations /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/profil" element={<ProtectedRoute allowedRoles={FINANCE_PORTAL_ROLES}><SecretaireLayout><Parametres /></SecretaireLayout></ProtectedRoute>} />
+
       <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['professeur']}><Layout title="Tableau de Bord"><Dashboard /></Layout></ProtectedRoute>} />
       <Route path="/devoirs" element={<ProtectedRoute allowedRoles={['professeur']}><Layout title="Devoirs & Ressources"><Devoirs /></Layout></ProtectedRoute>} />
       <Route path="/ressources" element={<ProtectedRoute allowedRoles={['professeur']}><Layout title="Publier une Ressource"><Ressources /></Layout></ProtectedRoute>} />
@@ -149,9 +122,8 @@ const AppRoutes = () => {
       <Route path="/reclamation" element={<ProtectedRoute allowedRoles={['professeur']}><Layout title="Réclamation"><Reclamation /></Layout></ProtectedRoute>} />
       <Route path="/profil" element={<ProtectedRoute allowedRoles={['professeur']}><Layout title="Profil"><Parametres /></Layout></ProtectedRoute>} />
       <Route path="/parametres" element={<ProtectedRoute allowedRoles={['professeur']}><Layout title="Paramètres"><Parametres /></Layout></ProtectedRoute>} />
-      
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to={user ? (userHome ?? '/login') : '/login'} replace />} />
+
+      <Route path="*" element={<Navigate to={user ? getHomeRouteByRole(user?.role) : '/login'} replace />} />
     </Routes>
   );
 };

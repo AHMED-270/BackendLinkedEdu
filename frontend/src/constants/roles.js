@@ -5,6 +5,7 @@ export const ROLE = {
   ETUDIANT: 'etudiant',
   PARENT: 'parent',
   SECRETAIRE: 'secretaire',
+  COMPTABLE: 'comptable',
 };
 
 export const ROLE_META = {
@@ -43,6 +44,12 @@ export const ROLE_META = {
     displayLabel: 'Secretaire',
     homeRoute: '/secretaire/dashboard',
     badgeClass: 'badge-blue',
+  },
+  [ROLE.COMPTABLE]: {
+    label: 'Comptable',
+    displayLabel: 'Comptable',
+    homeRoute: '/secretaire/paiements',
+    badgeClass: 'badge-orange',
   },
 };
 

@@ -64,7 +64,7 @@ class AdminDashboardController extends Controller
                 'max:255',
                 \Illuminate\Validation\Rule::unique('users')->where(fn ($query) => $query->where('role', $request->input('role')))
             ],
-            'role' => 'required|string|in:secretaire,directeur,professeur',
+            'role' => 'required|string|in:secretaire,comptable,directeur,professeur',
             'telephone' => 'nullable|string|max:30',
             'matiere_enseignement' => 'nullable|string|max:255',
             'matieres_enseignement' => 'nullable|array',
@@ -145,6 +145,7 @@ class AdminDashboardController extends Controller
 
                 $roleLabel = match ($validated['role']) {
                     'secretaire' => 'Secretaire',
+                    'comptable' => 'Comptable',
                     'professeur' => 'Professeur',
                     'directeur' => 'Directeur',
                     default => ucfirst((string) $validated['role']),
@@ -201,7 +202,7 @@ class AdminDashboardController extends Controller
                 'max:255',
                 \Illuminate\Validation\Rule::unique('users')->ignore($id)->where(fn ($query) => $query->where('role', $request->input('role')))
             ],
-            'role' => 'required|string|in:etudiant,parent,secretaire,admin,directeur,professeur',
+            'role' => 'required|string|in:etudiant,parent,secretaire,comptable,admin,directeur,professeur',
             'password' => 'nullable|string|min:6',
             'id_classe' => 'required_if:role,etudiant|nullable|integer|exists:classes,id_classe',
             'id_parent' => 'required_if:role,etudiant|nullable|integer|exists:parents,id_parent',
@@ -1246,7 +1247,37 @@ class AdminDashboardController extends Controller
         $validationRules = [
             'nom' => 'required|string|max:255',
             'coefficient' => 'required|integer|min:0|max:10',
-        ]);
+        ];
+
+        if ($hasMatiereNiveau) {
+            $validationRules['niveau'] = 'required|string|in:general,maternelle,primaire,college,lycee';
+        }
+
+        if (Schema::hasColumn('matieres', 'coefficients_by_level')) {
+            $validationRules['coefficients_by_level'] = 'nullable|array';
+            $validationRules['coefficients_by_level.*'] = 'nullable|integer|min:0|max:10';
+        }
+
+        if (Schema::hasColumn('matieres', 'coefficients_by_niveau_code')) {
+            $validationRules['coefficients_by_niveau_code'] = 'nullable|array';
+            $validationRules['coefficients_by_niveau_code.*'] = 'nullable|integer|min:0|max:10';
+        }
+
+        if (Schema::hasColumn('matieres', 'lycee_niveau_code')) {
+            $validationRules['lycee_niveau_code'] = 'nullable|string|in:tc,1bac,2bac';
+        }
+
+        if (Schema::hasColumn('matieres', 'lycee_filiere')) {
+            $validationRules['lycee_filiere'] = 'nullable|string|max:255';
+        }
+
+        $validated = $request->validate($validationRules);
+
+        if ($hasMatiereNiveau) {
+            $validated = $this->normalizeMatierePayload($validated, true);
+        } else {
+            unset($validated['niveau'], $validated['coefficients_by_level'], $validated['coefficients_by_niveau_code'], $validated['lycee_niveau_code'], $validated['lycee_filiere']);
+        }
 
         $existingQuery = Matiere::where('nom', $validated['nom']);
         if ($hasMatiereNiveau) {
@@ -1279,10 +1310,42 @@ class AdminDashboardController extends Controller
         $validationRules = [
             'nom' => 'required|string|max:255',
             'coefficient' => 'required|integer|min:0|max:10',
-        ]);
+        ];
+
+        if ($hasMatiereNiveau) {
+            $validationRules['niveau'] = 'required|string|in:general,maternelle,primaire,college,lycee';
+        }
+
+        if (Schema::hasColumn('matieres', 'coefficients_by_level')) {
+            $validationRules['coefficients_by_level'] = 'nullable|array';
+            $validationRules['coefficients_by_level.*'] = 'nullable|integer|min:0|max:10';
+        }
+
+        if (Schema::hasColumn('matieres', 'coefficients_by_niveau_code')) {
+            $validationRules['coefficients_by_niveau_code'] = 'nullable|array';
+            $validationRules['coefficients_by_niveau_code.*'] = 'nullable|integer|min:0|max:10';
+        }
+
+        if (Schema::hasColumn('matieres', 'lycee_niveau_code')) {
+            $validationRules['lycee_niveau_code'] = 'nullable|string|in:tc,1bac,2bac';
+        }
+
+        if (Schema::hasColumn('matieres', 'lycee_filiere')) {
+            $validationRules['lycee_filiere'] = 'nullable|string|max:255';
+        }
+
+        $validated = $request->validate($validationRules);
+
+        if ($hasMatiereNiveau) {
+            $validated = $this->normalizeMatierePayload($validated, false);
+        } else {
+            unset($validated['niveau'], $validated['coefficients_by_level'], $validated['coefficients_by_niveau_code'], $validated['lycee_niveau_code'], $validated['lycee_filiere']);
+        }
 
         $existing = Matiere::where('nom', $validated['nom'])
-            ->where('niveau', $validated['niveau'])
+            ->when($hasMatiereNiveau, function ($query) use ($validated) {
+                $query->where('niveau', $validated['niveau']);
+            })
             ->where('id_matiere', '!=', $matiere->id_matiere)
             ->first();
             

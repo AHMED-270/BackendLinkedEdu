@@ -298,6 +298,7 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
   const roles = [
     { value: 'professeur', label: 'Professeur' },
     { value: 'secretaire', label: 'Secretariat' },
+    { value: 'comptable', label: 'Comptable' },
     { value: 'directeur', label: 'Directeur' }
   ];
 
@@ -347,7 +348,7 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
           <div className="px-6 pt-6 pb-4 border-b border-gray-100 bg-gray-50/70">
             <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">Users / {isEditing ? 'Modifier' : 'Ajouter'}</p>
             <h2 className="text-3xl font-extrabold text-gray-900 mt-1">{isEditing ? 'Modifier un Utilisateur' : 'Ajouter un Utilisateur'}</h2>
-            <p className="text-sm text-gray-500 mt-1">Creation manuelle reservee aux cadres: secretaire, professeur, directeur.</p>
+            <p className="text-sm text-gray-500 mt-1">Creation manuelle reservee aux cadres: secretaire, comptable, professeur, directeur.</p>
           </div>
         )}
 

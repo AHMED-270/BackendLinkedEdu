@@ -166,7 +166,7 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
           setNiveauScolaire('');
         }
       } catch (error) {
-        setFormMsg('Impossible de charger les données.');
+        setFormMsg('Impossible de charger les donn├®es.');
       }
     };
 
@@ -251,6 +251,13 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
       return;
     }
 
+    const unassignedMatieres = configuredMatieres.filter((matiere) => !matiereProfesseurs[matiere.matiereId]);
+    if (unassignedMatieres.length > 0) {
+      setFormMsg('Veuillez selectionner un professeur pour chaque matiere du cadre pedagogique.');
+      setSaving(false);
+      return;
+    }
+
     const professeurMatieresPayload = {};
     configuredMatieres.forEach((matiere) => {
       const professeurId = String(matiereProfesseurs[matiere.matiereId] || '').trim();
@@ -269,7 +276,6 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
     const professeurIds = Object.keys(professeurMatieresPayload).map((id) => Number(id));
     if (professeurIds.length === 0) {
       setFormMsg('Veuillez assigner au moins un professeur.');
->>>>>>>>> Temporary merge branch 2
       setSaving(false);
       return;
     }
@@ -532,7 +538,7 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
               <BiSolidUserDetail className="text-blue-600" />
               {isEditing ? 'Modifier Classe' : 'Nouvelle Classe'}
             </h1>
-            <p className="text-slate-500 mt-2 max-w-2xl">Formulaire de configuration des structures pédagogiques.</p>
+            <p className="text-slate-500 mt-2 max-w-2xl">Formulaire de configuration des structures p├®dagogiques.</p>
           </div>
           <button
             type="button"
@@ -548,8 +554,8 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
         {isModal && (
           <div className="px-8 pt-8 pb-6 border-b border-slate-100 bg-gradient-to-br from-blue-50/50 to-white">
             <p className="text-[10px] uppercase tracking-[0.2em] text-blue-600 font-black mb-1">Classes / {isEditing ? 'Modifier' : 'Ajouter'}</p>
-            <h2 className="text-3xl font-black text-slate-900 mt-1">{isEditing ? 'Éditer la Classe' : 'Créer une Classe'}</h2>
-            <p className="text-sm text-slate-500 mt-2 font-medium">Définissez le nom, le niveau et affectez les enseignants responsables.</p>
+            <h2 className="text-3xl font-black text-slate-900 mt-1">{isEditing ? '├ëditer la Classe' : 'Cr├®er une Classe'}</h2>
+            <p className="text-sm text-slate-500 mt-2 font-medium">D├®finissez le nom, le niveau et affectez les enseignants responsables.</p>
           </div>
         )}
 
@@ -577,7 +583,7 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
                       value={formData.nom}
                       onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
                       required
-                      placeholder="Ex: 3ème B"
+                      placeholder="Ex: 3├¿me B"
                       className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
                     />
                   </div>
@@ -615,7 +621,7 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
               </div>
             </section>
 
-            {/* Section: Filière & Pricing */}
+            {/* Section: Fili├¿re & Pricing */}
             <section className="border border-gray-200 rounded-xl overflow-hidden bg-white">
               <div className="grid grid-cols-1 md:grid-cols-12">
                 <div className="md:col-span-4 bg-gray-50 p-4 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col justify-center">
@@ -662,7 +668,7 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
                       value={formData.pricing}
                       onChange={(e) => setFormData({ ...formData, pricing: e.target.value })}
                       min="0"
-                      step="0.01"
+                      step="100"
                       placeholder="Entrer le cout de scolarite"
                       className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
                     />
