@@ -82,52 +82,52 @@ function NiveauTooltip({ active, payload }) {
 
 export default function SecretaireDashboard() {
   const { user } = useAuth();
+  const role = String(user?.role || '').toLowerCase();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     etudiants: 0,
     classes: 0,
-    absences_aujourdhui: 0,
-    reclamations_envoyees: 0,
   });
   const [absencesParMois, setAbsencesParMois] = useState([]);
   const [etudiantsParNiveau, setEtudiantsParNiveau] = useState([]);
 
   useEffect(() => {
-    const fetchDashboard = async () => {
-      const apiBaseUrl =
-        import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000';
+    const fetchStats = async () => {
+      const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000';
       setLoading(true);
       try {
-        const res = await axios.get(apiBaseUrl + '/api/secretaire/dashboard', {
-          withCredentials: true,
-          withXSRFToken: true,
-          headers: { Accept: 'application/json' },
+        const [dashboardRes, reclamationsRes] = await Promise.all([
+          axios.get(apiBaseUrl + '/api/secretaire/dashboard', {
+            withCredentials: true,
+            withXSRFToken: true,
+            headers: { Accept: 'application/json' },
+          }),
+          axios.get(apiBaseUrl + '/api/secretaire/reclamations', {
+            withCredentials: true,
+            withXSRFToken: true,
+            headers: { Accept: 'application/json' },
+          }),
+        ]);
+
+        setStats(dashboardRes.data?.stats || {
+          etudiants: 0,
+          classes: 0,
         });
 
-        setStats(
-          res.data?.stats || {
-            etudiants: 0,
-            classes: 0,
-            absences_aujourdhui: 0,
-            reclamations_envoyees: 0,
-          }
-        );
-        setAbsencesParMois(res.data?.absences_par_mois || []);
+        const items = Array.isArray(reclamationsRes.data)
+          ? reclamationsRes.data
+          : (reclamationsRes.data?.reclamations || []);
 
-        // Add colors to each niveau entry
-        const niveaux = (res.data?.etudiants_par_niveau || []).map((item, idx) => ({
-          ...item,
-          fill: BAR_COLORS[idx % BAR_COLORS.length],
-        }));
-        setEtudiantsParNiveau(niveaux);
+        setRecentReclamations(items.slice(0, 5));
       } catch {
         // Keep default values when API is unavailable.
+        setRecentReclamations([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchDashboard();
+    fetchStats();
   }, []);
 
   /* ── Greeting based on time of day ── */
@@ -220,9 +220,12 @@ export default function SecretaireDashboard() {
             <div className="sd-stat-content">
               <span className="sd-stat-value">
                 {loading ? (
-                  <span className="sd-skeleton-num" />
+                  <TableSkeletonRows rowCount={2} colCount={2} />
                 ) : (
-                  card.value.toLocaleString('fr-FR')
+                  <>
+                    <tr><td>Etudiants</td><td>{stats.etudiants}</td></tr>
+                    <tr><td>Classes</td><td>{stats.classes}</td></tr>
+                  </>
                 )}
               </span>
               <span className="sd-stat-label">{card.label}</span>
@@ -231,145 +234,22 @@ export default function SecretaireDashboard() {
         ))}
       </div>
 
-      {/* ── Charts Row ── */}
-      <div className="sd-charts-row">
-        {/* ── Absences Chart ── */}
-        <div className="sd-chart-card sd-chart-wide animate-fade-in" style={{ animationDelay: '0.25s' }}>
-          <div className="sd-chart-header">
-            <div>
-              <h3 className="sd-chart-title">Moyenne des absences par mois</h3>
-              <p className="sd-chart-subtitle">
-                Absences moyennes par jour de classe — 12 derniers mois
-              </p>
-            </div>
-            {!loading && (
-              <div className={`sd-trend-badge ${trend > 0 ? 'sd-trend-up' : 'sd-trend-down'}`}>
-                {trend > 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                <span>{trend > 0 ? '+' : ''}{trend.toFixed(1)}</span>
-              </div>
-            )}
-          </div>
-
-          <div className="sd-chart-body">
+      <div className="dash-row animate-fade-in" style={{ animationDelay: '0.2s' }}>
+        <div className="card" style={{ flex: 1 }}>
+          <div className="card-header"><h3>Reclamations recentes</h3></div>
+          <div className="card-body" style={{ paddingTop: 0 }}>
             {loading ? (
-              <div className="sd-chart-skeleton">
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="sd-chart-skeleton-bar"
-                    style={{ height: `${30 + Math.random() * 50}%` }}
-                  />
-                ))}
-              </div>
+              <p>Chargement...</p>
+            ) : recentReclamations.length === 0 ? (
+              <p>Aucune reclamation recente.</p>
             ) : (
-              <ResponsiveContainer width="100%" height={320}>
-                <AreaChart
-                  data={absencesParMois}
-                  margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="absGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#667eea" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#667eea" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="rgba(0,0,0,0.06)"
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="mois"
-                    tick={{ fontSize: 11, fill: '#6B7280' }}
-                    axisLine={false}
-                    tickLine={false}
-                    dy={10}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: '#6B7280' }}
-                    axisLine={false}
-                    tickLine={false}
-                    dx={-5}
-                    allowDecimals={false}
-                  />
-                  <Tooltip content={<AbsTooltip />} />
-                  <Area
-                    type="monotone"
-                    dataKey="moyenne"
-                    stroke="#667eea"
-                    strokeWidth={3}
-                    fill="url(#absGradient)"
-                    dot={{ r: 5, fill: '#fff', stroke: '#667eea', strokeWidth: 2 }}
-                    activeDot={{ r: 7, fill: '#667eea', stroke: '#fff', strokeWidth: 3 }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
-
-        {/* ── Students by Level Chart ── */}
-        <div className="sd-chart-card sd-chart-narrow animate-fade-in" style={{ animationDelay: '0.35s' }}>
-          <div className="sd-chart-header">
-            <div>
-              <h3 className="sd-chart-title">Étudiants par niveau</h3>
-              <p className="sd-chart-subtitle">Répartition des élèves</p>
-            </div>
-          </div>
-
-          <div className="sd-chart-body">
-            {loading ? (
-              <div className="sd-chart-skeleton sd-chart-skeleton-horiz">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="sd-chart-skeleton-bar-h"
-                    style={{ width: `${40 + Math.random() * 50}%` }}
-                  />
+              <ul style={{ margin: 0, paddingLeft: '1rem' }}>
+                {recentReclamations.map((rec) => (
+                  <li key={rec.id_reclamation} style={{ marginBottom: '0.7rem' }}>
+                    <strong>{rec.sujet || 'Sans sujet'}</strong> - {rec.cible_label || 'Destinataire'}
+                  </li>
                 ))}
-              </div>
-            ) : etudiantsParNiveau.length === 0 ? (
-              <div className="sd-chart-empty">
-                <Users size={40} strokeWidth={1.2} />
-                <p>Aucune donnée disponible</p>
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={320}>
-                <BarChart
-                  data={etudiantsParNiveau}
-                  layout="vertical"
-                  margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
-                  barCategoryGap="25%"
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="rgba(0,0,0,0.06)"
-                    horizontal={false}
-                  />
-                  <XAxis
-                    type="number"
-                    tick={{ fontSize: 12, fill: '#6B7280' }}
-                    axisLine={false}
-                    tickLine={false}
-                    allowDecimals={false}
-                  />
-                  <YAxis
-                    dataKey="niveau"
-                    type="category"
-                    tickFormatter={(val) => NIVEAU_MAP[val] || val}
-                    tick={{ fontSize: 10, fill: '#374151', fontWeight: 600 }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={100}
-                  />
-                  <Tooltip content={<NiveauTooltip />} cursor={{ fill: 'rgba(102,126,234,0.06)' }} />
-                  <Bar dataKey="total" radius={[0, 8, 8, 0]} barSize={28}>
-                    {etudiantsParNiveau.map((entry, idx) => (
-                      <Cell key={`cell-${idx}`} fill={entry.fill} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              </ul>
             )}
           </div>
         </div>

@@ -33,8 +33,7 @@ export default function Annonces() {
     }
   };
 
-  useEffect(() => {
-    loadAnnonces();
+    loadAnnouncements();
   }, []);
 
   const downloadAttachment = (annonce) => {
@@ -84,6 +83,13 @@ export default function Annonces() {
       {/* Header Section */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
+<<<<<<< HEAD
+          <h2 className="flex items-center gap-3">
+            <Inbox className="w-8 h-8 text-indigo-600" />
+            Annonces de l'├ëtablissement
+          </h2>
+          <p>T├®l├®chargez chaque annonce en Word ou PDF (mod├¿le scolaire).</p>
+=======
           <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight flex items-center gap-2">
             <Megaphone className="text-blue-600" size={28} /> Communication Interne
           </h1>
@@ -169,64 +175,69 @@ export default function Annonces() {
               )}
             </tbody>
           </table>
+>>>>>>> 78db954bb8f9de8159957adfa96a2d298d6c39d8
         </div>
       </div>
 
-      <AnimatePresence>
-        {selectedAnnonce && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-[1px] p-4 flex items-center justify-center"
-          >
-            <motion.div
-              initial={{ opacity: 0, y: 16, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 16, scale: 0.98 }}
-              className="w-full max-w-2xl bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden"
-            >
-              <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-                <h3 className="font-bold text-slate-800">Détails de l'annonce</h3>
-                <button
-                  type="button"
-                  onClick={() => setSelectedAnnonce(null)}
-                  className="p-2 rounded-md hover:bg-slate-100 text-slate-500"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="p-5 space-y-4">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Titre</p>
-                  <p className="text-slate-800 font-semibold">{selectedAnnonce.title}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Contenu</p>
-                  <p className="text-slate-700 whitespace-pre-wrap">{selectedAnnonce.content || '-'}</p>
-                </div>
-                <div className="flex flex-wrap gap-4 text-sm text-slate-500">
-                  <span className="inline-flex items-center gap-1"><User size={14} /> {selectedAnnonce.author || '-'}</span>
-                  <span className="inline-flex items-center gap-1"><Calendar size={14} /> {selectedAnnonce.date || '-'}</span>
-                </div>
-              </div>
-
-              <div className="px-5 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
-               
-                <button
-                  type="button"
-                  disabled={!hasAttachment(selectedAnnonce)}
-                  onClick={() => downloadAttachment(selectedAnnonce)}
-                  className="inline-flex items-center gap-2 rounded-md border border-white bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Download size={14} /> Télécharger
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <div className="table-wrapper animate-fade-in bg-white rounded-2xl border border-gray-100 overflow-hidden" style={{ animationDelay: '0.1s' }}>
+        <table className="table w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-200">
+              <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Titre</th>
+              <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Contenu</th>
+              <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Auteur</th>
+              <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
+              <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Pi├¿ce</th>
+              <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">T├®l├®chargement</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {loading ? (
+              <tr>
+                <td colSpan="6" className="py-4 px-6">Chargement des annonces...</td>
+              </tr>
+            ) : annonces.length > 0 ? (
+              annonces.map((annonce) => (
+                <tr key={annonce.id} className="hover:bg-blue-50/50 transition-colors group">
+                  <td className="py-4 px-6">{annonce.title}</td>
+                  <td className="py-4 px-6">{annonce.content}</td>
+                  <td className="py-4 px-6">{annonce.author || '-'}</td>
+                  <td className="py-4 px-6">{annonce.date || formatDate(annonce.raw_date)}</td>
+                  <td className="py-4 px-6">{annonce.photo_url ? 'Photo jointe' : 'Aucune'}</td>
+                  <td className="py-4 px-6">
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => downloadAnnonceWord(annonce)}
+                      >
+                        Word
+                      </button>
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() => downloadAnnoncePdf(annonce)}
+                      >
+                        PDF
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="6" className="py-12 text-center">
+                  <div className="flex flex-col items-center justify-center text-gray-400">
+                    <Inbox className="w-12 h-12 mb-3 text-gray-200" />
+                    <p className="text-base font-medium text-gray-500">Aucune annonce trouv├®e</p>
+                    <p className="text-sm mt-1">Aucune annonce disponible pour le moment.</p>
+                  </div>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

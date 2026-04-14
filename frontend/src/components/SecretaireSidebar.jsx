@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { FiGrid, FiUsers, FiCreditCard, FiBookOpen, FiCalendar, FiMessageCircle, FiAlertCircle, FiLogOut } from 'react-icons/fi';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import './SecretaireSidebar.css';
@@ -11,7 +11,7 @@ const navItems = [
   { path: '/secretaire/paiements', label: 'Paiements', icon: FiCreditCard },
   { path: '/secretaire/classes', label: 'Classes', icon: FiBookOpen },
   { path: '/secretaire/absences', label: 'Absences', icon: FiCalendar },
-  { path: '/secretaire/annonces', label: 'Annonces', icon: FiMessageCircle },   
+  { path: '/secretaire/annonces', label: 'Annonces', icon: FiMessageCircle },
   { path: '/secretaire/reclamations', label: 'Reclamations', icon: FiAlertCircle },
 ];
 
@@ -20,13 +20,16 @@ export default function SecretaireSidebar() {
   const navigate = useNavigate();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const role = String(user?.role || '').toLowerCase();
+  const visibleNavItems = role === 'comptable'
+    ? navItems.filter((item) => item.path === '/secretaire/dashboard' || item.path === '/secretaire/paiements')
+    : navItems;
 
   const handleLogoutConfirm = async () => {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
 
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
       await axios.get(apiBaseUrl + '/sanctum/csrf-cookie', {
         withCredentials: true,
         withXSRFToken: true,
@@ -37,7 +40,7 @@ export default function SecretaireSidebar() {
         headers: { Accept: 'application/json' },
       });
     } catch {
-      // Continue even if API request fails
+      // Continue even if API request fails.
     } finally {
       logout();
       setIsLoggingOut(false);
@@ -45,10 +48,11 @@ export default function SecretaireSidebar() {
       navigate('/login', { replace: true });
     }
   };
+
   const initials = (user?.name || 'S').trim().charAt(0).toUpperCase();
 
   return (
-      <>
+    <>
       {showLogoutModal && (
         <div className="logout-modal-backdrop">
           <div className="logout-modal-card">
@@ -78,9 +82,7 @@ export default function SecretaireSidebar() {
       )}
 
       <aside className="fixed bottom-0 left-0 top-16 z-[90] w-[260px] border-r border-slate-200 bg-white">
-        <div className="flex h-full flex-col px-3 py-4">
-          
-
+        <div className="flex h-full flex-col overflow-y-auto px-3 py-4">
           <div className="mx-2 mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
             <div className="flex items-center gap-3">
               {user?.profilePhoto ? (
@@ -130,9 +132,29 @@ export default function SecretaireSidebar() {
             })}
           </nav>
 
-       
+          {role !== 'comptable' && (
+            <div className="sidebar-classes-wrap">
+              <div className="sidebar-classes-title">Classes</div>
+              {isLoadingClasses ? (
+                <p className="sidebar-classes-empty">Chargement...</p>
+              ) : classes.length === 0 ? (
+                <p className="sidebar-classes-empty">Aucune classe</p>
+              ) : (
+                <ul className="sidebar-classes-list">
+                  {classes.map((classe) => (
+                    <li key={classe.id_classe} className="sidebar-class-item">
+                      <span className="sidebar-class-name">{classe.nom}</span>
+                      <span className="sidebar-class-meta">
+                        {classe.niveau || '-'} • {classe.total_etudiants ?? 0} eleve(s)
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
       </aside>
-      </>
+    </>
   );
 }

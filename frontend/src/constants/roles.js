@@ -44,6 +44,12 @@ export const ROLE_META = {
     homeRoute: '/secretaire/dashboard',
     badgeClass: 'badge-blue',
   },
+  [ROLE.COMPTABLE]: {
+    label: 'Comptable',
+    displayLabel: 'Comptable',
+    homeRoute: '/secretaire/paiements',
+    badgeClass: 'badge-orange',
+  },
 };
 
 export function getRoleMeta(role) {

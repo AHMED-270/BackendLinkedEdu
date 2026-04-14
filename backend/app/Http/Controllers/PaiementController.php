@@ -8,6 +8,7 @@ use App\Models\Paiement;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class PaiementController extends Controller
@@ -91,16 +92,22 @@ class PaiementController extends Controller
             ];
         });
 
+        $hasClassPricing = Schema::hasColumn('classes', 'pricing');
+        $classSelect = ['id_classe', 'nom', 'niveau'];
+        if ($hasClassPricing) {
+            $classSelect[] = 'pricing';
+        }
+
         $classes = Classe::query()
             ->orderBy('niveau')
             ->orderBy('nom')
-            ->get(['id_classe', 'nom', 'niveau', 'pricing'])
-            ->map(function ($classe) {
+            ->get($classSelect)
+            ->map(function ($classe) use ($hasClassPricing) {
                 return [
                     'id_classe' => $classe->id_classe,
                     'nom' => $classe->nom,
                     'niveau' => $classe->niveau,
-                    'pricing' => $classe->pricing,
+                    'pricing' => $hasClassPricing ? (float) ($classe->pricing ?? 0) : 0,
                     'label' => trim($classe->nom . ' - ' . $classe->niveau),
                 ];
             });
