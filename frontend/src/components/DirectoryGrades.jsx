@@ -47,10 +47,12 @@ function DirectoryGrades() {
   const [classes, setClasses] = useState([]);
   const [matieres, setMatieres] = useState([]);
   const [evaluationTypes, setEvaluationTypes] = useState(DEFAULT_EVALUATION_TYPES);
+  const [periods, setPeriods] = useState([]);
 
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedMatiere, setSelectedMatiere] = useState('');
   const [selectedEvaluationType, setSelectedEvaluationType] = useState('Tous');
+  const [selectedPeriod, setSelectedPeriod] = useState('all');
 
   const [columns, setColumns] = useState([]);
   const [students, setStudents] = useState([]);
@@ -67,6 +69,7 @@ function DirectoryGrades() {
     classId = selectedClass,
     matiereId = selectedMatiere,
     evaluationType = selectedEvaluationType,
+    period = selectedPeriod,
   } = {}) => {
     setLoading(true);
     setErrorMsg('');
@@ -77,6 +80,7 @@ function DirectoryGrades() {
       if (classId) params.class_id = classId;
       if (matiereId) params.matiere_id = matiereId;
       if (evaluationType) params.evaluation_type = evaluationType;
+      if (period) params.period = period;
 
       const response = await axios.get(`${apiBaseUrl}/api/directeur/notes`, {
         withCredentials: true,
@@ -93,10 +97,15 @@ function DirectoryGrades() {
       setClasses(Array.isArray(filters.classes) ? filters.classes : []);
       setMatieres(Array.isArray(filters.matieres) ? filters.matieres : []);
       setEvaluationTypes(Array.isArray(filters.evaluationTypes) && filters.evaluationTypes.length > 0 ? filters.evaluationTypes : DEFAULT_EVALUATION_TYPES);
+      setPeriods(Array.isArray(filters.periods) ? filters.periods : []);
 
       setSelectedClass(filters.selectedClassId ? String(filters.selectedClassId) : '');
-      setSelectedMatiere(filters.selectedMatiereId ? String(filters.selectedMatiereId) : '');
+      const firstMatiereId = Array.isArray(filters.matieres) && filters.matieres.length > 0
+        ? String(filters.matieres[0].id)
+        : '';
+      setSelectedMatiere(filters.selectedMatiereId ? String(filters.selectedMatiereId) : firstMatiereId);
       setSelectedEvaluationType(String(filters.selectedEvaluationType || 'Tous'));
+      setSelectedPeriod(String(filters.selectedPeriod || 'all'));
 
       setColumns(Array.isArray(payload.columns) ? payload.columns : []);
       setStudents(Array.isArray(payload.students) ? payload.students : []);
@@ -123,9 +132,9 @@ function DirectoryGrades() {
   }, [classes, selectedClass]);
 
   const selectedMatiereLabel = useMemo(() => {
-    if (!selectedMatiere) return 'Toutes';
+    if (!selectedMatiere) return matieres[0]?.nom || '-';
     const current = matieres.find((matiere) => String(matiere.id) === String(selectedMatiere));
-    return current?.nom || 'Toutes';
+    return current?.nom || matieres[0]?.nom || '-';
   }, [matieres, selectedMatiere]);
 
   const filteredStudents = useMemo(() => {
@@ -232,13 +241,40 @@ function DirectoryGrades() {
 
     doc.save(`notes-examens-${Date.now()}.pdf`);
   };
-
   return (
     <div className="prof-page">
-      <header className="page-dashboard-header">
+      <header className="page-dashboard-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1>Notes & Examens</h1>
+          <h1>Notes &amp; Examens</h1>
           <p>Classe - Matiere - Eleves - Notes - Moyenne - Statut.</p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div className="dir-notes-search" style={{ minWidth: '220px' }}>
+            <Search size={16} />
+            <input
+              type="text"
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
+              placeholder="Rechercher par nom"
+            />
+          </div>
+          <button
+            type="button"
+            className="dir-notes-export-btn dir-notes-export-btn-csv"
+            onClick={exportCsv}
+          >
+            <Download size={16} /> Export Excel (CSV)
+          </button>
+          <button
+            type="button"
+            className="dir-notes-export-btn dir-notes-export-btn-pdf"
+            onClick={exportPdf}
+          >
+            <FileText size={16} /> Export PDF
+          </button>
         </div>
       </header>
 
@@ -256,6 +292,7 @@ function DirectoryGrades() {
                   classId: nextClass,
                   matiereId: '',
                   evaluationType: selectedEvaluationType,
+                  period: selectedPeriod,
                 });
               }}
             >
@@ -277,10 +314,11 @@ function DirectoryGrades() {
                   classId: selectedClass,
                   matiereId: nextMatiere,
                   evaluationType: selectedEvaluationType,
+                  period: selectedPeriod,
                 });
               }}
             >
-              <option value="">Toutes les matieres</option>
+              {matieres.length === 0 && <option value="">Aucune matiere</option>}
               {matieres.map((matiere) => (
                 <option key={matiere.id} value={String(matiere.id)}>{matiere.nom}</option>
               ))}
@@ -298,6 +336,7 @@ function DirectoryGrades() {
                   classId: selectedClass,
                   matiereId: selectedMatiere,
                   evaluationType: nextType,
+                  period: selectedPeriod,
                 });
               }}
             >
@@ -308,39 +347,25 @@ function DirectoryGrades() {
           </div>
 
           <div className="prof-filter-group">
-            <label>RECHERCHE ELEVES</label>
-            <div className="dir-notes-search">
-              <Search size={16} />
-              <input
-                type="text"
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                  setPage(1);
-                }}
-                placeholder="Rechercher par nom"
-              />
-            </div>
+            <label>PERIODE/SEMESTRE</label>
+            <select
+              value={selectedPeriod}
+              onChange={(event) => {
+                const nextPeriod = event.target.value;
+                setSelectedPeriod(nextPeriod);
+                loadOverview({
+                  classId: selectedClass,
+                  matiereId: selectedMatiere,
+                  evaluationType: selectedEvaluationType,
+                  period: nextPeriod,
+                });
+              }}
+            >
+              {periods.map((p) => (
+                <option key={p.value} value={p.value}>{p.label}</option>
+              ))}
+            </select>
           </div>
-        </div>
-
-        <div className="dir-notes-actions">
-          <button
-            type="button"
-            className="dir-notes-export-btn"
-            onClick={exportCsv}
-            disabled={filteredStudents.length === 0}
-          >
-            <Download size={16} /> Export Excel (CSV)
-          </button>
-          <button
-            type="button"
-            className="dir-notes-export-btn"
-            onClick={exportPdf}
-            disabled={filteredStudents.length === 0}
-          >
-            <FileText size={16} /> Export PDF
-          </button>
         </div>
       </section>
 

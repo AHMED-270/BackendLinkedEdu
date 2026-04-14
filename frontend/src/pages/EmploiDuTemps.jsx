@@ -1,7 +1,8 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { professorGet } from '../services/professorApi';
 import { Clock, Calendar as CalendarIcon, MapPin, Users, Printer, Download, BookOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
+import '../components/DirectoryTimetable.css';
 
 const JOURS_SEMAINE = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 
@@ -17,41 +18,127 @@ const CARD_COLORS = [
 
 export default function EmploiDuTemps() {
   const [schedule, setSchedule] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [selectedClass, setSelectedClass] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    const loadSchedule = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const data = await professorGet('/api/professeur/emploi-du-temps');
-        setSchedule(data.schedule || []);
-      } catch {
-        setError("Impossible de charger l'emploi du temps.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const formatClassLabel = (classe) => {
+    const explicitLabel = String(classe?.label || '').trim();
+    if (explicitLabel) return explicitLabel;
 
+    const name = String(classe?.nom || '').trim();
+    const level = String(classe?.niveau || '').trim();
+    if (name && level) return `${name} (${level})`;
+    return name || level || 'Classe';
+  };
+
+  const loadSchedule = async (classId = '') => {
+    setLoading(true);
+    setError('');
+    try {
+      const params = classId ? { class_id: classId } : {};
+      const data = await professorGet('/api/professeur/emploi-du-temps', params);
+      setClasses(data.classes || []);
+      setSelectedClass(data.selectedClassId ? String(data.selectedClassId) : '');
+      setSchedule(data.schedule || []);
+    } catch {
+      setError("Impossible de charger l'emploi du temps.");
+      setClasses([]);
+      setSchedule([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadSchedule();
   }, []);
 
-  // 1. Organiser les données brutes (liste) en un objet groupé par jour
-  const scheduleByDay = JOURS_SEMAINE.reduce((acc, jour) => {
-    acc[jour] = schedule
-      .filter((s) => s.jour?.toLowerCase() === jour.toLowerCase())
-      // Trier par heure de début pour que les cours du matin soient en haut
-      .sort((a, b) => a.heure_debut.localeCompare(b.heure_debut));
-    return acc;
-  }, {});
-
-  // Fonction pour assigner une couleur constante basée sur le nom de la matière
-  const getColorForMatiere = (matiereNom) => {
-    if (!matiereNom) return CARD_COLORS[0];
-    const charCode = matiereNom.charCodeAt(0) || 0;
-    return CARD_COLORS[charCode % CARD_COLORS.length];
+  // Helper functions for time calculation
+  const normalizeTime = (value) => String(value || '').slice(0, 5);
+  const timeToMinutes = (value) => {
+    const normalized = normalizeTime(value);
+    if (!/^\d{2}:\d{2}$/.test(normalized)) return null;
+    const [hoursRaw, minutesRaw] = normalized.split(':').map(Number);
+    return (hoursRaw * 60) + minutesRaw;
   };
+  const addHoursTime = (startTime, durationHours = 1) => {
+    const normalized = normalizeTime(startTime);
+    if (!/^\d{2}:\d{2}$/.test(normalized)) return normalized;
+    const safeDuration = Number.isFinite(Number(durationHours)) ? Number(durationHours) : 1;
+    const [hoursRaw, minutesRaw] = normalized.split(':').map(Number);
+    const nextHours = (hoursRaw + safeDuration) % 24;
+    return `${String(nextHours).padStart(2, '0')}:${String(minutesRaw).padStart(2, '0')}`;
+  };
+  const addOneHourTime = (startTime) => addHoursTime(startTime, 1);
+
+  const buildCoveredTimeSlots = (startTime, endTime) => {
+    const normalizedStart = normalizeTime(startTime);
+    const normalizedEnd = normalizeTime(endTime);
+    if (!/^\d{2}:\d{2}$/.test(normalizedStart)) return [];
+    const startMinutes = timeToMinutes(normalizedStart);
+    const endMinutes = timeToMinutes(normalizedEnd);
+    if (startMinutes === null || endMinutes === null || endMinutes <= startMinutes) return [normalizedStart];
+    const slots = [];
+    let current = normalizedStart;
+    let guard = 0;
+    while (guard < 24) {
+      const currentMinutes = timeToMinutes(current);
+      if (currentMinutes === null || currentMinutes >= endMinutes) break;
+      slots.push(current);
+      current = addHoursTime(current, 1);
+      guard += 1;
+    }
+    return slots.length > 0 ? slots : [normalizedStart];
+  };
+
+  const buildHourlySlots = (start = '08:30', count = 10) => {
+    const slots = [];
+    let current = start;
+    for (let index = 0; index < count; index += 1) {
+      slots.push(current);
+      current = addHoursTime(current, 1);
+    }
+    return slots;
+  };
+
+  // Convert raw schedule to timetable format
+  const tableTimes = useMemo(() => {
+    const defaultSlots = buildHourlySlots('08:30', 10);
+    const coveredTimes = schedule.flatMap((item) => {
+      const startTime = normalizeTime(item?.heure_debut);
+      const endTime = normalizeTime(item?.heure_fin) || addHoursTime(startTime, 1);
+      return buildCoveredTimeSlots(startTime, endTime);
+    });
+    const uniqueTimes = [...new Set(coveredTimes.filter((time) => /^\d{2}:\d{2}$/.test(time)))].sort((a, b) => a.localeCompare(b));
+    return [...new Set([...defaultSlots, ...uniqueTimes])].sort((a, b) => a.localeCompare(b));
+  }, [schedule]);
+
+  const scheduleData = useMemo(() => {
+    const formatted = {};
+    schedule.forEach((item) => {
+      const day = String(item?.jour || '');
+      const startTime = normalizeTime(item?.heure_debut);
+      const endTime = normalizeTime(item?.heure_fin) || addHoursTime(startTime, 1);
+
+      if (!day || !/^\d{2}:\d{2}$/.test(startTime)) return;
+
+      const coveredSlots = buildCoveredTimeSlots(startTime, endTime);
+      const cardData = {
+        id: item.id_edt,
+        raw: item,
+        subject: item.matiere_nom || 'Matière Inconnue',
+        class: `${item.classe_nom} (${item.classe_niveau})` || 'Classe Inconnue'
+      };
+
+      coveredSlots.forEach((slotTime) => {
+        if (!formatted[slotTime]) formatted[slotTime] = {};
+        formatted[slotTime][day] = cardData;
+      });
+    });
+    return formatted;
+  }, [schedule]);
 
   const toCsvCell = (value) => {
     const safe = String(value ?? '').replace(/"/g, '""');
@@ -162,7 +249,27 @@ export default function EmploiDuTemps() {
           <p className="text-slate-500 text-sm mt-1">Consultez votre planning hebdomadaire dynamique.</p>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <select
+            className="form-select min-w-[240px] !px-4 !py-2.5 rounded-xl border border-slate-300 bg-white shadow-sm"
+            value={selectedClass}
+            onChange={(e) => {
+              const value = e.target.value;
+              setSelectedClass(value);
+              loadSchedule(value);
+            }}
+            disabled={loading || classes.length === 0}
+          >
+            {classes.length === 0 ? (
+              <option value="">Aucune classe</option>
+            ) : (
+              classes.map((classe) => (
+                <option key={classe.id} value={classe.id}>
+                  {formatClassLabel(classe)}
+                </option>
+              ))
+            )}
+          </select>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -193,85 +300,45 @@ export default function EmploiDuTemps() {
             <p className="text-slate-500 font-medium">Chargement du calendrier...</p>
           </div>
         ) : error ? (
-          <div className="p-8 text-center text-red-500 font-medium bg-red-50 m-4 rounded-xl border border-red-100">
-            {error}
-          </div>
+          <div className="py-20 px-6 text-center text-red-600 font-medium">{error}</div>
         ) : (
-          <div className="overflow-x-auto custom-scrollbar">
-            {/* Grille du Calendrier */}
-            <motion.div 
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              className="flex min-w-[1000px] divide-x divide-slate-100"
-            >
-              {JOURS_SEMAINE.map((jour) => {
-                const coursDuJour = scheduleByDay[jour];
-                const estAujourdhui = new Date().toLocaleDateString('fr-FR', { weekday: 'long' }).toLowerCase() === jour.toLowerCase();
-
-                return (
-                  <motion.div variants={columnVariants} key={jour} className="flex-1 flex flex-col min-w-[180px] bg-slate-50/30">
-                    
-                    {/* En-tête de la colonne (Jour) */}
-                    <div className={`py-4 text-center border-b border-slate-100 ${estAujourdhui ? 'bg-blue-50' : 'bg-slate-50'}`}>
-                      <h3 className={`text-sm font-extrabold uppercase tracking-wider ${estAujourdhui ? 'text-blue-600' : 'text-slate-600'}`}>
-                        {jour}
-                      </h3>
-                      {estAujourdhui && <div className="w-8 h-1 bg-blue-500 rounded-full mx-auto mt-1"></div>}
-                    </div>
-
-                    {/* Contenu de la colonne (Les cours) */}
-                    <div className="flex-1 p-3 flex flex-col gap-3 min-h-[400px]">
-                      {coursDuJour.length === 0 ? (
-                        <div className="flex-1 flex items-center justify-center border-2 border-dashed border-slate-200 rounded-xl opacity-50">
-                          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Libre</p>
-                        </div>
-                      ) : (
-                        coursDuJour.map((cours) => {
-                          const colorClass = getColorForMatiere(cours.matiere_nom);
-                          return (
-                            <motion.div 
-                              key={cours.id_edt}
-                              whileHover={{ y: -2, scale: 1.02 }}
-                              className={`p-3 rounded-xl border shadow-sm relative overflow-hidden flex flex-col gap-2 cursor-default ${colorClass}`}
-                            >
-                              {/* Ligne colorée décorative à gauche */}
-                              <div className="absolute left-0 top-0 bottom-0 w-1 bg-current opacity-20"></div>
-                              
-                              {/* Heure */}
-                              <div className="flex items-center gap-1.5 text-xs font-bold opacity-80">
-                                <Clock size={12} />
-                                <span>{cours.heure_debut} - {cours.heure_fin}</span>
-                              </div>
-                              
-                              {/* Matière */}
-                              <div className="font-extrabold text-sm leading-tight flex items-start gap-1.5 mt-1">
-                                <BookOpen size={14} className="mt-0.5 shrink-0 opacity-70" />
-                                {cours.matiere_nom}
-                              </div>
-                              
-                              {/* Classe & Salle (Optionnelle) */}
-                              <div className="mt-auto pt-2 border-t border-current/10 flex flex-col gap-1 text-xs font-semibold">
-                                <div className="flex items-center gap-1.5">
-                                  <Users size={12} className="opacity-70" />
-                                  {cours.classe_nom} <span className="opacity-60 font-normal">({cours.classe_niveau})</span>
+          <div className="directory-timetable" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent' }}>
+            <div className="timetable-grid-container" style={{ margin: 0, border: 'none', borderRadius: 0, boxShadow: 'none' }}>
+              <table className="timetable-table">
+                <thead>
+                  <tr>
+                    <th className="time-col"></th>
+                    {JOURS_SEMAINE.map(day => (
+                      <th key={day} className={day.toLowerCase() === new Date().toLocaleDateString('fr-FR', { weekday: 'long' }).toLowerCase() ? 'current-day-header' : ''}>{day}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableTimes.map(time => (
+                    <tr key={time}>
+                      <td className="time-cell" style={{ fontWeight: 600 }}>{`${time} - ${addOneHourTime(time)}`}</td>
+                      {JOURS_SEMAINE.map(day => {
+                        const cellData = scheduleData[time]?.[day];
+                        return (
+                          <td key={`${time}-${day}`} className={day.toLowerCase() === new Date().toLocaleDateString('fr-FR', { weekday: 'long' }).toLowerCase() ? 'current-day-col' : ''}>
+                            {cellData ? (
+                              <div className="course-card border-blue" style={{ cursor: 'default' }}>
+                                <strong className="course-subject">{cellData.subject}</strong>
+                                <div className="course-details">
+                                  <span className="course-class">{cellData.class}</span>
                                 </div>
-                                {/* Si vous ajoutez une salle dans le backend plus tard, elle s'affichera ici */}
-                                {cours.salle && (
-                                  <div className="flex items-center gap-1.5 opacity-80">
-                                    <MapPin size={12} /> Salle {cours.salle}
-                                  </div>
-                                )}
                               </div>
-                            </motion.div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
+                            ) : (
+                              <div className="empty-cell"></div>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

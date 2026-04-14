@@ -118,6 +118,27 @@ function DirectoryStudents() {
     setAbsenceDetails([]);
   };
 
+  useEffect(() => {
+    if (!isModalOpen) {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        closeModal();
+      }
+    };
+
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isModalOpen]);
+
   const noteDisplay = useMemo(() => {
     if (!absenceSummary) return '-';
     if (absenceSummary.all_justifiees) return '20/20';
@@ -253,15 +274,80 @@ function DirectoryStudents() {
       )}
 
       {isModalOpen && (
-        <div className="add-claim-modal" role="dialog" aria-modal="true">
-          <div className="add-claim-backdrop" onClick={closeModal}></div>
-          <div className="add-claim-panel" style={{ maxWidth: 760 }}>
-            <div className="add-claim-header">
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1200,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+        >
+          <div
+            onClick={closeModal}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundColor: 'rgba(15, 23, 42, 0.55)',
+            }}
+          ></div>
+          <div
+            style={{
+              position: 'relative',
+              zIndex: 1,
+              width: '100%',
+              maxWidth: 760,
+              maxHeight: '90vh',
+              overflow: 'hidden',
+              borderRadius: 16,
+              border: '1px solid #e5e7eb',
+              backgroundColor: '#ffffff',
+              boxShadow: '0 25px 50px rgba(15, 23, 42, 0.28)',
+            }}
+          >
+            <div
+              className="add-claim-header"
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+                gap: '0.75rem',
+                padding: '1rem 1.25rem',
+                borderBottom: '1px solid #e5e7eb',
+                backgroundColor: '#f8fafc',
+              }}
+            >
               <h3>Dossier d'absence etudiant</h3>
-              <button type="button" className="add-claim-back" onClick={closeModal}>Fermer</button>
+              <button
+                type="button"
+                className="add-claim-back"
+                onClick={closeModal}
+                style={{
+                  border: '1px solid #cbd5e1',
+                  borderRadius: 8,
+                  padding: '0.35rem 0.75rem',
+                  backgroundColor: '#ffffff',
+                  color: '#334155',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Fermer
+              </button>
             </div>
 
-            <div className="add-claim-body">
+            <div
+              className="add-claim-body"
+              style={{
+                maxHeight: 'calc(90vh - 80px)',
+                overflowY: 'auto',
+                padding: '1.25rem',
+              }}
+            >
               <div style={{ marginBottom: '1rem' }}>
                 <strong>{selectedStudent ? `${selectedStudent.nom || ''} ${selectedStudent.prenom || ''}`.trim() : '-'}</strong>
                 <div style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.25rem' }}>

@@ -12,7 +12,6 @@ use App\Models\Lecon;
 use App\Models\Note;
 use App\Models\ParentEleve;
 use App\Models\Reclamation;
-use App\Models\Ressource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -89,6 +88,8 @@ class StudentParentController extends Controller
                     'appreciation' => $note->appreciation,
                     'matiere' => $note->matiere?->nom,
                     'coefficient' => $note->matiere?->coefficient,
+                    'semestre' => $note->semestre ?? '1',
+                    'type_evaluation' => $note->type_evaluation,
                     'professeur' => trim(($note->professeur?->user?->prenom ?? '') . ' ' . ($note->professeur?->user?->nom ?? '')),
                     'date' => optional($note->created_at)->toDateString(),
                 ];
@@ -112,21 +113,23 @@ class StudentParentController extends Controller
             ->keyBy('id_devoir');
 
         $devoirs = Devoir::query()
-            ->with(['matiere:id_matiere,nom'])
+            ->with(['matiere:id_matiere,nom', 'professeur.user:id,name,nom,prenom'])
             ->where('id_classe', $student->id_classe)
             ->orderBy('date_limite')
             ->get()
             ->map(function (Devoir $devoir) use ($submissions) {
                 $submission = $submissions->get($devoir->id_devoir);
                 $deadline = $devoir->date_limite ? (string) $devoir->date_limite : null;
+                $teacherName = trim(($devoir->professeur?->user?->prenom ?? '') . ' ' . ($devoir->professeur?->user?->nom ?? ''));
 
                 return [
                     'id_devoir' => $devoir->id_devoir,
                     'titre' => $devoir->titre,
                     'description' => $devoir->description,
                     'matiere' => $devoir->matiere?->nom,
+                    'professeur' => $teacherName !== '' ? $teacherName : null,
                     'date_limite' => $deadline,
-                    'is_overdue' => $devoir->date_limite && now()->format('Y-m-d') > (string) $devoir->date_limite,
+                    'is_overdue' => $devoir->date_limite && now()->format('Y-m-d') >= (string) $devoir->date_limite,
                     'soumission' => $submission ? [
                         'id_soumission' => $submission->id_soumission,
                         'date_soumission' => $submission->date_soumission ? $submission->date_soumission->format('Y-m-d H:i:s') : null,
@@ -155,8 +158,8 @@ class StudentParentController extends Controller
             return response()->json(['message' => 'Devoir introuvable pour cet etudiant.'], 404);
         }
 
-        if ($devoir->date_limite && now()->format('Y-m-d') > (string) $devoir->date_limite) {
-            return response()->json(['message' => 'La date limite est depassee.'], 422);
+        if ($devoir->date_limite && now()->format('Y-m-d') >= (string) $devoir->date_limite) {
+            return response()->json(['message' => 'La date limite est atteinte.'], 422);
         }
 
         $validated = $request->validate([
@@ -282,16 +285,90 @@ class StudentParentController extends Controller
             ->pluck('id_professeur')
             ->unique();
 
-        $resources = Ressource::query()
-            ->whereIn('id_professeur', $professorIds)
-            ->orderByDesc('created_at')
-            ->get()
-            ->map(function (Ressource $resource) {
+        $hasResourceTitleColumn = Schema::hasColumn('ressources', 'titre');
+        $hasResourceDescriptionColumn = Schema::hasColumn('ressources', 'description');
+        $hasResourceMatiereColumn = Schema::hasColumn('ressources', 'id_matiere');
+        $hasResourceClassColumn = Schema::hasColumn('ressources', 'id_classe');
+
+        $resourceQuery = DB::table('ressources')
+            ->leftJoin('professeurs', 'ressources.id_professeur', '=', 'professeurs.id_professeur')
+            ->leftJoin('users as prof_user', 'professeurs.id_professeur', '=', 'prof_user.id')
+            ->orderByDesc('ressources.created_at');
+
+        if ($hasResourceMatiereColumn) {
+            $resourceQuery->leftJoin('matieres', 'ressources.id_matiere', '=', 'matieres.id_matiere');
+        }
+
+        if ($hasResourceClassColumn) {
+            $resourceQuery->where(function ($query) use ($student, $professorIds) {
+                $query
+                    ->whereNull('ressources.id_classe')
+                    ->orWhere('ressources.id_classe', $student->id_classe);
+
+                if ($professorIds->isNotEmpty()) {
+                    $query->orWhereIn('ressources.id_professeur', $professorIds);
+                }
+            });
+        } elseif ($professorIds->isNotEmpty()) {
+            $resourceQuery->whereIn('ressources.id_professeur', $professorIds);
+        }
+
+        $resourceSelect = [
+            'ressources.id_ressource',
+            'ressources.fichier',
+            'ressources.type_ressource',
+            'ressources.created_at',
+            'prof_user.nom as professeur_nom',
+            'prof_user.prenom as professeur_prenom',
+        ];
+
+        if ($hasResourceTitleColumn) {
+            $resourceSelect[] = 'ressources.titre';
+        }
+
+        if ($hasResourceDescriptionColumn) {
+            $resourceSelect[] = 'ressources.description';
+        }
+
+        if ($hasResourceMatiereColumn) {
+            $resourceSelect[] = 'matieres.nom as matiere_nom';
+        }
+
+        $resources = $resourceQuery
+            ->get($resourceSelect)
+            ->map(function ($resource) use ($hasResourceTitleColumn, $hasResourceDescriptionColumn) {
+                $teacherName = trim(((string) ($resource->professeur_prenom ?? '')) . ' ' . ((string) ($resource->professeur_nom ?? '')));
+                $resourceTitle = '';
+
+                if ($hasResourceTitleColumn && isset($resource->titre) && trim((string) $resource->titre) !== '') {
+                    $resourceTitle = trim((string) $resource->titre);
+                }
+
+                if ($resourceTitle === '') {
+                    $rawFilename = basename((string) ($resource->fichier ?? ''));
+                    $resourceTitle = $rawFilename !== '' ? $rawFilename : 'Ressource sans titre';
+                }
+
+                $filePath = (string) ($resource->fichier ?? '');
+                $fileUrl = '';
+                if ($filePath !== '') {
+                    $fileUrl = str_starts_with($filePath, 'http://') || str_starts_with($filePath, 'https://')
+                        ? $filePath
+                        : asset('storage/' . ltrim($filePath, '/'));
+                }
+
                 return [
                     'id_ressource' => $resource->id_ressource,
+                    'titre' => $resourceTitle,
                     'fichier' => $resource->fichier,
+                    'fichier_url' => $fileUrl,
                     'type_ressource' => $resource->type_ressource,
-                    'date' => optional($resource->created_at)->toDateString(),
+                    'description' => $hasResourceDescriptionColumn ? (string) ($resource->description ?? '') : '',
+                    'matiere' => $resource->matiere_nom ?? null,
+                    'professeur' => $teacherName !== '' ? $teacherName : null,
+                    'date' => isset($resource->created_at) && $resource->created_at
+                        ? substr((string) $resource->created_at, 0, 10)
+                        : null,
                 ];
             })
             ->values();
@@ -307,37 +384,83 @@ class StudentParentController extends Controller
             return response()->json(['message' => 'Profil parent introuvable.'], 404);
         }
 
-        $children = Etudiant::query()
-            ->with('user:id,name,nom,prenom,email')
-            ->where('id_parent', $parent->id_parent)
-            ->get();
+        $childIdParam = $request->query('child_id');
 
+        $childrenQuery = Etudiant::query()
+            ->with(['user:id,name,nom,prenom,email', 'classe:id_classe,nom,niveau'])
+            ->where('id_parent', $parent->id_parent);
+
+        if ($childIdParam) {
+            $childrenQuery->where('id_etudiant', $childIdParam);
+        }
+
+        $children = $childrenQuery->get();
         $childIds = $children->pluck('id_etudiant');
+        $classIds = $children->pluck('id_classe')->filter()->unique();
+
+        // Get today's schedule for all relevant classes
+        $today = now()->timezone('Africa/Casablanca')->locale('fr')->dayName;
+        $todayStr = ucfirst(strtolower((string)$today));
+
+        $schedules = EmploiDuTemps::query()
+            ->with(['matiere:id_matiere,nom', 'professeur.user:id,name,nom,prenom'])
+            ->whereIn('id_classe', $classIds)
+            ->where('jour', $todayStr)
+            ->orderBy('heure_debut')
+            ->get()
+            ->groupBy('id_classe');
 
         $notesAverage = Note::query()
             ->whereIn('id_etudiant', $childIds)
             ->avg('valeur');
 
-        $pendingComplaints = Reclamation::query()
+        $complaintQuery = Reclamation::query()
             ->where('id_parent', $parent->id_parent)
-            ->where('statut', 'en_attente')
-            ->count();
+            ->where('statut', 'en_attente');
+            
+        // Note: Reclamations might not be child-specific depending on your schema. 
+        // If they are, you'd filter by child_id here.
+
+        $pendingComplaints = $complaintQuery->count();
 
         $absences = Absence::query()->whereIn('id_etudiant', $childIds)->count();
 
+        $annonces = DB::table('annonces')
+            ->orderByDesc('date_publication')
+            ->limit(5)
+            ->get();
+
+        $reclamations = DB::table('reclamations')
+            ->where('id_parent', $parent->id_parent)
+            ->orderByDesc('created_at')
+            ->limit(3)
+            ->get();
+
         return response()->json([
+            'annonces' => $annonces,
+            'reclamations' => $reclamations,
             'stats' => [
                 'nombre_enfants' => $children->count(),
                 'moyenne_generale' => $notesAverage ? round((float) $notesAverage, 2) : null,
                 'nombre_absences' => $absences,
                 'reclamations_en_attente' => $pendingComplaints,
             ],
-            'enfants' => $children->map(function (Etudiant $child) {
+            'enfants' => $children->map(function (Etudiant $child) use ($schedules) {
+                $childSchedule = $schedules->get($child->id_classe) ?? collect();
                 return [
                     'id_etudiant' => $child->id_etudiant,
                     'nom_complet' => trim(($child->user?->prenom ?? '') . ' ' . ($child->user?->nom ?? '')),
                     'matricule' => $child->matricule,
                     'id_classe' => $child->id_classe,
+                    'classe_nom' => $child->classe?->nom,
+                    'today_sessions' => $childSchedule->map(function ($s) {
+                        return [
+                            'heure_debut' => $s->heure_debut,
+                            'heure_fin' => $s->heure_fin,
+                            'matiere' => $s->matiere?->nom,
+                            'professeur' => trim(($s->professeur?->user?->prenom ?? '') . ' ' . ($s->professeur?->user?->nom ?? '')),
+                        ];
+                    }),
                 ];
             })->values(),
         ]);
@@ -388,6 +511,8 @@ class StudentParentController extends Controller
                 'id_note' => $note->id_note,
                 'valeur' => $note->valeur,
                 'appreciation' => $note->appreciation,
+                'semestre' => $note->semestre ?? '1',
+                'type_evaluation' => $note->type_evaluation,
                 'matiere' => $note->matiere?->nom,
                 'date' => optional($note->created_at)->toDateString(),
             ])
@@ -423,6 +548,7 @@ class StudentParentController extends Controller
                 return [
                     'id_devoir' => $devoir->id_devoir,
                     'titre' => $devoir->titre,
+                    'description' => $devoir->description,
                     'matiere' => $devoir->matiere?->nom,
                     'date_limite' => $devoir->date_limite ? (string) $devoir->date_limite : null,
                     'soumis' => (bool) $submission,
@@ -517,6 +643,113 @@ class StudentParentController extends Controller
         return response()->json([
             'id_etudiant' => $child->id_etudiant,
             'annonces' => $annonces,
+        ]);
+    }
+
+    public function parentResources(Request $request): JsonResponse
+    {
+        [$child, $error] = $this->resolveParentChild($request);
+
+        if ($error) {
+            return $error;
+        }
+
+        $professorIds = DB::table('enseigner')
+            ->where('id_classe', $child->id_classe)
+            ->pluck('id_professeur')
+            ->unique();
+
+        $hasResourceTitleColumn = Schema::hasColumn('ressources', 'titre');
+        $hasResourceDescriptionColumn = Schema::hasColumn('ressources', 'description');
+        $hasResourceMatiereColumn = Schema::hasColumn('ressources', 'id_matiere');
+        $hasResourceClassColumn = Schema::hasColumn('ressources', 'id_classe');
+
+        $resourceQuery = DB::table('ressources')
+            ->leftJoin('professeurs', 'ressources.id_professeur', '=', 'professeurs.id_professeur')
+            ->leftJoin('users as prof_user', 'professeurs.id_professeur', '=', 'prof_user.id')
+            ->orderByDesc('ressources.created_at');
+
+        if ($hasResourceMatiereColumn) {
+            $resourceQuery->leftJoin('matieres', 'ressources.id_matiere', '=', 'matieres.id_matiere');
+        }
+
+        if ($hasResourceClassColumn) {
+            $resourceQuery->where(function ($query) use ($child, $professorIds) {
+                $query
+                    ->whereNull('ressources.id_classe')
+                    ->orWhere('ressources.id_classe', $child->id_classe);
+
+                if ($professorIds->isNotEmpty()) {
+                    $query->orWhereIn('ressources.id_professeur', $professorIds);
+                }
+            });
+        } elseif ($professorIds->isNotEmpty()) {
+            $resourceQuery->whereIn('ressources.id_professeur', $professorIds);
+        }
+
+        $resourceSelect = [
+            'ressources.id_ressource',
+            'ressources.fichier',
+            'ressources.type_ressource',
+            'ressources.created_at',
+            'prof_user.nom as professeur_nom',
+            'prof_user.prenom as professeur_prenom',
+        ];
+
+        if ($hasResourceTitleColumn) {
+            $resourceSelect[] = 'ressources.titre';
+        }
+
+        if ($hasResourceDescriptionColumn) {
+            $resourceSelect[] = 'ressources.description';
+        }
+
+        if ($hasResourceMatiereColumn) {
+            $resourceSelect[] = 'matieres.nom as matiere_nom';
+        }
+
+        $resources = $resourceQuery
+            ->get($resourceSelect)
+            ->map(function ($resource) use ($hasResourceTitleColumn, $hasResourceDescriptionColumn) {
+                $teacherName = trim(((string) ($resource->professeur_prenom ?? '')) . ' ' . ((string) ($resource->professeur_nom ?? '')));
+                $resourceTitle = '';
+
+                if ($hasResourceTitleColumn && isset($resource->titre) && trim((string) $resource->titre) !== '') {
+                    $resourceTitle = trim((string) $resource->titre);
+                }
+
+                if ($resourceTitle === '') {
+                    $rawFilename = basename((string) ($resource->fichier ?? ''));
+                    $resourceTitle = $rawFilename !== '' ? $rawFilename : 'Ressource sans titre';
+                }
+
+                $filePath = (string) ($resource->fichier ?? '');
+                $fileUrl = '';
+                if ($filePath !== '') {
+                    $fileUrl = str_starts_with($filePath, 'http://') || str_starts_with($filePath, 'https://')
+                        ? $filePath
+                        : asset('storage/' . ltrim($filePath, '/'));
+                }
+
+                return [
+                    'id_ressource' => $resource->id_ressource,
+                    'titre' => $resourceTitle,
+                    'fichier' => $resource->fichier,
+                    'fichier_url' => $fileUrl,
+                    'type_ressource' => $resource->type_ressource,
+                    'description' => $hasResourceDescriptionColumn ? (string) ($resource->description ?? '') : '',
+                    'matiere' => $resource->matiere_nom ?? null,
+                    'professeur' => $teacherName !== '' ? $teacherName : null,
+                    'date' => isset($resource->created_at) && $resource->created_at
+                        ? substr((string) $resource->created_at, 0, 10)
+                        : null,
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'id_etudiant' => $child->id_etudiant,
+            'ressources' => $resources
         ]);
     }
 

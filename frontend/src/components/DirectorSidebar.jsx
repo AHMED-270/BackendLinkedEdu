@@ -13,14 +13,41 @@ const menuItems = [
 ];
 
 function DirectorSidebar({ user, activeMenu, setActiveMenu }) {
+  const fullName = `${String(user?.prenom || '').trim()} ${String(user?.nom || '').trim()}`.trim()
+    || String(user?.name || '').trim()
+    || 'Directeur';
+
+  const initials = (() => {
+    const parts = [user?.prenom, user?.nom]
+      .map((part) => String(part || '').trim())
+      .filter(Boolean);
+
+    if (parts.length >= 2) {
+      return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
+    }
+
+    const fallback = fullName
+      .split(/\s+/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    if (fallback.length >= 2) {
+      return `${fallback[0].charAt(0)}${fallback[1].charAt(0)}`.toUpperCase();
+    }
+
+    return (fallback[0] || 'D').charAt(0).toUpperCase();
+  })();
+
   return (
     <aside className="director-sidebar">
-      {/*
-      <div className="sidebar-profile-card">
-        <strong>{user?.prenom ?? 'M.'} {user?.nom ?? 'le Directeur'}</strong>
-        <p>Administration Centrale</p>
+      <div className="director-sidebar-profile">
+        <div className="director-sidebar-avatar">{initials}</div>
+        <div className="director-sidebar-user">
+          <strong>{fullName}</strong>
+          <p>{String(user?.role || 'directeur')}</p>
+        </div>
       </div>
-      */}
+
       <nav>
         {menuItems.map((item) => (
           <button

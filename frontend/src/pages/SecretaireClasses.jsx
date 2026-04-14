@@ -283,8 +283,14 @@ export default function SecretaireClasses() {
                   <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Niveau d'Étude
                   </th>
+                  <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Filière
+                  </th>
                   <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">
-                    Nombre d'Étudiants
+                    Prix (DH)
+                  </th>
+                  <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">
+                    Étudiants
                   </th>
                   <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">
                     Statut
@@ -313,6 +319,12 @@ export default function SecretaireClasses() {
                       </td>
                       <td className="py-4 px-6 text-sm text-gray-600 font-medium">
                         {c.niveau}
+                      </td>
+                      <td className="py-4 px-6 text-sm text-gray-500">
+                        {c.filiere || '-'}
+                      </td>
+                      <td className="py-4 px-6 text-sm font-bold text-blue-600 text-right">
+                        {c.pricing ? `${Number(c.pricing).toLocaleString()} DH` : '0 DH'}
                       </td>
                       <td className="py-4 px-6 text-sm font-semibold text-gray-700 text-right">
                         {c.total_etudiants || 0}
@@ -375,7 +387,11 @@ export default function SecretaireClasses() {
             <div className="flex items-start justify-between px-6 py-4 border-b border-gray-100">
               <div>
                 <h2 className="text-lg font-bold text-gray-900">Etudiants de la classe {selectedClass.nom}</h2>
-                <p className="text-xs text-gray-500 mt-1">Niveau: {selectedClass.niveau}</p>
+                <div className="flex gap-3 mt-1">
+                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">Niveau: {selectedClass.niveau}</span>
+                  <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">Filière: {selectedClass.filiere || 'Général'}</span>
+                  <span className="text-xs bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-medium">Prix: {selectedClass.pricing || 0} DH</span>
+                </div>
               </div>
               <button
                 onClick={() => setSelectedClass(null)}

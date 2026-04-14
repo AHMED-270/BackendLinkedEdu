@@ -16,6 +16,7 @@ class Note extends Model
     protected $fillable = [
         'valeur',
         'appreciation',
+        'semestre',
         'id_etudiant',
         'id_matiere',
         'id_professeur',

@@ -1,6 +1,7 @@
-﻿import { useEffect, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import axios from 'axios'
+import { FiLogOut } from 'react-icons/fi';
 import DirectorSidebar from './DirectorSidebar'
 import DirectoryReclamations from './DirectoryReclamations';
 import DirectoryProfessors from './DirectoryProfessors';
@@ -12,7 +13,7 @@ import DirectoryGrades from './DirectoryGrades';
 import DirectorySettings from './DirectorySettings';
 import DirectoryTimetable from './DirectoryTimetable';
 import DirectoryAnnonces from './DirectoryAnnonces';
-import { getRoleDisplayLabel, getRoleLabel } from '../constants/roles';
+import { getRoleLabel } from '../constants/roles';
 
 const AUTH_TOKEN_KEY = 'linkedu_token';
 
@@ -75,6 +76,34 @@ function DirecteurDashboard({ user, onLogout }) {
   };
 
   const fallbackUserName = `le ${String(getRoleLabel(user?.role) || 'Utilisateur').toLowerCase()}`;
+  const directorDisplayName = `${String(user?.prenom || '').trim()} ${String(user?.nom || '').trim()}`.trim()
+    || String(user?.name || '').trim()
+    || fallbackUserName;
+
+  const directorInitials = useMemo(() => {
+    const sourceParts = [user?.prenom, user?.nom]
+      .map((part) => String(part || '').trim())
+      .filter(Boolean);
+
+    if (sourceParts.length >= 2) {
+      return `${sourceParts[0].charAt(0)}${sourceParts[1].charAt(0)}`.toUpperCase();
+    }
+
+    const fallbackParts = String(user?.name || '')
+      .split(/\s+/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    if (fallbackParts.length >= 2) {
+      return `${fallbackParts[0].charAt(0)}${fallbackParts[1].charAt(0)}`.toUpperCase();
+    }
+
+    if (fallbackParts.length === 1) {
+      return fallbackParts[0].charAt(0).toUpperCase();
+    }
+
+    return 'D';
+  }, [user?.name, user?.nom, user?.prenom]);
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -127,29 +156,32 @@ function DirecteurDashboard({ user, onLogout }) {
 
   return (
     <div className="director-layout">
-      <header className="global-topbar">
-        <div className="topbar-left">
-          <h2 className="brand-logo">LinkedU</h2>
-          <nav className="topbar-links">
-            <button className={activeMenu === 'Tableau de bord' ? 'is-active' : ''} onClick={() => setActiveMenu('Tableau de bord')}>Tableau de bord</button>
-            <button className={activeMenu === 'Communication' ? 'is-active' : ''} onClick={() => setActiveMenu('Communication')}>Communication</button>
-            <button className={activeMenu === 'Rapports' ? 'is-active' : ''} onClick={() => setActiveMenu('Rapports')}>Rapports</button>
-          </nav>
+      <header className="director-header">
+        <div className="director-header-logo">
+          <span className="logo-link">Linked</span><span className="logo-edu">U</span>
         </div>
-        <div className="topbar-right">
-          <button className="icon-btn" onClick={() => alert("Notifications en cours...")}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        <div className="director-header-actions">
+          <button
+            type="button"
+            className="director-header-profile"
+            onClick={() => setActiveMenu('Parametres')}
+            title="Ouvrir le profil"
+          >
+            <span className="director-header-avatar">{directorInitials}</span>
+            <span className="director-header-profile-meta">
+              <span className="director-header-profile-label">Profil</span>
+              <span className="director-header-profile-name">{directorDisplayName}</span>
+            </span>
           </button>
-          <button className="icon-btn" onClick={() => setActiveMenu('Parametres')}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <button
+            type="button"
+            className="director-header-logout"
+            onClick={onLogout}
+            aria-label="Se deconnecter"
+            title="Se deconnecter"
+          >
+            <FiLogOut size={18} />
           </button>
-          <div className="topbar-profile" onClick={onLogout} title="Deconnexion">
-            <img src="https://i.pravatar.cc/150?u=director" alt="Avatar" className="topbar-avatar" />
-            <div className="topbar-profile-text">
-              <strong>{user?.prenom ?? 'M.'} {user?.nom ?? fallbackUserName}</strong>
-              <span>{getRoleDisplayLabel(user?.role)}</span>
-            </div>
-          </div>
         </div>
       </header>
 
@@ -235,13 +267,14 @@ function DirecteurDashboard({ user, onLogout }) {
                       <thead>
                         <tr>
                           <th>CLASSE</th>
+                          <th>PRIX (DH)</th>
                           <th>ETUDIANTS</th>
                         </tr>
                       </thead>
                       <tbody>
                         {recentClasses.length === 0 ? (
                           <tr>
-                            <td colSpan="2" style={{ textAlign: 'center', padding: '1rem 0', color: '#64748b' }}>
+                            <td colSpan="3" style={{ textAlign: 'center', padding: '1rem 0', color: '#64748b' }}>
                               Aucune classe disponible.
                             </td>
                           </tr>
@@ -249,6 +282,7 @@ function DirecteurDashboard({ user, onLogout }) {
                           recentClasses.map((classe) => (
                             <tr key={classe.id_classe}>
                               <td><strong>{classe.nom || '-'}</strong></td>
+                              <td>{Number(classe.pricing ?? 0).toLocaleString('fr-FR')} DH</td>
                               <td>{classe.total_etudiants ?? 0}</td>
                             </tr>
                           ))

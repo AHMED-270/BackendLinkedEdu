@@ -90,7 +90,7 @@ export default function Parametres() {
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      setProfileError('La photo ne doit pas d├®passer 2 MB.');
+      setProfileError('La photo ne doit pas dépasser 2 MB.');
       return;
     }
 
@@ -161,14 +161,14 @@ export default function Parametres() {
       setAvatarPreview(nextProfilePhoto || '');
       setAvatarFile(null);
       setRemovePhoto(false);
-      setProfileMessage(res.data?.message || 'Profil mis ├á jour avec succ├¿s.');
+      setProfileMessage(res.data?.message || 'Profil mis à jour avec succès.');
     } catch (submitError) {
       const backendErrors = submitError?.response?.data?.errors;
       if (backendErrors) {
         const firstError = Object.values(backendErrors)?.[0]?.[0];
-        setProfileError(firstError || 'Erreur lors de la mise ├á jour du profil.');
+        setProfileError(firstError || 'Erreur lors de la mise à jour du profil.');
       } else {
-        setProfileError(submitError?.response?.data?.message || 'Erreur lors de la mise ├á jour du profil.');
+        setProfileError(submitError?.response?.data?.message || 'Erreur lors de la mise à jour du profil.');
       }
     } finally {
       setSavingProfile(false);
@@ -194,7 +194,7 @@ export default function Parametres() {
       });
 
       setPasswordForm(emptyPasswordForm);
-      setPasswordMessage(res.data?.message || 'Mot de passe mis ├á jour avec succ├¿s.');
+      setPasswordMessage(res.data?.message || 'Mot de passe mis à jour avec succès.');
     } catch (submitError) {
       const backendErrors = submitError?.response?.data?.errors;
       if (backendErrors) {
@@ -212,7 +212,7 @@ export default function Parametres() {
     <div className="dashboard-content">
       <header className="content-header">
         <h1>Mon Profil</h1>
-        <p>G├®rez votre photo, votre nom et votre mot de passe.</p>
+        <p>Gérez votre photo, votre nom et votre mot de passe.</p>
       </header>
 
       {loading ? (
@@ -281,7 +281,7 @@ export default function Parametres() {
 
               <div>
                 <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-600">
-                  <User size={16} /> Pr├®nom
+                  <User size={16} /> Prénom
                 </label>
                 <input
                   type="text"
@@ -334,7 +334,8 @@ export default function Parametres() {
                 value={passwordForm.current_password}
                 onChange={handlePasswordInputChange}
                 required
-                  className="w-full rounded-lg border-2 border-slate-400 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition-colors focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20"
+                className="form-input"
+                placeholder="Mot de passe actuel"
               />
             </div>
 
@@ -349,7 +350,8 @@ export default function Parametres() {
                   value={passwordForm.password}
                   onChange={handlePasswordInputChange}
                   required
-                  className="w-full rounded-lg border-2 border-slate-400 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition-colors focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20"
+                  className="form-input"
+                  placeholder="Nouveau mot de passe"
                 />
               </div>
 
@@ -363,7 +365,8 @@ export default function Parametres() {
                   value={passwordForm.password_confirmation}
                   onChange={handlePasswordInputChange}
                   required
-                  className="w-full rounded-lg border-2 border-slate-400 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition-colors focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20"
+                  className="form-input"
+                  placeholder="Confirmer le mot de passe"
                 />
               </div>
             </div>
@@ -374,7 +377,7 @@ export default function Parametres() {
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Lock size={16} />
-              {savingPassword ? 'Mise ├á jour...' : 'Mettre ├á jour le mot de passe'}
+              {savingPassword ? 'Mise à jour...' : 'Mettre à jour le mot de passe'}
             </button>
           </form>
         </div>

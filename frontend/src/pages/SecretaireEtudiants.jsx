@@ -5,6 +5,28 @@ import { useNavigate } from 'react-router-dom';
 import { FiUser, FiCalendar, FiMail, FiPhone, FiMapPin, FiArrowLeft, FiCheckCircle, FiSearch, FiEdit2, FiTrash2, FiPlus, FiUsers, FiDownload, FiEye, FiX, FiUpload } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import TableSkeletonRows from '../components/TableSkeletonRows';
+const NIVEAU_LABEL_TO_CODE = {
+  'Petite Section': 'ms',
+  'Moyenne Section': 'mm',
+  'Grande Section': 'gs',
+  '1ere Annee Primaire': '1ap',
+  '2eme Annee Primaire': '2ap',
+  '3eme Annee Primaire': '3ap',
+  '4eme Annee Primaire': '4ap',
+  '5eme Annee Primaire': '5ap',
+  '6eme Annee Primaire': '6ap',
+  '1ere Annee College': '1ac',
+  '2eme Annee College': '2ac',
+  '3eme Annee College': '3ac',
+  'Tronc Commun': 'tc',
+  '1ere Annee Baccalaureat': '1bac',
+  '2eme Annee Baccalaureat': '2bac'
+};
+
+const NIVEAU_CODE_TO_LABEL = Object.entries(NIVEAU_LABEL_TO_CODE).reduce((acc, [label, code]) => {
+  acc[code] = label;
+  return acc;
+}, {});
 
 const emptyForm = {
   nom: '',
@@ -12,6 +34,9 @@ const emptyForm = {
   date_naissance: '',
   date_entree: '',
   genre: 'M',
+  cycle: '',
+  niveau: '',
+  filiere: '',
   id_classe: '',
   email: '',
   parent_nom: '',
@@ -21,6 +46,62 @@ const emptyForm = {
   parent_phone: '',
   parent_urgence_phone: '',
   adresse: '',
+};
+
+const ACADEMIC_STRUCTURE = {
+  'maternelle': {
+    niveaux: ['Petite Section', 'Moyenne Section', 'Grande Section'],
+    filieres: ['General']
+  },
+  'primaire': {
+    niveaux: [
+      '1ere Annee Primaire',
+      '2eme Annee Primaire',
+      '3eme Annee Primaire',
+      '4eme Annee Primaire',
+      '5eme Annee Primaire',
+      '6eme Annee Primaire'
+    ],
+    filieres: ['General']
+  },
+  'college': {
+    niveaux: ['1ere Annee College', '2eme Annee College', '3eme Annee College'],
+    filieres: ['Francais', 'Arabe']
+  },
+  'lycee': {
+    niveaux: ['Tronc Commun', '1ere Annee Baccalaureat', '2eme Annee Baccalaureat'],
+    filieresByNiveau: {
+      'Tronc Commun': [
+        'TC Scientifique (Francais)',
+        'TC Scientifique (Arabe)',
+        'TC Technologique',
+        'TC Lettres'
+      ],
+      '1ere Annee Baccalaureat': [
+        'Sciences Experimentales (Francais)',
+        'Sciences Experimentales (Arabe)',
+        'Sciences Mathematiques (Francais)',
+        'Sciences Mathematiques (Arabe)',
+        'Sciences et Technologies',
+        'Lettres et Ressources Humaines',
+        'Economie'
+      ],
+      '2eme Annee Baccalaureat': [
+        'Sciences Experimentales - SVT (Francais)',
+        'Sciences Experimentales - SVT (Arabe)',
+        'Sciences Experimentales - Physique-Chimie (Francais)',
+        'Sciences Experimentales - Physique-Chimie (Arabe)',
+        'Sciences Mathematiques A (Francais)',
+        'Sciences Mathematiques A (Arabe)',
+        'Sciences Mathematiques B (Francais)',
+        'Sciences Mathematiques B (Arabe)',
+        'Sciences et Technologies Electrique',
+        'Sciences et Technologies Mecanique',
+        'Lettres et Sciences Humaines',
+        'Sciences Economiques'
+      ]
+    }
+  }
 };
 
 export default function SecretaireEtudiants() {
@@ -174,6 +255,21 @@ export default function SecretaireEtudiants() {
   };
 
   const onEdit = (student) => {
+    const studentClass = classes.find(c => String(c.id_classe) === String(student.id_classe));
+
+    const niveauLabel = studentClass ? (NIVEAU_CODE_TO_LABEL[studentClass.niveau] || studentClass.niveau) : '';
+
+    // Determine cycle from class niveau
+    let foundCycle = '';
+    if (niveauLabel) {
+      for (const [cyc, data] of Object.entries(ACADEMIC_STRUCTURE)) {
+        if (data.niveaux.includes(niveauLabel)) {
+          foundCycle = cyc;
+          break;
+        }
+      }
+    }
+
     setEditingId(student.id_etudiant);
     setForm({
       nom: student.nom || '',
@@ -181,6 +277,9 @@ export default function SecretaireEtudiants() {
       date_naissance: student.date_naissance || '',
       date_entree: '',
       genre: student.genre || 'M',
+      cycle: foundCycle,
+      niveau: niveauLabel,
+      filiere: studentClass?.filiere || 'Général',
       id_classe: student.id_classe ? String(student.id_classe) : '',
       email: student.email || '',
       parent_nom: student.parent_nom || '',
@@ -348,32 +447,32 @@ export default function SecretaireEtudiants() {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(22);
     doc.text('LinkedU', margin, 20);
-    
+
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.text('Document Officiel', margin, 26);
-    
+
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
     doc.text('LISTE GLOBALE DES ÉLÈVES', pageWidth - margin, 20, { align: 'right' });
-    
+
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    doc.text(`Année: ${new Date().getFullYear()}/${new Date().getFullYear()+1}`, pageWidth - margin, 26, { align: 'right' });
+    doc.text(`Année: ${new Date().getFullYear()}/${new Date().getFullYear() + 1}`, pageWidth - margin, 26, { align: 'right' });
 
     doc.setLineWidth(0.5);
     doc.line(margin, 35, pageWidth - margin, 35);
 
     // ----- TABLEAU DES ELEVES -----
     let startY = 45;
-    
+
     doc.setFillColor(240, 240, 240);
     doc.rect(margin, startY, pageWidth - (margin * 2), 10, 'F');
-    
+
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.setTextColor(0, 0, 0);
-    
+
     // Colonnes
     const colId = margin + 2;
     const colNom = margin + 15;
@@ -381,32 +480,32 @@ export default function SecretaireEtudiants() {
     const colEmail = margin + 115;
     const colParent = margin + 190;
     const colPhone = margin + 240;
-    
+
     doc.text('N°', colId, startY + 7);
     doc.text('NOM & PRÉNOM', colNom, startY + 7);
     doc.text('CLASSE', colClasse, startY + 7);
     doc.text('EMAIL ÉLÈVE', colEmail, startY + 7);
     doc.text('PARENT / TUTEUR', colParent, startY + 7);
     doc.text('TÉLÉPHONE', colPhone, startY + 7);
-    
+
     startY += 12;
     doc.setFont('helvetica', 'normal');
-    
+
     visibleStudents.forEach((student, index) => {
       if (startY > pageHeight - 25) {
         doc.addPage();
         startY = margin;
-        
+
         doc.setFillColor(0, 0, 0);
         doc.rect(0, 0, pageWidth, 6, 'F');
-        
+
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
         doc.text('LinkedU - Suite de la liste globale', margin, 15);
-        
+
         doc.setLineWidth(0.5);
         doc.line(margin, 20, pageWidth - margin, 20);
-        
+
         // Rappel En-tête
         startY = 25;
         doc.setFillColor(240, 240, 240);
@@ -417,23 +516,23 @@ export default function SecretaireEtudiants() {
         doc.text('EMAIL ÉLÈVE', colEmail, startY + 7);
         doc.text('PARENT / TUTEUR', colParent, startY + 7);
         doc.text('TÉLÉPHONE', colPhone, startY + 7);
-        
+
         startY += 12;
         doc.setFont('helvetica', 'normal');
       }
-      
+
       if (index % 2 === 0) {
         doc.setFillColor(252, 252, 252);
         doc.rect(margin, startY - 4, pageWidth - (margin * 2), 8, 'F');
       }
-      
+
       const numero = (index + 1).toString().padStart(3, '0');
       const nomComplet = `${student.nom || ''} ${student.prenom || ''}`.trim();
       const classeName = classes.find(c => String(c.id_classe) === String(student.id_classe))?.nom || 'N/A';
       const emailObj = student.email || '-';
       const parentName = `${student.parent_nom || ''} ${student.parent_prenom || ''}`.trim() || '-';
       const phone = student.parent_phone || '-';
-      
+
       doc.setFontSize(8);
       doc.text(numero, colId, startY + 2);
       doc.text(nomComplet.length > 30 ? nomComplet.substring(0, 27) + '...' : nomComplet, colNom, startY + 2);
@@ -441,11 +540,11 @@ export default function SecretaireEtudiants() {
       doc.text(emailObj.length > 35 ? emailObj.substring(0, 32) + '...' : emailObj, colEmail, startY + 2);
       doc.text(parentName.length > 25 ? parentName.substring(0, 22) + '...' : parentName, colParent, startY + 2);
       doc.text(phone, colPhone, startY + 2);
-      
+
       doc.setDrawColor(230, 230, 230);
       doc.setLineWidth(0.1);
       doc.line(margin, startY + 4, pageWidth - margin, startY + 4);
-      
+
       startY += 8;
     });
 
@@ -453,7 +552,7 @@ export default function SecretaireEtudiants() {
     doc.setFontSize(7);
     doc.setTextColor(100, 100, 100);
     doc.text(`Généré le ${new Date().toLocaleString('fr-FR')} | Total : ${visibleStudents.length} élève(s)`, margin, bottomY);
-    
+
     doc.save(`liste-etudiants-${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
@@ -474,6 +573,51 @@ export default function SecretaireEtudiants() {
     });
   };
 
+  const availableNiveaux = useMemo(() => {
+    return form.cycle ? ACADEMIC_STRUCTURE[form.cycle].niveaux : [];
+  }, [form.cycle]);
+
+  const availableFilieres = useMemo(() => {
+    if (!form.cycle || !form.niveau) return [];
+
+    const cycleData = ACADEMIC_STRUCTURE[form.cycle];
+    if (cycleData.filieresByNiveau) {
+      return cycleData.filieresByNiveau[form.niveau] || ['Général'];
+    }
+    return cycleData.filieres || ['Général'];
+  }, [form.cycle, form.niveau]);
+
+  const availableClasses = useMemo(() => {
+    if (!form.niveau || !form.filiere) return [];
+
+    const niveauCode = NIVEAU_LABEL_TO_CODE[form.niveau] || form.niveau;
+    // If the selected filiere is "Général", the DB might store it as "General" or NULL
+    const searchFiliere = form.filiere === 'Général' ? ['General', 'Général', null, ''] : [form.filiere];
+
+    return classes.filter(c => {
+      const cFiliere = c.filiere || 'General';
+      return c.niveau === niveauCode && searchFiliere.includes(cFiliere);
+    });
+  }, [classes, form.niveau, form.filiere]);
+
+  const selectedClassPrice = useMemo(() => {
+    if (!form.id_classe) return null;
+    const cls = classes.find(c => String(c.id_classe) === String(form.id_classe));
+    return cls ? cls.pricing : null;
+  }, [classes, form.id_classe]);
+
+  const handleCycleChange = (e) => {
+    setForm({ ...form, cycle: e.target.value, niveau: '', filiere: '', id_classe: '' });
+  };
+
+  const handleNiveauChange = (e) => {
+    setForm({ ...form, niveau: e.target.value, filiere: '', id_classe: '' });
+  };
+
+  const handleFiliereChange = (e) => {
+    setForm({ ...form, filiere: e.target.value, id_classe: '' });
+  };
+
   return (
     <div className="min-h-screen p-6 lg:p-10 bg-gray-50/50">
       <div className="max-w-7xl mx-auto">
@@ -486,8 +630,8 @@ export default function SecretaireEtudiants() {
                   Liste des étudiants
                 </h1>
               </div>
-              <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                <div className="relative w-full sm:w-48">
+              <div className="w-full md:w-auto flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 flex-wrap">
+                <div className="relative w-full sm:w-48 xl:w-52">
                   <select
                     className="block w-full pl-3 pr-10 py-2.5 border border-gray-200 rounded-xl leading-5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm shadow-sm font-medium appearance-none cursor-pointer"
                     value={classFilter}
@@ -507,450 +651,500 @@ export default function SecretaireEtudiants() {
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  className="flex items-center gap-2 px-4 py-2.5 bg-amber-600 text-white font-semibold rounded-xl shadow-sm hover:bg-amber-700 transition-all focus:outline-none focus:ring-2 focus:ring-amber-500/20 active:scale-95 text-sm"
-                  onClick={() => importFileRef.current?.click()}
-                >
-                  <FiUpload className="w-4 h-4" />
-                  Importer 
-                </button>
-                <input
-                  ref={importFileRef}
-                  type="file"
-                  accept=".csv,text/csv"
-                  className="hidden"
-                  onChange={handleImportStudents}
-                />
+                <div className="flex flex-wrap sm:flex-nowrap items-center gap-3">
+                  <button
+                    type="button"
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-600 text-white font-semibold rounded-xl shadow-sm hover:bg-amber-700 transition-all focus:outline-none focus:ring-2 focus:ring-amber-500/20 active:scale-95 text-sm whitespace-nowrap"
+                    onClick={() => importFileRef.current?.click()}
+                  >
+                    <FiUpload className="w-4 h-4" />
+                    Importer
+                  </button>
+                  <input
+                    ref={importFileRef}
+                    type="file"
+                    accept=".csv,text/csv"
+                    className="hidden"
+                    onChange={handleImportStudents}
+                  />
 
-                <button
-                  type="button"
-                  className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white font-semibold rounded-xl shadow-sm hover:bg-emerald-700 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 active:scale-95 text-sm"
-                  onClick={downloadStudentsPdf}
-                >
-                  <FiDownload className="w-4 h-4" />
-                  Télécharger 
-                </button>
+                  <button
+                    type="button"
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white font-semibold rounded-xl shadow-sm hover:bg-emerald-700 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 active:scale-95 text-sm whitespace-nowrap"
+                    onClick={downloadStudentsPdf}
+                  >
+                    <FiDownload className="w-4 h-4" />
+                    Télécharger
+                  </button>
 
-                <button 
-                  className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl shadow-sm hover:bg-blue-700 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20 active:scale-95 text-sm" 
-                  onClick={openCreateFormPage}
-                >
-                  <FiPlus className="w-5 h-5 stroke-[3]" />
-                  Nouvel étudiant
-                </button>
+                  <button
+                    className="flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl shadow-sm hover:bg-blue-700 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20 active:scale-95 text-sm whitespace-nowrap"
+                    onClick={openCreateFormPage}
+                  >
+                    <FiPlus className="w-5 h-5 stroke-[3]" />
+                    Nouvel étudiant
+                  </button>
+                </div>
               </div>
             </div>
 
             <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-              {loadErrorMessage && (
-                <div className="mx-4 mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-                  {loadErrorMessage}
-                </div>
-              )}
-              <div className="overflow-x-auto">
-                <table className="table w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200">
-                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        <div className="flex items-center gap-3">
-                          <span>Nom et Prenom</span>
-                          <div className="relative w-full max-w-[260px]">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                              <FiSearch className="h-4 w-4 text-gray-400" />
-                            </div>
-                            <input
-                              className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-xs font-medium normal-case"
-                              placeholder="Rechercher "
-                              value={search}
-                              onChange={(e) => setSearch(e.target.value)}
-                            />
-                          </div>
-                        </div>
-                      </th>
-                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Email</th>
-                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Parent</th>
-                      <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {loading ? (
-                      <TableSkeletonRows rowCount={6} colCount={4} />
-                    ) : visibleStudents.map((student) => (
-                      <tr key={student.id_etudiant} className="hover:bg-blue-50/50 transition-colors group">
-                        <td className="py-4 px-6">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm tracking-tight">
-                              {student.nom ? student.nom.substring(0, 1).toUpperCase() : '?'}
-                              {student.prenom ? student.prenom.substring(0, 1).toUpperCase() : ''}
-                            </div>
-                            <span className="font-semibold text-gray-900">{student.nom} {student.prenom}</span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 text-sm text-gray-500 text-center">{student.email || '-'}</td>
-                        <td className="py-4 px-6 text-sm text-gray-600">
-                          <div className="font-semibold text-gray-800">{student.parent_nom || '-'} {student.parent_prenom || ''}</div>
-                          <div className="text-xs text-gray-500">Parent: {student.parent_phone || '-'}</div>
-                        </td>
-                        <td className="py-4 px-6">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              className="text-gray-800 hover:text-black hover:bg-gray-100 p-2 rounded-lg transition-colors cursor-pointer"
-                              onClick={() => openAbsenceInsight(student)}
-                              title="Voir infos absences"
-                            >
-                              <FiEye size={18} />
-                            </button>
-                            <button 
-                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors cursor-pointer" 
-                              onClick={() => onEdit(student)}
-                              title="Modifier"
-                            >
-                              <FiEdit2 size={18} />
-                            </button>
-                            <button 
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors cursor-pointer" 
-                              onClick={() => onDelete(student.id_etudiant)}
-                              title="Supprimer"
-                            >
-                              <FiTrash2 size={18} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                    {!loading && visibleStudents.length === 0 && (
-                      <tr>
-                        <td colSpan="4" className="py-12 text-center">
-                          <div className="flex flex-col items-center justify-center text-gray-400">
-                            <FiUsers className="w-12 h-12 mb-3 text-gray-200" />
-                            <p className="text-base font-medium text-gray-500">Aucun étudiant trouvé</p>
-                            <p className="text-sm mt-1">Ajustez vos filtres ou ajoutez un nouvel étudiant.</p>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {selectedStudentInsight && (
-              <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 p-4 backdrop-blur-[1px]">
-                <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-gray-300 bg-white shadow-2xl">
-                  <div className="flex items-start justify-between border-b border-gray-200 bg-gray-50 px-6 py-4">
-                    <div>
-                      <h3 className="text-lg font-bold text-black">Bilan des absences</h3>
-                      <p className="mt-1 text-xs text-gray-700">
-                        {selectedStudentInsight.student.nom} {selectedStudentInsight.student.prenom}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedStudentInsight(null)}
-                      className="rounded-lg bg-black p-2 text-white hover:bg-gray-800"
-                      title="Fermer"
-                    >
-                      <FiX size={16} />
-                    </button>
+                {loadErrorMessage && (
+                  <div className="mx-4 mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                    {loadErrorMessage}
                   </div>
+                )}
+                <div className="overflow-x-auto">
+                  <table className="table w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-200">
+                        <th className="py-3 px-6 text-left">
+                          <div className="flex items-center gap-4">
+                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Nom et Prenom</span>
+                            <div className="relative w-full max-w-[200px]">
+                              <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                                <FiSearch className="h-3.5 w-3.5 text-gray-400" />
+                              </div>
+                              <input
+                                className="block w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-xs font-normal normal-case shadow-sm"
+                                placeholder="Rechercher..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                              />
+                            </div>
+                          </div>
+                        </th>
+                        <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Email</th>
+                        <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Parent</th>
+                        <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {loading ? (
+                        <TableSkeletonRows rowCount={6} colCount={4} />
+                      ) : visibleStudents.map((student) => (
+                        <tr key={student.id_etudiant} className="hover:bg-blue-50/50 transition-colors group">
+                          <td className="py-4 px-6">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm tracking-tight">
+                                {student.nom ? student.nom.substring(0, 1).toUpperCase() : '?'}
+                                {student.prenom ? student.prenom.substring(0, 1).toUpperCase() : ''}
+                              </div>
+                              <span className="font-semibold text-gray-900">{student.nom} {student.prenom}</span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 text-sm text-gray-500 text-center">{student.email || '-'}</td>
+                          <td className="py-4 px-6 text-sm text-gray-600">
+                            <div className="font-semibold text-gray-800">{student.parent_nom || '-'} {student.parent_prenom || ''}</div>
+                            <div className="text-xs text-gray-500">Parent: {student.parent_phone || '-'}</div>
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                className="text-gray-800 hover:text-black hover:bg-gray-100 p-2 rounded-lg transition-colors cursor-pointer"
+                                onClick={() => openAbsenceInsight(student)}
+                                title="Voir infos absences"
+                              >
+                                <FiEye size={18} />
+                              </button>
+                              <button
+                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors cursor-pointer"
+                                onClick={() => onEdit(student)}
+                                title="Modifier"
+                              >
+                                <FiEdit2 size={18} />
+                              </button>
+                              <button
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors cursor-pointer"
+                                onClick={() => onDelete(student.id_etudiant)}
+                                title="Supprimer"
+                              >
+                                <FiTrash2 size={18} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {!loading && visibleStudents.length === 0 && (
+                        <tr>
+                          <td colSpan="4" className="py-12 text-center">
+                            <div className="flex flex-col items-center justify-center text-gray-400">
+                              <FiUsers className="w-12 h-12 mb-3 text-gray-200" />
+                              <p className="text-base font-medium text-gray-500">Aucun étudiant trouvé</p>
+                              <p className="text-sm mt-1">Ajustez vos filtres ou ajoutez un nouvel étudiant.</p>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
 
-                  <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-3">
-                    <div className="rounded-xl border border-gray-300 bg-white px-4 py-4">
-                      <p className="text-[11px] font-bold uppercase tracking-widest text-gray-700">Nombre d'absences</p>
-                      <p className="mt-2 text-3xl font-black text-black">{selectedStudentInsight.totalAbsences}</p>
-                    </div>
-
-                    <div className="rounded-xl border border-gray-300 bg-white px-4 py-4">
-                      <div className="h-full rounded-[11px] bg-white">
-                        <p className="text-[11px] font-bold uppercase tracking-widest text-gray-700">Heures d'absences</p>
-                        <p className="mt-2 text-3xl font-black text-black">
-                          {selectedStudentInsight.totalHours} h
+              {selectedStudentInsight && (
+                <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 p-4 backdrop-blur-[1px]">
+                  <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-gray-300 bg-white shadow-2xl">
+                    <div className="flex items-start justify-between border-b border-gray-200 bg-gray-50 px-6 py-4">
+                      <div>
+                        <h3 className="text-lg font-bold text-black">Bilan des absences</h3>
+                        <p className="mt-1 text-xs text-gray-700">
+                          {selectedStudentInsight.student.nom} {selectedStudentInsight.student.prenom}
                         </p>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStudentInsight(null)}
+                        className="rounded-lg bg-black p-2 text-white hover:bg-gray-800"
+                        title="Fermer"
+                      >
+                        <FiX size={16} />
+                      </button>
                     </div>
 
-                    <div className="rounded-xl border border-gray-300 bg-white px-4 py-4">
-                      <p className="text-[11px] font-bold uppercase tracking-widest text-gray-700">Note d'absence</p>
-                      <p className="mt-2 text-3xl font-black text-black">{selectedStudentInsight.note.toFixed(2)} / 20</p>
-                    </div>
-                  </div>
+                    <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-3">
+                      <div className="rounded-xl border border-gray-300 bg-white px-4 py-4">
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-gray-700">Nombre d'absences</p>
+                        <p className="mt-2 text-3xl font-black text-black">{selectedStudentInsight.totalAbsences}</p>
+                      </div>
 
-                  <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 text-xs text-gray-700">
-                    Initialisation: note = 20, heures = 0. Regle appliquee: -0.25 pour chaque 2h d'absence.
+                      <div className="rounded-xl border border-gray-300 bg-white px-4 py-4">
+                        <div className="h-full rounded-[11px] bg-white">
+                          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-700">Heures d'absences</p>
+                          <p className="mt-2 text-3xl font-black text-black">
+                            {selectedStudentInsight.totalHours} h
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-gray-300 bg-white px-4 py-4">
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-gray-700">Note d'absence</p>
+                        <p className="mt-2 text-3xl font-black text-black">{selectedStudentInsight.note.toFixed(2)} / 20</p>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 text-xs text-gray-700">
+                      Initialisation: note = 20, heures = 0. Regle appliquee: -0.25 pour chaque 2h d'absence.
+                    </div>
                   </div>
                 </div>
+              )}
+            </>
+        )}
+
+            {isFormPage && (
+              <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col p-6 sm:p-8">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center pb-6 border-b border-gray-100 mb-6 gap-4">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">{editingId ? 'Modifier Étudiant' : 'Nouvel Étudiant'}</h3>
+                    <p className="text-gray-500 text-sm mt-1">Veuillez renseigner les informations pour {editingId ? 'mettre à jour le' : 'créer un nouveau'} dossier académique.</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors focus:outline-none"
+                      onClick={resetForm}
+                    >
+                      <FiArrowLeft size={16} /> Retour
+                    </button>
+                    <button
+                      type="submit"
+                      form="student-form"
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium rounded-xl shadow-sm hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20 active:scale-95"
+                    >
+                      <FiCheckCircle size={16} /> {editingId ? 'Enregistrer' : 'Créer l\'inscription'}
+                    </button>
+                  </div>
+                </div>
+
+                <form id="student-form" className="flex flex-col gap-8" onSubmit={onSubmit}>
+                  {errorMessage && (
+                    <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium border border-red-100">
+                      {errorMessage}
+                    </div>
+                  )}
+
+                  {/* Informations Personnelles */}
+                  <section className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+                    <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                      <span className="bg-white p-1.5 rounded-lg shadow-sm border border-gray-100 text-base">👤</span>
+                      Informations Personnelles
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-gray-700">Nom</label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                            <FiUser size={16} />
+                          </div>
+                          <input
+                            className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                            value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} placeholder="ex: Durand" required
+                          />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-gray-700">Prénom</label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                            <FiUser size={16} />
+                          </div>
+                          <input
+                            className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                            value={form.prenom} onChange={(e) => setForm({ ...form, prenom: e.target.value })} placeholder="ex: Jean-Luc" required
+                          />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-gray-700">Date de naissance</label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                            <FiCalendar size={16} />
+                          </div>
+                          <input
+                            type="date"
+                            className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                            value={form.date_naissance} onChange={(e) => setForm({ ...form, date_naissance: e.target.value })} required
+                          />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-gray-700">Genre</label>
+                        <div className="flex items-center gap-4 mt-2">
+                          <label className="flex items-center gap-2 cursor-pointer text-gray-700">
+                            <input type="radio" className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300" name="genre" value="M" checked={form.genre === 'M'} onChange={(e) => setForm({ ...form, genre: e.target.value })} />
+                            Masculin
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer text-gray-700">
+                            <input type="radio" className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300" name="genre" value="F" checked={form.genre === 'F'} onChange={(e) => setForm({ ...form, genre: e.target.value })} />
+                            Féminin
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Informations Académiques */}
+                  <section className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+                    <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                      <span className="bg-white p-1.5 rounded-lg shadow-sm border border-gray-100 text-base">🎓</span>
+                      Informations Académiques
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-gray-700">Niveau scolaire (Cycle)</label>
+                        <select
+                          className="block w-full py-2 px-3 border border-gray-200 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                          value={form.cycle} onChange={handleCycleChange} required
+                        >
+                          <option value="">Sélectionner un cycle</option>
+                          {Object.keys(ACADEMIC_STRUCTURE).map((cycle) => (
+                            <option key={cycle} value={cycle}>{cycle}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-gray-700">Classe / Niveau</label>
+                        <select
+                          className="block w-full py-2 px-3 border border-gray-200 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                          value={form.niveau} onChange={handleNiveauChange} disabled={!form.cycle} required
+                        >
+                          <option value="">Sélectionner un niveau</option>
+                          {availableNiveaux.map((niv) => (
+                            <option key={niv} value={niv}>{niv}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-gray-700">Filière / Série</label>
+                        <select
+                          className="block w-full py-2 px-3 border border-gray-200 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                          value={form.filiere} onChange={handleFiliereChange} disabled={!form.niveau} required
+                        >
+                          <option value="">Sélectionner une filière</option>
+                          {availableFilieres.map((fil) => (
+                            <option key={fil} value={fil}>{fil}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-gray-700">Classe à inscrire</label>
+                        <select
+                          className="block w-full py-2 px-3 border border-gray-200 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                          value={form.id_classe} onChange={(e) => setForm({ ...form, id_classe: e.target.value })} disabled={!form.filiere} required
+                        >
+                          <option value="">Sélectionner une classe</option>
+                          {availableClasses.map((c) => (
+                            <option key={c.id_classe} value={c.id_classe}>{c.nom} ({c.total_etudiants || 0} élèves)</option>
+                          ))}
+                        </select>
+                        {form.filiere && availableClasses.length === 0 && (
+                          <span className="text-xs text-amber-600 mt-1">Aucune classe créée pour ce niveau/filière.</span>
+                        )}
+                        {selectedClassPrice !== null && (
+                          <div className="mt-2 p-2 bg-blue-50 border border-blue-100 rounded-lg flex items-center justify-between">
+                            <span className="text-xs font-semibold text-blue-700">Frais de scolarité :</span>
+                            <span className="text-sm font-bold text-blue-800">{Number(selectedClassPrice).toLocaleString()} DH / mois</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-gray-700">Date d'entrée</label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                            <FiCalendar size={16} />
+                          </div>
+                          <input
+                            type="date"
+                            className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                            value={form.date_entree} onChange={(e) => setForm({ ...form, date_entree: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Informations Parent / Tuteur */}
+                  <section className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+                    <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                      <span className="bg-white p-1.5 rounded-lg shadow-sm border border-gray-100 text-base">👨‍👩‍👧</span>
+                      Informations Parent / Tuteur
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-gray-700">Nom du parent</label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                            <FiUser size={16} />
+                          </div>
+                          <input
+                            className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                            value={form.parent_nom}
+                            onChange={(e) => setForm({ ...form, parent_nom: e.target.value })}
+                            placeholder="ex: Alami"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-gray-700">Prénom du parent</label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                            <FiUser size={16} />
+                          </div>
+                          <input
+                            className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                            value={form.parent_prenom}
+                            onChange={(e) => setForm({ ...form, parent_prenom: e.target.value })}
+                            placeholder="ex: Fatima"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-gray-700">Numéro CIN du parent</label>
+                        <input
+                          className="block w-full px-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                          value={form.parent_cin}
+                          onChange={(e) => setForm({ ...form, parent_cin: e.target.value })}
+                          placeholder="ex: AB123456"
+                          required
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-gray-700">Gmail du parent</label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                            <FiMail size={16} />
+                          </div>
+                          <input
+                            type="email"
+                            className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                            value={form.parent_email}
+                            onChange={(e) => setForm({ ...form, parent_email: e.target.value })}
+                            placeholder="parent@gmail.com"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-gray-700">Téléphone parent</label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                            <FiPhone size={16} />
+                          </div>
+                          <input
+                            className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                            value={form.parent_phone}
+                            onChange={(e) => setForm({ ...form, parent_phone: e.target.value })}
+                            placeholder="+212 6 00 00 00 00"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-gray-700">Téléphone urgence (Facultatif)</label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                            <FiPhone size={16} />
+                          </div>
+                          <input
+                            className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                            value={form.parent_urgence_phone}
+                            onChange={(e) => setForm({ ...form, parent_urgence_phone: e.target.value })}
+                            placeholder="+212 6 11 11 11 11"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Coordonnées */}
+                  <section className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+                    <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                      <span className="bg-white p-1.5 rounded-lg shadow-sm border border-gray-100 text-base">📍</span>
+                      Coordonnées
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-gray-700">Email</label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                            <FiMail size={16} />
+                          </div>
+                          <input
+                            type="email"
+                            className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                            value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Optionnel: etudiant@exemple.com"
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500">Si vide, le systeme generera un email eleve base sur le gmail parent.</p>
+                      </div>
+                      <div className="flex flex-col gap-1.5 md:col-span-2">
+                        <label className="text-sm font-medium text-gray-700">Adresse postale</label>
+                        <div className="relative">
+                          <div className="absolute top-3 left-3 pointer-events-none text-gray-400">
+                            <FiMapPin size={16} />
+                          </div>
+                          <textarea
+                            className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors resize-y"
+                            value={form.adresse} onChange={(e) => setForm({ ...form, adresse: e.target.value })} rows="3" required placeholder="Numéro, rue, code postal et ville"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                </form>
               </div>
             )}
-          </>
-        )}
-
-        {isFormPage && (
-          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col p-6 sm:p-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center pb-6 border-b border-gray-100 mb-6 gap-4">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">{editingId ? 'Modifier Étudiant' : 'Nouvel Étudiant'}</h3>
-                <p className="text-gray-500 text-sm mt-1">Veuillez renseigner les informations pour {editingId ? 'mettre à jour le' : 'créer un nouveau'} dossier académique.</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button 
-                  type="button" 
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors focus:outline-none" 
-                  onClick={resetForm}
-                >
-                  <FiArrowLeft size={16} /> Retour
-                </button>
-                <button 
-                  type="submit" 
-                  form="student-form" 
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium rounded-xl shadow-sm hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20 active:scale-95"
-                >
-                  <FiCheckCircle size={16} /> {editingId ? 'Enregistrer' : 'Créer l\'inscription'}
-                </button>
-              </div>
-            </div>
-
-            <form id="student-form" className="flex flex-col gap-8" onSubmit={onSubmit}>
-              {errorMessage && (
-                <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium border border-red-100">
-                  {errorMessage}
-                </div>
-              )}
-
-              {/* Informations Personnelles */}
-              <section className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
-                <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <span className="bg-white p-1.5 rounded-lg shadow-sm border border-gray-100 text-base">👤</span> 
-                  Informations Personnelles
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-gray-700">Nom</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                        <FiUser size={16} />
-                      </div>
-                      <input 
-                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-                        value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} placeholder="ex: Durand" required 
-                      />
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-gray-700">Prénom</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                        <FiUser size={16} />
-                      </div>
-                      <input 
-                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-                        value={form.prenom} onChange={(e) => setForm({ ...form, prenom: e.target.value })} placeholder="ex: Jean-Luc" required 
-                      />
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-gray-700">Date de naissance</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                        <FiCalendar size={16} />
-                      </div>
-                      <input 
-                        type="date" 
-                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-                        value={form.date_naissance} onChange={(e) => setForm({ ...form, date_naissance: e.target.value })} required 
-                      />
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-gray-700">Genre</label>
-                    <div className="flex items-center gap-4 mt-2">
-                      <label className="flex items-center gap-2 cursor-pointer text-gray-700">
-                        <input type="radio" className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300" name="genre" value="M" checked={form.genre === 'M'} onChange={(e) => setForm({ ...form, genre: e.target.value })} /> 
-                        Masculin
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer text-gray-700">
-                        <input type="radio" className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300" name="genre" value="F" checked={form.genre === 'F'} onChange={(e) => setForm({ ...form, genre: e.target.value })} /> 
-                        Féminin
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              {/* Informations Académiques */}
-              <section className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
-                <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <span className="bg-white p-1.5 rounded-lg shadow-sm border border-gray-100 text-base">🎓</span> 
-                  Informations Académiques
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-gray-700">Classe / Niveau</label>
-                    <select 
-                      className="block w-full py-2 px-3 border border-gray-200 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-                      value={form.id_classe} onChange={(e) => setForm({ ...form, id_classe: e.target.value })}
-                    >
-                      <option value="">Sélectionner un niveau</option>
-                      {classes.map((c) => (
-                        <option key={c.id_classe} value={c.id_classe}>{c.nom} - {c.niveau}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-gray-700">Date d'entrée</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                        <FiCalendar size={16} />
-                      </div>
-                      <input 
-                        type="date" 
-                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-                        value={form.date_entree} onChange={(e) => setForm({ ...form, date_entree: e.target.value })} 
-                      />
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              {/* Informations Parent / Tuteur */}
-              <section className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
-                <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <span className="bg-white p-1.5 rounded-lg shadow-sm border border-gray-100 text-base">👨‍👩‍👧</span>
-                  Informations Parent / Tuteur
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-gray-700">Nom du parent</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                        <FiUser size={16} />
-                      </div>
-                      <input
-                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-                        value={form.parent_nom}
-                        onChange={(e) => setForm({ ...form, parent_nom: e.target.value })}
-                        placeholder="ex: Alami"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-gray-700">Prénom du parent</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                        <FiUser size={16} />
-                      </div>
-                      <input
-                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-                        value={form.parent_prenom}
-                        onChange={(e) => setForm({ ...form, parent_prenom: e.target.value })}
-                        placeholder="ex: Fatima"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-gray-700">Numéro CIN du parent</label>
-                    <input
-                      className="block w-full px-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-                      value={form.parent_cin}
-                      onChange={(e) => setForm({ ...form, parent_cin: e.target.value })}
-                      placeholder="ex: AB123456"
-                      required
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-gray-700">Gmail du parent</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                        <FiMail size={16} />
-                      </div>
-                      <input
-                        type="email"
-                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-                        value={form.parent_email}
-                        onChange={(e) => setForm({ ...form, parent_email: e.target.value })}
-                        placeholder="parent@gmail.com"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-gray-700">Téléphone parent</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                        <FiPhone size={16} />
-                      </div>
-                      <input
-                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-                        value={form.parent_phone}
-                        onChange={(e) => setForm({ ...form, parent_phone: e.target.value })}
-                        placeholder="+212 6 00 00 00 00"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-gray-700">Téléphone urgence (Facultatif)</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                        <FiPhone size={16} />
-                      </div>
-                      <input
-                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-                        value={form.parent_urgence_phone}
-                        onChange={(e) => setForm({ ...form, parent_urgence_phone: e.target.value })}
-                        placeholder="+212 6 11 11 11 11"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              {/* Coordonnées */}
-              <section className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
-                <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <span className="bg-white p-1.5 rounded-lg shadow-sm border border-gray-100 text-base">📍</span> 
-                  Coordonnées
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-gray-700">Email</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                        <FiMail size={16} />
-                      </div>
-                      <input 
-                        type="email" 
-                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-                        value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Optionnel: etudiant@exemple.com"
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500">Si vide, le systeme generera un email eleve base sur le gmail parent.</p>
-                  </div>
-                  <div className="flex flex-col gap-1.5 md:col-span-2">
-                    <label className="text-sm font-medium text-gray-700">Adresse postale</label>
-                    <div className="relative">
-                      <div className="absolute top-3 left-3 pointer-events-none text-gray-400">
-                        <FiMapPin size={16} />
-                      </div>
-                      <textarea 
-                        className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors resize-y"
-                        value={form.adresse} onChange={(e) => setForm({ ...form, adresse: e.target.value })} rows="3" required placeholder="Numéro, rue, code postal et ville" 
-                      />
-                    </div>
-                  </div>
-                </div>
-              </section>
-            </form>
           </div>
-        )}
       </div>
-    </div>
-  );
+      );
 }

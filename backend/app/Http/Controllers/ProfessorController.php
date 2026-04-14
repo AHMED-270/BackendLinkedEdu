@@ -860,10 +860,59 @@ class ProfessorController extends Controller
     {
         $user = $request->user();
 
+        if (! $user || $user->role !== 'professeur') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $classIds = DB::table('emploi_du_temps')
+            ->where('id_professeur', $user->id)
+            ->pluck('id_classe')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        if ($classIds->isEmpty()) {
+            return response()->json([
+                'classes' => [],
+                'selectedClassId' => 0,
+                'schedule' => [],
+            ]);
+        }
+
+        $classRows = DB::table('classes')
+            ->whereIn('id_classe', $classIds)
+            ->orderBy('niveau')
+            ->orderBy('nom')
+            ->get(['id_classe', 'nom', 'niveau']);
+
+        $requestedClassId = (int) $request->query('class_id', 0);
+        $selectedClassId = $requestedClassId > 0 && $classIds->contains($requestedClassId)
+            ? $requestedClassId
+            : (int) optional($classRows->first())->id_classe;
+
+        $classes = $classRows
+            ->map(function ($row) {
+                return [
+                    'id' => (int) $row->id_classe,
+                    'nom' => $row->nom,
+                    'niveau' => $row->niveau,
+                    'label' => trim($row->nom . ' - ' . $row->niveau),
+                ];
+            })
+            ->values();
+
         $schedule = DB::table('emploi_du_temps')
             ->join('classes', 'emploi_du_temps.id_classe', '=', 'classes.id_classe')
             ->join('matieres', 'emploi_du_temps.id_matiere', '=', 'matieres.id_matiere')
             ->where('emploi_du_temps.id_professeur', $user->id)
+            ->where('emploi_du_temps.id_classe', $selectedClassId)
+            ->whereExists(function ($query) use ($user) {
+                $query->select(DB::raw(1))
+                    ->from('enseigner')
+                    ->whereColumn('enseigner.id_classe', 'emploi_du_temps.id_classe')
+                    ->whereColumn('enseigner.id_matiere', 'emploi_du_temps.id_matiere')
+                    ->where('enseigner.id_professeur', $user->id);
+            })
             ->orderBy('emploi_du_temps.jour')
             ->orderBy('emploi_du_temps.heure_debut')
             ->get([
@@ -877,7 +926,11 @@ class ProfessorController extends Controller
                 'matieres.nom as matiere_nom',
             ]);
 
-        return response()->json(['schedule' => $schedule]);
+        return response()->json([
+            'classes' => $classes,
+            'selectedClassId' => $selectedClassId,
+            'schedule' => $schedule,
+        ]);
     }
 
     public function getNotes(Request $request): JsonResponse
@@ -885,7 +938,9 @@ class ProfessorController extends Controller
         $user = $request->user();
         $classIds = $this->getAssignedClassIds((int) $user->id);
         $evaluationType = $this->normalizeEvaluationTypeLabel((string) $request->query('evaluation_type', 'Contrôle 1'));
+        $semestre = (string) $request->query('semestre', '1');
         $hasEvaluationTypeColumn = Schema::hasColumn('notes', 'type_evaluation');
+        $hasSemestreColumn = Schema::hasColumn('notes', 'semestre');
 
         $classes = DB::table('classes')->whereIn('id_classe', $classIds)->get(['id_classe as id', 'nom', 'niveau']);
 
@@ -897,6 +952,7 @@ class ProfessorController extends Controller
                 'selectedClassId' => 0,
                 'selectedMatiereId' => 0,
                 'selectedEvaluationType' => $evaluationType,
+                'selectedSemestre' => $semestre,
                 'students' => [],
             ]);
         }
@@ -940,6 +996,10 @@ class ProfessorController extends Controller
             });
         }
 
+        if ($hasSemestreColumn) {
+            $notesSub->where('semestre', $semestre);
+        }
+
         $students = DB::table('etudiants')
             ->join('users', 'etudiants.id_etudiant', '=', 'users.id')
             ->leftJoinSub($notesSub, 'last_notes', function ($join) {
@@ -979,6 +1039,7 @@ class ProfessorController extends Controller
             'selectedClassId' => $classId,
             'selectedMatiereId' => $matiereId,
             'selectedEvaluationType' => $evaluationType,
+            'selectedSemestre' => $semestre,
             'students' => $students,
         ]);
     }
@@ -995,10 +1056,13 @@ class ProfessorController extends Controller
             'notes.*.noteId' => 'nullable|integer|exists:notes,id_note',
             'notes.*.note' => 'nullable|numeric|min:0|max:20',
             'notes.*.appreciation' => 'nullable|string|max:1000',
+            'semestre' => 'nullable|string|max:50',
         ]);
 
         $evaluationType = $this->normalizeEvaluationTypeLabel((string) ($validated['evaluationType'] ?? 'Contrôle 1'));
+        $semestre = (string) ($validated['semestre'] ?? '1');
         $hasEvaluationTypeColumn = Schema::hasColumn('notes', 'type_evaluation');
+        $hasSemestreColumn = Schema::hasColumn('notes', 'semestre');
 
         $classId = (int) $validated['classId'];
         if (! $this->isAssignedToClass((int) $user->id, $classId)) {
@@ -1038,6 +1102,10 @@ class ProfessorController extends Controller
                         }
                     });
 
+                    if ($hasSemestreColumn) {
+                        $deleteQuery->where('semestre', $semestre);
+                    }
+
                     $deleteQuery->delete();
                 }
                 continue;
@@ -1061,6 +1129,9 @@ class ProfessorController extends Controller
 
                 if ($hasEvaluationTypeColumn) {
                     $updatePayload['type_evaluation'] = $evaluationType;
+                }
+                if ($hasSemestreColumn) {
+                    $updatePayload['semestre'] = $semestre;
                 }
 
                 $updated = DB::table('notes')
@@ -1087,6 +1158,9 @@ class ProfessorController extends Controller
                             $query->orWhereNull('type_evaluation');
                         }
                     })
+                    ->when($hasSemestreColumn, function($q) use ($semestre) {
+                        $q->where('semestre', $semestre);
+                    })
                     ->orderByDesc('id_note')
                     ->first(['id_note']);
 
@@ -1097,6 +1171,7 @@ class ProfessorController extends Controller
                             'valeur' => $line['note'],
                             'appreciation' => $line['appreciation'] ?? null,
                             'type_evaluation' => $evaluationType,
+                            'semestre' => $hasSemestreColumn ? $semestre : '1',
                             'updated_at' => now(),
                         ]);
 
@@ -1116,6 +1191,9 @@ class ProfessorController extends Controller
 
             if ($hasEvaluationTypeColumn) {
                 $insertPayload['type_evaluation'] = $evaluationType;
+            }
+            if ($hasSemestreColumn) {
+                $insertPayload['semestre'] = $semestre;
             }
 
             DB::table('notes')->insert($insertPayload);

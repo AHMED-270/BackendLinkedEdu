@@ -24,13 +24,61 @@ class SecretaireController extends Controller
 {
     public function dashboard(): JsonResponse
     {
+        // Monthly absence averages for the last 12 months
+        $monthNames = [
+            1 => 'Jan', 2 => 'Fév', 3 => 'Mar', 4 => 'Avr',
+            5 => 'Mai', 6 => 'Juin', 7 => 'Juil', 8 => 'Aoû',
+            9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Déc',
+        ];
+
+        $startDate = now()->subMonths(11)->startOfMonth();
+
+        $rawMonthly = DB::table('absences')
+            ->select(
+                DB::raw('YEAR(date_abs) as year'),
+                DB::raw('MONTH(date_abs) as month'),
+                DB::raw('COUNT(*) as total'),
+                DB::raw('COUNT(DISTINCT date_abs) as jours')
+            )
+            ->where('date_abs', '>=', $startDate)
+            ->groupBy(DB::raw('YEAR(date_abs)'), DB::raw('MONTH(date_abs)'))
+            ->orderBy(DB::raw('YEAR(date_abs)'))
+            ->orderBy(DB::raw('MONTH(date_abs)'))
+            ->get()
+            ->keyBy(function ($row) { return $row->year . '-' . $row->month; });
+
+        $absencesParMois = [];
+        for ($i = 0; $i < 12; $i++) {
+            $date = now()->subMonths(11 - $i);
+            $key = $date->year . '-' . $date->month;
+            $row = $rawMonthly->get($key);
+            $absencesParMois[] = [
+                'mois' => $monthNames[$date->month] . ' ' . $date->format('y'),
+                'moyenne' => $row ? round($row->total / max($row->jours, 1), 1) : 0,
+                'total' => $row->total ?? 0,
+            ];
+        }
+
+        // Students grouped by niveau
+        $etudiantsParNiveau = DB::table('etudiants')
+            ->join('classes', 'etudiants.id_classe', '=', 'classes.id_classe')
+            ->select(
+                'classes.niveau',
+                DB::raw('COUNT(etudiants.id_etudiant) as total')
+            )
+            ->groupBy('classes.niveau')
+            ->orderBy('classes.niveau')
+            ->get();
+
         return response()->json([
             'stats' => [
                 'etudiants' => Etudiant::count(),
                 'classes' => Classe::count(),
                 'absences_aujourdhui' => Absence::whereDate('date_abs', now()->toDateString())->count(),
-                'reclamations_en_attente' => Reclamation::where('statut', 'en_attente')->count(),
+                'reclamations_envoyees' => Reclamation::count(),
             ],
+            'absences_par_mois' => $absencesParMois,
+            'etudiants_par_niveau' => $etudiantsParNiveau,
         ]);
     }
 
@@ -89,7 +137,7 @@ class SecretaireController extends Controller
             'prenom' => ['required', 'string', 'max:255'],
             'date_naissance' => ['required', 'date'],
             'genre' => ['required', 'in:M,F,A'],
-            'email' => ['nullable', 'email', 'max:255', \Illuminate\Validation\Rule::unique('users')->where(fn ($query) => $query->where('role', 'etudiant'))],
+            'email' => ['nullable', 'email', 'max:255', \Illuminate\Validation\Rule::unique('users')->where(function ($query) { return $query->where('role', 'etudiant'); })],
             'adresse' => ['required', 'string', 'max:500'],
             'id_classe' => ['nullable', 'integer', 'exists:classes,id_classe'],
             'parent_nom' => ['required', 'string', 'max:255'],
@@ -120,7 +168,7 @@ class SecretaireController extends Controller
             'prenom' => ['required', 'string', 'max:255'],
             'date_naissance' => ['required', 'date'],
             'genre' => ['required', 'in:M,F,A'],
-            'email' => ['nullable', 'email', 'max:255', \Illuminate\Validation\Rule::unique('users')->where(fn ($query) => $query->where('role', 'etudiant'))],
+            'email' => ['nullable', 'email', 'max:255', \Illuminate\Validation\Rule::unique('users')->where(function ($query) { return $query->where('role', 'etudiant'); })],
             'adresse' => ['required', 'string', 'max:500'],
             'id_classe' => ['nullable', 'integer', 'exists:classes,id_classe'],
             'parent_nom' => ['required', 'string', 'max:255'],
@@ -244,7 +292,7 @@ class SecretaireController extends Controller
             'prenom' => ['required', 'string', 'max:255'],
             'date_naissance' => ['required', 'date'],
             'genre' => ['required', 'in:M,F,A'],
-            'email' => ['nullable', 'email', 'max:255', \Illuminate\Validation\Rule::unique('users')->ignore($etudiant->id_etudiant)->where(fn ($query) => $query->where('role', 'etudiant'))],
+            'email' => ['nullable', 'email', 'max:255', \Illuminate\Validation\Rule::unique('users')->ignore($etudiant->id_etudiant)->where(function ($query) { return $query->where('role', 'etudiant'); })],
             'adresse' => ['required', 'string', 'max:500'],
             'id_classe' => ['nullable', 'integer', 'exists:classes,id_classe'],
             'parent_nom' => ['required', 'string', 'max:255'],
@@ -258,8 +306,9 @@ class SecretaireController extends Controller
 
         DB::transaction(function () use ($etudiant, $validated) {
             // Update parent logic if necessary
-            $fallbackParentEmail = $etudiant->parentEleve?->user?->email
-                ?? ('parent_' . preg_replace('/\D+/', '', (string) $validated['parent_phone']) . '@linkedu.local');
+            $fallbackParentEmail = ($etudiant->parentEleve && $etudiant->parentEleve->user) 
+                ? $etudiant->parentEleve->user->email 
+                : ('parent_' . preg_replace('/\D+/', '', (string) $validated['parent_phone']) . '@linkedu.local');
             $parentEmail = $validated['parent_email'] ?? $fallbackParentEmail;
             $studentEmail = $validated['email']
                 ?? $etudiant->user->email
@@ -361,9 +410,11 @@ class SecretaireController extends Controller
                 'classes.id_classe',
                 'classes.nom',
                 'classes.niveau',
+                'classes.filiere',
+                'classes.pricing',
                 DB::raw('COUNT(etudiants.id_etudiant) as total_etudiants')
             )
-            ->groupBy('classes.id_classe', 'classes.nom', 'classes.niveau')
+            ->groupBy('classes.id_classe', 'classes.nom', 'classes.niveau', 'classes.filiere', 'classes.pricing')
             ->orderBy('classes.niveau')
             ->orderBy('classes.nom')
             ->get();
@@ -936,11 +987,15 @@ class SecretaireController extends Controller
 
         $reclamation = Reclamation::create($payload);
 
-        $targetMessage = match ($cible) {
-            'professeur' => 'Reclamation envoyee au professeur avec succes.',
-            'secretaire' => 'Reclamation envoyee a la secretaire avec succes.',
-            default => 'Reclamation envoyee au parent avec succes.',
-        };
+        $targetMessage = 'Reclamation envoyee au parent avec succes.';
+        switch ($cible) {
+            case 'professeur':
+                $targetMessage = 'Reclamation envoyee au professeur avec succes.';
+                break;
+            case 'secretaire':
+                $targetMessage = 'Reclamation envoyee a la secretaire avec succes.';
+                break;
+        }
 
         return response()->json([
             'message' => $targetMessage,

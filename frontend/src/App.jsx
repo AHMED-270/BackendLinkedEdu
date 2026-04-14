@@ -3,7 +3,6 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
 import AdminDashboard from './components/AdminDashboard';
 import DirecteurDashboard from './components/DirecteurDashboard';
-import SecretaireLayout from './components/SecretaireLayout';
 import Dashboard from './pages/Dashboard';
 import Devoirs from './pages/Devoirs';
 import Ressources from './pages/Ressources';
@@ -16,6 +15,7 @@ import Avancement from './pages/Avancement';
 import Reclamation from './pages/Reclamation';
 import Parametres from './pages/Parametres';
 import Login from './pages/Login';
+import SecretaireLayout from './components/SecretaireLayout';
 import SecretaireDashboard from './pages/SecretaireDashboard';
 import SecretaireEtudiants from './pages/SecretaireEtudiants';
 import SecretaireClasses from './pages/SecretaireClasses';
@@ -25,90 +25,68 @@ import SecretaireReclamations from './pages/SecretaireReclamations';
 import Paiements from './pages/Paiements';
 import StudentPortal from './pages/StudentPortal';
 import ParentPortal from './pages/ParentPortal';
-import { getHomeRouteByRole } from './constants/roles';
 import './App.css';
 
-const FullScreenLoader = () => (
-  <div className="loading-screen">Chargement...</div>
-);
+const getHomeRouteByRole = (role) => {
+  const normalizedRole = String(role || '').toLowerCase();
+    if (normalizedRole === 'admin') return '/admin';
+    if (normalizedRole === 'directeur') return '/directeur';
+  if (normalizedRole === 'professeur') return '/dashboard';
+  if (normalizedRole === 'secretaire') return '/secretaire/dashboard';
+  if (normalizedRole === 'etudiant') return '/student';
+  if (normalizedRole === 'parent_eleve') return '/parent';
+  return '/login';
+};
 
-const SECRETARIAT_STAFF_ROLES = ['secretaire'];
-const FINANCE_PORTAL_ROLES = ['secretaire', 'comptable'];
-
+// Root Route - Redirects based on auth status
 const RootRoute = () => {
   const { user, loading } = useAuth();
-
-  if (loading) return <FullScreenLoader />;
+  
+  if (loading) return <div className="loading-screen">Chargement...</div>;
   return user ? <Navigate to={getHomeRouteByRole(user?.role)} replace /> : <Navigate to="/login" replace />;
 };
 
+// Protected Layout Wrapper
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { user, loading } = useAuth();
-
-  if (loading) return <FullScreenLoader />;
+  
+  if (loading) return <div className="loading-screen">Chargement...</div>;
   if (!user) return <Navigate to="/login" replace />;
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
     return <Navigate to={getHomeRouteByRole(user.role)} replace />;
   }
-
+  
   return children;
 };
 
+// Title updates per route
 const AppRoutes = () => {
   const { user, loading, logout } = useAuth();
 
-  if (loading) return <FullScreenLoader />;
+  if (loading) return <div className="loading-screen">Chargement...</div>;
 
   return (
     <Routes>
       <Route path="/" element={<RootRoute />} />
-      <Route path="/login" element={<Login />} />
-
+      <Route path="/login" element={user ? <Navigate to={getHomeRouteByRole(user?.role)} replace /> : <Login />} />
       <Route
         path="/admin"
         element={
-          <ProtectedRoute allowedRoles={['admin', 'directeur']}>
-            <AdminDashboard onLogout={logout} userRole={user?.role || 'admin'} user={user} />
-          </ProtectedRoute>
-        }
-      />
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminDashboard onLogout={logout} userRole={user?.role || 'admin'} user={user} />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/directeur/*"
-        element={
-          <ProtectedRoute allowedRoles={['directeur']}>
-            <DirecteurDashboard onLogout={logout} user={user} />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/etudiant"
-        element={
-          <ProtectedRoute allowedRoles={['etudiant']}>
-            <StudentPortal />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/parent"
-        element={
-          <ProtectedRoute allowedRoles={['parent']}>
-            <ParentPortal />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route path="/secretaire/dashboard" element={<ProtectedRoute allowedRoles={FINANCE_PORTAL_ROLES}><SecretaireLayout><SecretaireDashboard /></SecretaireLayout></ProtectedRoute>} />
-      <Route path="/secretaire/etudiants" element={<ProtectedRoute allowedRoles={SECRETARIAT_STAFF_ROLES}><SecretaireLayout><SecretaireEtudiants /></SecretaireLayout></ProtectedRoute>} />
-      <Route path="/secretaire/classes" element={<ProtectedRoute allowedRoles={SECRETARIAT_STAFF_ROLES}><SecretaireLayout><SecretaireClasses /></SecretaireLayout></ProtectedRoute>} />
-      <Route path="/secretaire/paiements" element={<ProtectedRoute allowedRoles={FINANCE_PORTAL_ROLES}><SecretaireLayout><Paiements /></SecretaireLayout></ProtectedRoute>} />
-      <Route path="/secretaire/absences" element={<ProtectedRoute allowedRoles={SECRETARIAT_STAFF_ROLES}><SecretaireLayout><SecretaireAbsences /></SecretaireLayout></ProtectedRoute>} />
-      <Route path="/secretaire/annonces" element={<ProtectedRoute allowedRoles={SECRETARIAT_STAFF_ROLES}><SecretaireLayout><SecretaireAnnonces /></SecretaireLayout></ProtectedRoute>} />
-      <Route path="/secretaire/reclamations" element={<ProtectedRoute allowedRoles={SECRETARIAT_STAFF_ROLES}><SecretaireLayout><SecretaireReclamations /></SecretaireLayout></ProtectedRoute>} />
-      <Route path="/secretaire/profil" element={<ProtectedRoute allowedRoles={FINANCE_PORTAL_ROLES}><SecretaireLayout><Parametres /></SecretaireLayout></ProtectedRoute>} />
+        <Route
+          path="/directeur/*"
+          element={
+            <ProtectedRoute allowedRoles={['directeur']}>
+              <DirecteurDashboard onLogout={logout} user={user} />
+            </ProtectedRoute>
+          }
+        />
 
       {/* Professeur routes */}
       <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['professeur']}><Layout title="Tableau de Bord"><Dashboard /></Layout></ProtectedRoute>} />
@@ -124,6 +102,21 @@ const AppRoutes = () => {
       <Route path="/profil" element={<ProtectedRoute allowedRoles={['professeur']}><Layout title="Profil"><Parametres /></Layout></ProtectedRoute>} />
       <Route path="/parametres" element={<ProtectedRoute allowedRoles={['professeur']}><Layout title="Paramètres"><Parametres /></Layout></ProtectedRoute>} />
 
+      {/* Secretaire routes */}
+      <Route path="/secretaire/dashboard" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><SecretaireDashboard /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/etudiants" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><SecretaireEtudiants /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/classes" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><SecretaireClasses /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/paiements" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><Paiements /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/absences" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><SecretaireAbsences /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/annonces" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><SecretaireAnnonces /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/reclamations" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><SecretaireReclamations /></SecretaireLayout></ProtectedRoute>} />
+      <Route path="/secretaire/profil" element={<ProtectedRoute allowedRoles={['secretaire']}><SecretaireLayout><Parametres /></SecretaireLayout></ProtectedRoute>} />
+      
+      {/* Student & Parent Portals */}
+      <Route path="/student" element={<ProtectedRoute allowedRoles={['etudiant']}><StudentPortal /></ProtectedRoute>} />
+      <Route path="/parent" element={<ProtectedRoute allowedRoles={['parent_eleve']}><ParentPortal /></ProtectedRoute>} />
+
+      {/* Fallback */}
       <Route path="*" element={<Navigate to={user ? getHomeRouteByRole(user?.role) : '/login'} replace />} />
     </Routes>
   );

@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -6,9 +6,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, Users, GraduationCap, FileText, Calendar, 
   Bell, UserCheck, Clock, LifeBuoy, LogOut, AlertCircle, 
-  Send, CheckCircle2, ChevronDown, Download
+  Send, CheckCircle2, ChevronDown, Download, BookOpen
 } from 'lucide-react';
-import './RolePortal.css'; // Uses the upgraded CSS we made earlier!
+import './RolePortal.css'; 
+import '../components/DirectoryTimetable.css';
 
 const tabs = [
   { key: 'dashboard', label: 'Vue d\'ensemble', icon: LayoutDashboard },
@@ -17,6 +18,7 @@ const tabs = [
   { key: 'devoirs', label: 'Devoirs', icon: FileText },
   { key: 'emploi', label: 'Planning', icon: Calendar },
   { key: 'annonces', label: 'Annonces', icon: Bell },
+  { key: 'ressources', label: 'Ressources', icon: BookOpen },
   { key: 'professeurs', label: 'Professeurs', icon: UserCheck },
   { key: 'absences', label: 'Absences', icon: Clock },
   { key: 'reclamations', label: 'Réclamations', icon: LifeBuoy },
@@ -42,11 +44,13 @@ export default function ParentPortal() {
   const [dashboard, setDashboard] = useState(null);
   const [children, setChildren] = useState([]);
   const [selectedChildId, setSelectedChildId] = useState('');
+  const [selectedSemestre, setSelectedSemestre] = useState('1');
   
   const [notes, setNotes] = useState([]);
   const [devoirs, setDevoirs] = useState([]);
   const [emploi, setEmploi] = useState([]);
   const [annonces, setAnnonces] = useState([]);
+  const [ressources, setRessources] = useState([]);
   const [professeurs, setProfesseurs] = useState([]);
   const [absences, setAbsences] = useState([]);
   const [reclamations, setReclamations] = useState([]);
@@ -57,11 +61,91 @@ export default function ParentPortal() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reclamationFeedback, setReclamationFeedback] = useState({ type: '', msg: '' });
 
+  const normalizeTime = (value) => String(value || '').slice(0, 5);
+  const timeToMinutes = (value) => {
+    const normalized = normalizeTime(value);
+    if (!/^\d{2}:\d{2}$/.test(normalized)) return null;
+    const [hoursRaw, minutesRaw] = normalized.split(':').map(Number);
+    return (hoursRaw * 60) + minutesRaw;
+  };
+  const addHoursTime = (startTime, durationHours = 1) => {
+    const normalized = normalizeTime(startTime);
+    if (!/^\d{2}:\d{2}$/.test(normalized)) return normalized;
+    const safeDuration = Number.isFinite(Number(durationHours)) ? Number(durationHours) : 1;
+    const [hoursRaw, minutesRaw] = normalized.split(':').map(Number);
+    const nextHours = (hoursRaw + safeDuration) % 24;
+    return `${String(nextHours).padStart(2, '0')}:${String(minutesRaw).padStart(2, '0')}`;
+  };
+  const addOneHourTime = (startTime) => addHoursTime(startTime, 1);
+  const buildCoveredTimeSlots = (startTime, endTime) => {
+    const normalizedStart = normalizeTime(startTime);
+    const normalizedEnd = normalizeTime(endTime);
+    if (!/^\d{2}:\d{2}$/.test(normalizedStart)) return [];
+    const startMinutes = timeToMinutes(normalizedStart);
+    const endMinutes = timeToMinutes(normalizedEnd);
+    if (startMinutes === null || endMinutes === null || endMinutes <= startMinutes) return [normalizedStart];
+    const slots = [];
+    let current = normalizedStart;
+    let guard = 0;
+    while (guard < 24) {
+      const currentMinutes = timeToMinutes(current);
+      if (currentMinutes === null || currentMinutes >= endMinutes) break;
+      slots.push(current);
+      current = addHoursTime(current, 1);
+      guard += 1;
+    }
+    return slots.length > 0 ? slots : [normalizedStart];
+  };
+  const buildHourlySlots = (start = '08:30', count = 10) => {
+    const slots = [];
+    let current = start;
+    for (let index = 0; index < count; index += 1) {
+      slots.push(current);
+      current = addHoursTime(current, 1);
+    }
+    return slots;
+  };
+
   const parentName = useMemo(() => {
     const prenom = user?.prenom || '';
     const nom = user?.nom || '';
     return `${prenom} ${nom}`.trim() || user?.name || 'Parent';
   }, [user]);
+
+  const tableTimes = useMemo(() => {
+    const defaultSlots = buildHourlySlots('08:30', 10);
+    const coveredTimes = emploi.flatMap((item) => {
+      const startTime = normalizeTime(item?.heure_debut);
+      const endTime = normalizeTime(item?.heure_fin) || addHoursTime(startTime, 1);
+      return buildCoveredTimeSlots(startTime, endTime);
+    });
+    const uniqueTimes = [...new Set(coveredTimes.filter((time) => /^\d{2}:\d{2}$/.test(time)))].sort((a, b) => a.localeCompare(b));
+    return [...new Set([...defaultSlots, ...uniqueTimes])].sort((a, b) => a.localeCompare(b));
+  }, [emploi]);
+
+  const scheduleDataGrid = useMemo(() => {
+    const formatted = {};
+    emploi.forEach((item) => {
+      const day = String(item?.jour || '');
+      const startTime = normalizeTime(item?.heure_debut);
+      const endTime = normalizeTime(item?.heure_fin) || addHoursTime(startTime, 1);
+
+      if (!day || !/^\d{2}:\d{2}$/.test(startTime)) return;
+
+      const coveredSlots = buildCoveredTimeSlots(startTime, endTime);
+      const cardData = {
+        id: item.id_edt,
+        matiere: item.matiere || 'Matière Inconnue',
+        professeur: item.professeur || 'Professeur Inconnu'
+      };
+
+      coveredSlots.forEach((slotTime) => {
+        if (!formatted[slotTime]) formatted[slotTime] = {};
+        formatted[slotTime][day] = cardData;
+      });
+    });
+    return formatted;
+  }, [emploi]);
 
   const fetchWithAuth = async (path, method = 'get', payload = null) => {
     const token = getStoredToken();
@@ -111,7 +195,7 @@ export default function ParentPortal() {
       setError('');
       try {
         if (activeTab === 'dashboard') {
-          const res = await fetchWithAuth('/api/parent/dashboard');
+          const res = await fetchWithAuth('/api/parent/dashboard' + childQuery);
           setDashboard(res.data);
         } else if (activeTab === 'enfants') {
           const res = await fetchWithAuth('/api/parent/enfants');
@@ -128,6 +212,9 @@ export default function ParentPortal() {
         } else if (activeTab === 'annonces') {
           const res = await fetchWithAuth('/api/parent/annonces' + childQuery);
           setAnnonces(res.data.annonces ?? []);
+        } else if (activeTab === 'ressources') {
+          const res = await fetchWithAuth('/api/parent/ressources' + childQuery);
+          setRessources(res.data.ressources ?? []);
         } else if (activeTab === 'professeurs') {
           const res = await fetchWithAuth('/api/parent/professeurs' + childQuery);
           setProfesseurs(res.data.professeurs ?? []);
@@ -280,7 +367,7 @@ export default function ParentPortal() {
           {/* Toolbar: Child Selector */}
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
             {/* Child Selector */}
-            {children.length > 0 && activeTab !== 'dashboard' && activeTab !== 'reclamations' && activeTab !== 'enfants' && (
+            {children.length > 0 && activeTab !== 'reclamations' && activeTab !== 'enfants' && (
               <div className="relative group min-w-[240px] ml-auto">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Users size={16} className="text-indigo-500" />
@@ -290,9 +377,10 @@ export default function ParentPortal() {
                   value={selectedChildId}
                   onChange={(event) => setSelectedChildId(event.target.value)}
                 >
+                  <option value="">Tous mes enfants</option>
                   {children.map((child) => (
                     <option key={child.id_etudiant} value={child.id_etudiant}>
-                      Élève: {child.nom_complet || child.prenom || `ID #${child.id_etudiant}`}
+                      {child.nom_complet || child.prenom || `Élève ID #${child.id_etudiant}`}
                     </option>
                   ))}
                 </select>
@@ -329,23 +417,145 @@ export default function ParentPortal() {
                 
                 {/* === DASHBOARD TAB === */}
                 {activeTab === 'dashboard' && dashboard && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <motion.div variants={cardVariants} className="card p-6 flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600"><Users size={24} /></div>
-                      <div><p className="text-xs font-bold text-slate-400 uppercase">Enfants Inscrits</p><h3 className="text-2xl font-black text-slate-800">{dashboard.stats?.nombre_enfants ?? 0}</h3></div>
-                    </motion.div>
-                    <motion.div variants={cardVariants} className="card p-6 flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600"><GraduationCap size={24} /></div>
-                      <div><p className="text-xs font-bold text-slate-400 uppercase">Moyenne G.</p><h3 className="text-2xl font-black text-slate-800">{dashboard.stats?.moyenne_generale ?? '-'}</h3></div>
-                    </motion.div>
-                    <motion.div variants={cardVariants} className="card p-6 flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-red-600"><Clock size={24} /></div>
-                      <div><p className="text-xs font-bold text-slate-400 uppercase">Absences</p><h3 className="text-2xl font-black text-slate-800">{dashboard.stats?.nombre_absences ?? 0}</h3></div>
-                    </motion.div>
-                    <motion.div variants={cardVariants} className="card p-6 flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600"><LifeBuoy size={24} /></div>
-                      <div><p className="text-xs font-bold text-slate-400 uppercase">Requêtes</p><h3 className="text-2xl font-black text-slate-800">{dashboard.stats?.reclamations_en_attente ?? 0}</h3></div>
-                    </motion.div>
+                  <div className="flex flex-col gap-6">
+                    {/* Stats Row */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <motion.div variants={cardVariants} className="stat-hero-card azure-gradient shadow-azure">
+                        <div className="stat-hero-icon"><Users size={24} /></div>
+                        <div className="stat-hero-content">
+                          <span className="stat-hero-label">Enfants</span>
+                          <span className="stat-hero-value">{dashboard.stats?.nombre_enfants ?? 0}</span>
+                        </div>
+                      </motion.div>
+                      <motion.div variants={cardVariants} className="stat-hero-card emerald-gradient shadow-emerald">
+                        <div className="stat-hero-icon"><GraduationCap size={24} /></div>
+                        <div className="stat-hero-content">
+                          <span className="stat-hero-label">Moyenne G.</span>
+                          <span className="stat-hero-value">{dashboard.stats?.moyenne_generale ?? '-'}</span>
+                        </div>
+                      </motion.div>
+                      <motion.div variants={cardVariants} className="stat-hero-card rose-gradient shadow-rose">
+                        <div className="stat-hero-icon"><Clock size={24} /></div>
+                        <div className="stat-hero-content">
+                          <span className="stat-hero-label">Absences</span>
+                          <span className="stat-hero-value">{dashboard.stats?.nombre_absences ?? 0}</span>
+                        </div>
+                      </motion.div>
+                      <motion.div variants={cardVariants} className="stat-hero-card orange-gradient-custom shadow-orange-custom">
+                        <div className="stat-hero-icon"><LifeBuoy size={24} /></div>
+                        <div className="stat-hero-content">
+                          <span className="stat-hero-label">Réclams.</span>
+                          <span className="stat-hero-value">{dashboard.stats?.reclamations_en_attente ?? 0}</span>
+                        </div>
+                      </motion.div>
+                    </div>
+
+                    <div className="dashboard-main-layout">
+                      {/* Main Column: Children Sessions */}
+                      <div className="dashboard-col-main space-y-6">
+                        <div className="section-card-header mb-2 !border-none !pb-0">
+                          <h3><Calendar size={18} className="text-indigo-500" /> Séance(s) du jour pour vos enfants</h3>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 gap-4">
+                          {dashboard.enfants?.map((enfant) => (
+                            <motion.div key={enfant.id_etudiant} variants={cardVariants} className="card overflow-hidden !border-l-4 !border-l-indigo-500">
+                              <div className="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                                <div>
+                                  <h4 className="font-bold text-slate-800">{enfant.nom_complet}</h4>
+                                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">Classe: {enfant.classe_nom || '-'}</p>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded">MAT: {enfant.matricule || '-'}</span>
+                                </div>
+                              </div>
+                              <div className="p-4 bg-white">
+                                {enfant.today_sessions?.length === 0 ? (
+                                  <p className="text-sm text-slate-400 italic text-center py-2">Pas de séances prévues aujourd'hui.</p>
+                                ) : (
+                                  <div className="flex flex-col gap-3">
+                                    {enfant.today_sessions.map((session, idx) => (
+                                      <div key={idx} className="flex items-center gap-4 p-3 bg-white border border-slate-100 rounded-xl shadow-sm hover:border-indigo-100 transition-colors">
+                                        <div className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded min-w-[90px] text-center">
+                                          {normalizeTime(session.heure_debut)} - {normalizeTime(session.heure_fin)}
+                                        </div>
+                                        <div className="flex-1">
+                                          <p className="text-sm font-bold text-slate-800">{session.matiere}</p>
+                                          <p className="text-xs text-slate-500">{session.professeur || '-'}</p>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Side Column: Unified Communication Hub */}
+                      <div className="dashboard-col-side">
+                        <motion.section variants={cardVariants} className="dashboard-section-card !p-0 overflow-hidden shadow-indigo-sm flex flex-col h-full">
+                          {/* Announcement Top Half */}
+                          <div className="p-5 bg-gradient-to-br from-indigo-50 to-white border-b border-indigo-100">
+                            <div className="flex justify-between items-center mb-4">
+                              <h3 className="!m-0 flex items-center gap-2"><Bell size={18} className="text-indigo-500" /> École Info</h3>
+                              <span className="text-[10px] font-black text-indigo-400 uppercase tracking-tighter">Nouveau</span>
+                            </div>
+
+                            {dashboard.annonces?.length === 0 ? (
+                              <p className="text-xs text-slate-400 py-4 text-center">Aucune annonce pour le moment.</p>
+                            ) : (
+                              <div className="mini-announcement-highlight bg-white p-4 rounded-xl border border-indigo-100 shadow-sm relative overflow-hidden group">
+                                <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+                                <h5 className="font-bold text-slate-800 text-sm mb-1 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">
+                                  {dashboard.annonces[0].titre}
+                                </h5>
+                                <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-3">
+                                  {dashboard.annonces[0].contenu}
+                                </p>
+                                <div className="flex justify-between items-center mt-2">
+                                  <span className="text-[10px] font-bold text-slate-400">{dashboard.annonces[0].date_publication?.substring(0, 10)}</span>
+                                  <button onClick={() => setActiveTab('annonces')} className="text-[10px] font-bold text-indigo-600 hover:underline">Détails</button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Complaints Bottom Half */}
+                          <div className="p-5 flex-1 flex flex-col">
+                            <div className="flex justify-between items-center mb-4">
+                              <h3 className="!m-0 flex items-center gap-2"><LifeBuoy size={18} className="text-orange-500" /> Vos Réclamations</h3>
+                              <button onClick={() => setActiveTab('reclamations')} className="text-[10px] font-bold text-orange-600 hover:underline">Gérer</button>
+                            </div>
+
+                            <div className="space-y-3 flex-1">
+                              {dashboard.reclamations?.length === 0 ? (
+                                <p className="text-xs text-slate-400 text-center py-6">Aucune réclamation à afficher.</p>
+                              ) : (
+                                dashboard.reclamations.slice(0, 2).map((rec) => (
+                                  <div key={rec.id_reclamation} className="p-3 bg-slate-50 border border-slate-100 rounded-xl hover:bg-white hover:shadow-sm transition-all duration-300">
+                                    <div className="flex justify-between items-start mb-1">
+                                      <h5 className="text-[11px] font-bold text-slate-800 line-clamp-1">{rec.objet}</h5>
+                                      <span className={`text-[8px] font-black px-1.5 py-0.5 rounded shadow-xs uppercase ${
+                                        rec.statut === 'en_attente' ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'
+                                      }`}>
+                                        {rec.statut === 'en_attente' ? 'En cours' : 'Traité'}
+                                      </span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-500 line-clamp-1 italic">"{rec.message}"</p>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                            
+                            <button onClick={() => setActiveTab('annonces')} className="w-full mt-6 py-2.5 text-xs font-bold text-slate-500 bg-slate-100 rounded-xl hover:bg-indigo-500 hover:text-white transition-all duration-300 shadow-xs">
+                              Voir tout l'historique
+                            </button>
+                          </div>
+                        </motion.section>
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -373,18 +583,37 @@ export default function ParentPortal() {
 
                 {/* === NOTES TAB === */}
                 {activeTab === 'notes' && (
-                  notes.length === 0 ? <EmptyState icon={GraduationCap} message="Aucune note disponible pour cet enfant." /> :
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {notes.map((note) => (
+                  <>
+                    <div className="mb-4 flex items-center gap-3">
+                      <label className="font-bold text-slate-700 text-sm">Semestre:</label>
+                      <select 
+                        value={selectedSemestre} 
+                        onChange={(e) => setSelectedSemestre(e.target.value)}
+                        className="form-select w-40 !py-2 !rounded-lg"
+                      >
+                        <option value="1">Semestre 1</option>
+                        <option value="2">Semestre 2</option>
+                      </select>
+                    </div>
+                    {notes.filter(n => (n.semestre ?? '1') === selectedSemestre).length === 0 ? <EmptyState icon={GraduationCap} message="Aucune note disponible pour cet enfant dans ce semestre." /> :
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {notes.filter(n => (n.semestre ?? '1') === selectedSemestre).map((note) => (
                       <motion.div variants={cardVariants} key={note.id_note} className="card p-6 border-t-4 border-t-blue-500">
                         <div className="flex justify-between items-start mb-3">
-                          <h3 className="font-bold text-slate-800">{note.matiere}</h3>
+                          <div>
+                            <h3 className="font-bold text-slate-800">{note.matiere}</h3>
+                            <span className="text-xs text-slate-500">
+                              {note.type_evaluation || 'Contrôle'} | Sem: {note.semestre ?? '1'}
+                            </span>
+                          </div>
                           <span className="badge badge-blue text-lg px-3 py-1">{note.valeur}/20</span>
                         </div>
                         <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg italic">"{note.appreciation || 'Aucune appréciation.'}"</p>
                       </motion.div>
                     ))}
                   </div>
+                  }
+                  </>
                 )}
 
                 {/* === DEVOIRS TAB === */}
@@ -402,9 +631,12 @@ export default function ParentPortal() {
                           )}
                         </div>
                         <h3 className="font-bold text-lg text-slate-800 mb-2">{devoir.titre}</h3>
-                        <p className="text-sm font-medium text-slate-500 flex items-center gap-1 mt-auto">
+                        <p className="text-sm text-slate-500 flex items-center gap-1 mt-auto">
                           <Calendar size={14}/> À rendre avant le : {devoir.date_limite || '-'}
                         </p>
+                        {devoir.description && (
+                           <p className="text-xs text-slate-400 mt-2 bg-slate-50 p-2 rounded italic">"{devoir.description}"</p>
+                        )}
                       </motion.div>
                     ))}
                   </div>
@@ -433,6 +665,87 @@ export default function ParentPortal() {
                       </motion.div>
                     ))}
                   </div>
+                )}
+
+                {/* === RESSOURCES TAB === */}
+                {activeTab === 'ressources' && (
+                  ressources.length === 0 ? <EmptyState icon={BookOpen} message="Aucune ressource pédagogique disponible." /> :
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {ressources.map((res) => (
+                      <motion.div variants={cardVariants} key={res.id_ressource} className="card p-5 group hover:border-indigo-200 transition-all flex flex-col">
+                        <div className="flex justify-between items-start mb-3">
+                          <span className="badge bg-indigo-50 text-indigo-600 border border-indigo-100 uppercase text-[10px] font-bold tracking-widest">
+                            {res.type_ressource || 'DOCUMENT'}
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-400">{res.date}</span>
+                        </div>
+                        <h3 className="font-bold text-slate-800 mb-2 leading-snug group-hover:text-indigo-600 transition-colors">{res.titre}</h3>
+                        <p className="text-xs text-slate-500 mb-4 line-clamp-2">{res.description || 'Pas de description.'}</p>
+                        
+                        <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Matière / Prof</span>
+                            <span className="text-[11px] font-bold text-slate-600 truncate max-w-[120px]">
+                              {res.matiere || '-'} • {res.professeur || '-'}
+                            </span>
+                          </div>
+                          {res.fichier_url && (
+                            <motion.a 
+                              whileHover={{ x: 3 }}
+                              href={res.fichier_url} target="_blank" rel="noopener noreferrer" 
+                              className="w-10 h-10 rounded-full bg-slate-50 text-slate-600 flex items-center justify-center hover:bg-indigo-500 hover:text-white transition-all shadow-sm"
+                            >
+                              <Download size={18} />
+                            </motion.a>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+
+                {/* === EMPLOI TAB === */}
+                {activeTab === 'emploi' && (
+                  <section className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                    <div className="directory-timetable" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent' }}>
+                      <div className="timetable-grid-container" style={{ margin: 0, border: 'none', borderRadius: 0, boxShadow: 'none' }}>
+                        <table className="timetable-table">
+                          <thead>
+                            <tr>
+                              <th className="time-col"></th>
+                              {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'].map(day => (
+                                <th key={day} className={day.toLowerCase() === new Date().toLocaleDateString('fr-FR', { weekday: 'long' }).toLowerCase() ? 'current-day-header' : ''}>{day}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {tableTimes.map(time => (
+                              <tr key={time}>
+                                <td className="time-cell" style={{ fontWeight: 600 }}>{`${time} - ${addOneHourTime(time)}`}</td>
+                                {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'].map(day => {
+                                  const cellData = scheduleDataGrid[time]?.[day];
+                                  return (
+                                    <td key={`${time}-${day}`} className={day.toLowerCase() === new Date().toLocaleDateString('fr-FR', { weekday: 'long' }).toLowerCase() ? 'current-day-col' : ''}>
+                                      {cellData ? (
+                                        <div className="course-card border-blue" style={{ cursor: 'default' }}>
+                                          <strong className="course-subject">{cellData.matiere}</strong>
+                                          <div className="course-details">
+                                            <span className="course-class">Prof. {cellData.professeur}</span>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="empty-cell"></div>
+                                      )}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </section>
                 )}
 
                 {/* === ABSENCES TAB === */}

@@ -20,10 +20,6 @@ export default function SecretaireSidebar() {
   const navigate = useNavigate();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const role = String(user?.role || '').toLowerCase();
-  const visibleNavItems = role === 'comptable'
-    ? navItems.filter((item) => item.path === '/secretaire/dashboard' || item.path === '/secretaire/paiements')
-    : navItems;
 
   const handleLogoutConfirm = async () => {
     if (isLoggingOut) return;
@@ -106,7 +102,7 @@ export default function SecretaireSidebar() {
           <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Navigation</div>
 
           <nav className="flex flex-col gap-1 px-2">
-            {visibleNavItems.map((item) => {
+            {navItems.map((item) => {
               const Icon = item.icon;
               return (
                 <NavLink

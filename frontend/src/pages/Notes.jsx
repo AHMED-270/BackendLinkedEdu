@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Save, Printer, CheckCircle2, AlertCircle, FileSpreadsheet, Trash2, Search, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -17,6 +17,7 @@ export default function Notes() {
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedMatiere, setSelectedMatiere] = useState('');
   const [evaluationType, setEvaluationType] = useState('Contrôle 1');
+  const [semestre, setSemestre] = useState('1');
   const [studentsSearch, setStudentsSearch] = useState('');
   
   const [loading, setLoading] = useState(true);
@@ -56,6 +57,7 @@ export default function Notes() {
         class_id: classId,
         matiere_id: matiereId,
         evaluation_type: evaluationTypeValue,
+        semestre: semestre,
       });
       
       setClasses(data.classes || []);
@@ -69,6 +71,7 @@ export default function Notes() {
       if (data.selectedClassId) setSelectedClass(String(data.selectedClassId));
       if (data.selectedMatiereId) setSelectedMatiere(String(data.selectedMatiereId));
       if (data.selectedEvaluationType) setEvaluationType(String(data.selectedEvaluationType));
+      if (data.selectedSemestre) setSemestre(String(data.selectedSemestre));
     } catch (error) {
       const status = error?.response?.status;
       if (status === 401) {
@@ -107,6 +110,20 @@ export default function Notes() {
     loadNotes(selectedClass, selectedMatiere, value);
   };
 
+  const handleSemestreChange = (e) => {
+    const value = e.target.value;
+    setSemestre(value);
+    // Note: loadNotes takes evaluationType as 3rd parameter.
+    // If we want to change semestre and trigger load, we need to pass current evaluationType but update semestre state first.
+    // However, state is async, so better to pass them explicitly if we changed signature. Since signature is (classId, matiereId, evaluationTypeValue = evaluationType), we rely on state for semestre.
+    // Let's call loadNotes with the current states. Since React 18, state updates are batched, but it's simpler to do it inline or adjust the loadNotes signature.
+    // To be safe, we'll redefine how we call it.
+  };
+
+  useEffect(() => {
+    loadNotes(selectedClass, selectedMatiere, evaluationType);
+  }, [semestre]); // Trigger reloading when semestre changes
+
   const updateNote = (id, value) => {
     // Sanitize input: allow only numbers and one decimal dot
     const sanitizedValue = value.replace(/,/g, '.').replace(/[^0-9.]/g, '');
@@ -135,6 +152,7 @@ export default function Notes() {
         classId: Number(selectedClass),
         matiereId: Number(selectedMatiere),
         evaluationType,
+        semestre,
         notes: students.map((student) => ({
           studentId: student.id,
           noteId: student.noteId ?? null,
@@ -439,6 +457,15 @@ export default function Notes() {
               <option value="Contrôle 4">Contrôle 4</option>
               <option value="TP / Participation">TP / Participation</option>
               <option value="Projet / Exposé">Projet / Exposé</option>
+            </select>
+
+            <select
+              className="form-select min-w-[150px] !px-4 !py-2.5 rounded-xl border border-slate-300 bg-white shadow-sm"
+              value={semestre}
+              onChange={handleSemestreChange}
+            >
+              <option value="1">Semestre 1</option>
+              <option value="2">Semestre 2</option>
             </select>
 
             <div className="relative w-full md:w-72 mt-2 md:mt-0">

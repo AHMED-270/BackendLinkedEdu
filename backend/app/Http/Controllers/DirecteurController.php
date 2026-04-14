@@ -82,6 +82,7 @@ class DirecteurController extends Controller
                         'id_classe' => $classe->id_classe,
                         'nom' => $classe->nom,
                         'niveau' => $classe->niveau,
+                        'filiere' => $classe->filiere,
                     ];
                 })->unique('id_classe')->values();
 
@@ -100,7 +101,7 @@ class DirecteurController extends Controller
                 'prenom' => $prof->user ? $prof->user->prenom : '',
                 'email' => $prof->user ? $prof->user->email : 'Inconnu',
                 'telephone' => $prof->telephone,
-                'avatar' => 'https://i.pravatar.cc/150?u=' . $prof->id_professeur,
+                'avatar' => null,
                 'subject' => strtoupper((string) ($matieres->first() ?? '')), // backward compatibility
                 'matieres' => $matieres->values(),
                 'classes' => $classes,
@@ -608,9 +609,6 @@ class DirecteurController extends Controller
                     'evaluationTypes' => $evaluationTypeOptions,
                     'periods' => [
                         ['value' => 'all', 'label' => 'Toutes periodes'],
-                        ['value' => 'trimestre_1', 'label' => 'Trimestre 1'],
-                        ['value' => 'trimestre_2', 'label' => 'Trimestre 2'],
-                        ['value' => 'trimestre_3', 'label' => 'Trimestre 3'],
                         ['value' => 'semestre_1', 'label' => 'Semestre 1'],
                         ['value' => 'semestre_2', 'label' => 'Semestre 2'],
                     ],
@@ -643,21 +641,8 @@ class DirecteurController extends Controller
                     'coefficient' => max(1.0, (float) ($matiere->coefficient ?? 1)),
                 ];
             })
+            ->unique('id')
             ->values();
-
-        if ($matieres->isEmpty()) {
-            $matieres = DB::table('matieres')
-                ->orderBy('nom')
-                ->get(['id_matiere as id', 'nom', 'coefficient'])
-                ->map(function ($matiere) {
-                    return [
-                        'id' => (int) $matiere->id,
-                        'nom' => (string) $matiere->nom,
-                        'coefficient' => max(1.0, (float) ($matiere->coefficient ?? 1)),
-                    ];
-                })
-                ->values();
-        }
 
         $requestedMatiereId = (int) $request->query('matiere_id', 0);
         $selectedMatiereId = $matieres->contains('id', $requestedMatiereId)
@@ -716,9 +701,6 @@ class DirecteurController extends Controller
                     'evaluationTypes' => $evaluationTypeOptions,
                     'periods' => [
                         ['value' => 'all', 'label' => 'Toutes periodes'],
-                        ['value' => 'trimestre_1', 'label' => 'Trimestre 1'],
-                        ['value' => 'trimestre_2', 'label' => 'Trimestre 2'],
-                        ['value' => 'trimestre_3', 'label' => 'Trimestre 3'],
                         ['value' => 'semestre_1', 'label' => 'Semestre 1'],
                         ['value' => 'semestre_2', 'label' => 'Semestre 2'],
                     ],
@@ -736,7 +718,7 @@ class DirecteurController extends Controller
         $studentIds = $studentsBase->pluck('id')->values();
 
         $hasTypeColumn = Schema::hasColumn('notes', 'type_evaluation');
-        $hasPeriodColumn = Schema::hasColumn('notes', 'periode');
+        $hasPeriodColumn = Schema::hasColumn('notes', 'semestre');
         $hasStatusColumn = Schema::hasColumn('notes', 'statut_absence');
 
         $noteColumns = [
@@ -755,7 +737,7 @@ class DirecteurController extends Controller
         }
 
         if ($hasPeriodColumn) {
-            $noteColumns[] = 'notes.periode';
+            $noteColumns[] = 'notes.semestre';
         }
 
         if ($hasStatusColumn) {
@@ -787,7 +769,7 @@ class DirecteurController extends Controller
             }
 
             $periodMeta = $this->resolvePeriodMeta(
-                $hasPeriodColumn ? (string) ($row->periode ?? '') : null,
+                $hasPeriodColumn ? (string) ($row->semestre ?? '') : null,
                 isset($row->created_at) ? (string) $row->created_at : null
             );
 
@@ -937,9 +919,6 @@ class DirecteurController extends Controller
 
         $periods = [
             ['value' => 'all', 'label' => 'Toutes periodes'],
-            ['value' => 'trimestre_1', 'label' => 'Trimestre 1'],
-            ['value' => 'trimestre_2', 'label' => 'Trimestre 2'],
-            ['value' => 'trimestre_3', 'label' => 'Trimestre 3'],
             ['value' => 'semestre_1', 'label' => 'Semestre 1'],
             ['value' => 'semestre_2', 'label' => 'Semestre 2'],
         ];

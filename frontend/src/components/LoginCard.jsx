@@ -1,85 +1,74 @@
-import { useState } from 'react'
-import axios from 'axios'
-import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import { getHomeRouteByRole } from '../constants/roles'
+﻿import { useState } from 'react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { getHomeRouteByRole } from '../constants/roles';
 
-function LoginCard() {
-  const navigate = useNavigate()
-  const { setAuthenticatedUser } = useAuth()
-  const [isForgotMode, setIsForgotMode] = useState(false)
-  const [isResetSent, setIsResetSent] = useState(false)
-  const [loginEmail, setLoginEmail] = useState('')
-  const [loginPassword, setLoginPassword] = useState('')
-  const [loginFeedback, setLoginFeedback] = useState('')
-  const [loginFeedbackType, setLoginFeedbackType] = useState('')
-  const [isLoggingIn, setIsLoggingIn] = useState(false)
+const AUTH_TOKEN_KEY = 'linkedu_token';
+const browserHost = typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1';
+const apiBaseUrl = import.meta.env.VITE_API_URL ?? "http://" + browserHost + ":8000";
 
-  const handleLoginSubmit = async (event) => {
-    event.preventDefault()
-    setIsLoggingIn(true)
-    setLoginFeedback('')
-    setLoginFeedbackType('')
+export default function LoginCard({ onLoginSuccess }) {
+  const [isForgotMode, setIsForgotMode] = useState(false);
+  const [isResetSent, setIsResetSent] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginFeedback, setLoginFeedback] = useState('');
+  const [loginFeedbackType, setLoginFeedbackType] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-    const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000'
+  const navigate = useNavigate();
+  const { setAuthenticatedUser } = useAuth();
 
-    const performLogin = async () => {
-      await axios.get(apiBaseUrl + '/sanctum/csrf-cookie', {
-        withCredentials: true,
-        withXSRFToken: true,
-      })
-
-      return axios.post(
-        apiBaseUrl + '/api/admin/login',
-        {
-          email: loginEmail,
-          password: loginPassword,
-        },
-        {
-          withCredentials: true,
-          withXSRFToken: true,
-          headers: {
-            Accept: 'application/json',
-          },
-        }
-      )
-    }
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoggingIn(true);
+    setLoginFeedback('');
+    setLoginFeedbackType('');
 
     try {
-      let loginRes
+      const performLogin = async () => {
+        await axios.get(apiBaseUrl + '/sanctum/csrf-cookie', {
+          withCredentials: true,
+          withXSRFToken: true,
+        });
 
+        // Use the new unified /api/login endpoint instead of forcing /api/directeur/login
+        const endpoint = '/api/login';
+        return axios.post(
+          apiBaseUrl + endpoint,
+          { email: loginEmail.trim().toLowerCase(), password: loginPassword },
+          {
+            withCredentials: true,
+            withXSRFToken: true,
+            headers: { Accept: 'application/json' },
+          }
+        );
+      };
+
+      let loginRes;
       try {
-        loginRes = await performLogin()
+        loginRes = await performLogin();
       } catch (firstError) {
         if (firstError?.response?.status === 419) {
-          loginRes = await performLogin()
+          loginRes = await performLogin();
         } else {
-          throw firstError
+          throw firstError;
         }
       }
 
-      const connectedUser = loginRes?.data?.user
-      setAuthenticatedUser(connectedUser)
-      setLoginFeedback(`Connecte en tant que ${connectedUser?.email ?? loginEmail}.`)
-      setLoginFeedbackType('success')
+      const connectedUser = loginRes?.data?.user;
+      const authToken = loginRes?.data?.token;
 
-      const roleHome = getHomeRouteByRole(connectedUser?.role)
+      if (authToken) {
+        try {
+          localStorage.setItem(AUTH_TOKEN_KEY, authToken);
+        } catch {
+          // Ignore storage failures
+        }
+      }
 
-<<<<<<< HEAD
-      navigate(roleHome, { replace: true })
-    } catch (error) {
-      const status = error?.response?.status
-      let message = 'Echec de connexion.'
-      const backendMessage = error?.response?.data?.message
-      const backendEmailError = error?.response?.data?.errors?.email?.[0]
-
-      if (backendEmailError) {
-        message = backendEmailError
-      } else if (backendMessage && backendMessage !== 'The given data was invalid.') {
-        message = backendMessage
-      } else if (status === 422 || status === 401) {
-        message = 'Email ou mot de passe incorrect.'
-=======
       if (setAuthenticatedUser) {
         setAuthenticatedUser({
           ...connectedUser,
@@ -108,40 +97,39 @@ function LoginCard() {
         // Just in case backend somehow returns 403
         setLoginFeedback(err?.response?.data?.message || 'Accès refusé.');
         setLoginFeedbackType('error');
->>>>>>> 78db954bb8f9de8159957adfa96a2d298d6c39d8
       } else if (status === 419) {
-        message = 'Session expiree. Reessayez.'
-      } else if (error?.message) {
-        message = error.message
+        setLoginFeedback('Session expirée. Réessayez.');
+        setLoginFeedbackType('error');
+      } else {
+        setLoginFeedback(err?.response?.data?.message || 'Erreur de connexion.');
+        setLoginFeedbackType('error');
       }
-
-      setLoginFeedback(message)
-      setLoginFeedbackType('error')
     } finally {
-      setIsLoggingIn(false)
+      setIsLoggingIn(false);
     }
-  }
+  };
 
-  const handleForgotSubmit = (event) => {
-    event.preventDefault()
-    setIsResetSent(true)
-  }
+  const handleForgotSubmit = (e) => {
+    e.preventDefault();
+    setIsResetSent(true);
+  };
 
   return (
     <section className="auth-panel">
       <div className="auth-card">
         <p className="auth-logo">LinkedU</p>
         <h2 className="auth-heading">
-          {isForgotMode ? 'Mot de passe oublie ?' : 'Se connecter'}
+          {isForgotMode ? 'Mot de passe oublié ?' : 'Se connecter'}
         </h2>
         <p className="auth-description">
           {isForgotMode
-            ? "Saisissez l'adresse e-mail associee a votre compte pour recevoir un lien de reinitialisation."
-            : "Saisissez vos informations afin d'acceder a la plateforme."}
+            ? "Saisissez l'adresse e-mail associée à votre compte pour recevoir un lien de réinitialisation."
+            : "Saisissez vos informations afin d'accéder à la plateforme."}
         </p>
 
         {!isForgotMode && (
           <form className="auth-form" onSubmit={handleLoginSubmit}>
+
             <label htmlFor="email">E-mail</label>
             <input
               id="email"
@@ -149,9 +137,9 @@ function LoginCard() {
               placeholder="nom@ecole.com"
               value={loginEmail}
               onChange={(event) => {
-                setLoginEmail(event.target.value)
-                setLoginFeedback('')
-                setLoginFeedbackType('')
+                setLoginEmail(event.target.value);
+                setLoginFeedback('');
+                setLoginFeedbackType('');
               }}
               required
             />
@@ -160,12 +148,12 @@ function LoginCard() {
             <input
               id="password"
               type="password"
-              placeholder="********"
+              placeholder="••••••••"
               value={loginPassword}
               onChange={(event) => {
-                setLoginPassword(event.target.value)
-                setLoginFeedback('')
-                setLoginFeedbackType('')
+                setLoginPassword(event.target.value);
+                setLoginFeedback('');
+                setLoginFeedbackType('');
               }}
               required
             />
@@ -175,7 +163,7 @@ function LoginCard() {
               className="link-small link-button"
               onClick={() => setIsForgotMode(true)}
             >
-              Mot de passe oublie ?
+              Mot de passe oublié ?
             </button>
 
             <button type="submit" className="auth-button" disabled={isLoggingIn}>
@@ -184,10 +172,9 @@ function LoginCard() {
 
             {loginFeedback && (
               <p
-                className={`auth-feedback ${
-                  loginFeedbackType === 'error' ? 'auth-feedback-error' : 'auth-feedback-success'
-                }`}
+                style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', color: loginFeedbackType === 'error' ? '#d32f2f' : '#2e7d32' }}
               >
+                {loginFeedbackType === 'error' ? <AlertCircle size={16} /> : <CheckCircle2 size={16} />}
                 {loginFeedback}
               </p>
             )}
@@ -200,35 +187,34 @@ function LoginCard() {
             <input id="forgot-email" type="email" placeholder="nom@ecole.com" required />
 
             <button type="submit" className="auth-button">
-              Reinitialiser le mot de passe -&gt;
+              Réinitialiser le mot de passe &rarr;
             </button>
 
             <button
               type="button"
-              className="back-link"
+              className="back-link link-small"
+              style={{marginTop: "0.5rem"}}
               onClick={() => {
-                setIsForgotMode(false)
-                setIsResetSent(false)
+                setIsForgotMode(false);
+                setIsResetSent(false);
               }}
             >
-              &lt;- Retour a la page de connexion
+              &larr; Retour à la page de connexion
             </button>
 
             {isResetSent && (
-              <p className="auth-feedback">
-                Si cet e-mail existe, un lien de reinitialisation a ete envoye.
+              <p className="auth-feedback" style={{ fontSize: '0.85rem', color: '#2e7d32', marginTop: '0.5rem' }}>
+                Si cet e-mail existe, un lien de réinitialisation a été envoyé.
               </p>
             )}
           </form>
         )}
 
-        <div className="auth-footer">
-          <a href="#">Conditions d&apos;utilisation</a>
-          <a href="#">Politique de confidentialite</a>
+        <div className="auth-footer" style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #eef2f7', display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+          <a href="#" style={{ color: '#667085', fontSize: '0.75rem', textDecoration: 'none' }}>Conditions d'utilisation</a>
+          <a href="#" style={{ color: '#667085', fontSize: '0.75rem', textDecoration: 'none' }}>Politique de confidentialité</a>
         </div>
       </div>
     </section>
-  )
+  );
 }
-
-export default LoginCard

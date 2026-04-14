@@ -129,7 +129,9 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-4">
-                    {schedule.slice(0, 5).map((line) => (
+                    {schedule
+                      .filter(line => line.jour.toLowerCase() === new Date().toLocaleDateString('fr-FR', { weekday: 'long' }).toLowerCase())
+                      .map((line) => (
                       <div key={line.id_edt} className="flex items-start gap-4 p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:border-blue-200 transition-colors">
                         <div className="flex flex-col items-center justify-center min-w-[60px] px-2 py-1 bg-blue-50 text-blue-700 rounded-lg">
                           <span className="text-xs font-bold uppercase">{line.jour.substring(0, 3)}</span>
@@ -144,6 +146,9 @@ export default function Dashboard() {
                         </div>
                       </div>
                     ))}
+                    {schedule.filter(line => line.jour.toLowerCase() === new Date().toLocaleDateString('fr-FR', { weekday: 'long' }).toLowerCase()).length === 0 && (
+                      <p className="text-slate-500 font-medium text-center">Aucun cours aujourd'hui.</p>
+                    )}
                   </div>
                 )}
               </div>

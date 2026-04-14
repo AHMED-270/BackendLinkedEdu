@@ -3,9 +3,8 @@ export const ROLE = {
   DIRECTEUR: 'directeur',
   PROFESSEUR: 'professeur',
   ETUDIANT: 'etudiant',
-  PARENT: 'parent',
+  PARENT: 'parent_eleve',
   SECRETAIRE: 'secretaire',
-  COMPTABLE: 'comptable',
 };
 
 export const ROLE_META = {
@@ -30,7 +29,7 @@ export const ROLE_META = {
   [ROLE.ETUDIANT]: {
     label: 'Etudiant',
     displayLabel: 'Etudiant',
-    homeRoute: '/etudiant',
+    homeRoute: '/student',
     badgeClass: 'badge-green',
   },
   [ROLE.PARENT]: {
@@ -44,12 +43,6 @@ export const ROLE_META = {
     displayLabel: 'Secretaire',
     homeRoute: '/secretaire/dashboard',
     badgeClass: 'badge-blue',
-  },
-  [ROLE.COMPTABLE]: {
-    label: 'Comptable',
-    displayLabel: 'Comptable',
-    homeRoute: '/secretaire/paiements',
-    badgeClass: 'badge-orange',
   },
 };
 

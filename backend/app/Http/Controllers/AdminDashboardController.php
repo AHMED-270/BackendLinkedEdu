@@ -53,8 +53,6 @@ class AdminDashboardController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $hasProfesseurNiveau = Schema::hasColumn('professeurs', 'niveau_enseignement');
-
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => [
@@ -65,11 +63,12 @@ class AdminDashboardController extends Controller
                 \Illuminate\Validation\Rule::unique('users')->where(fn ($query) => $query->where('role', $request->input('role')))
             ],
             'role' => 'required|string|in:secretaire,directeur,professeur',
+            'password' => 'nullable|string|min:6',
             'telephone' => 'nullable|string|max:30',
             'matiere_enseignement' => 'nullable|string|max:255',
             'matieres_enseignement' => 'nullable|array',
             'matieres_enseignement.*' => 'string|max:255',
-            'niveau_enseignement' => ['required_if:role,professeur', 'string', Rule::in(['maternelle', 'primaire', 'college', 'lycee'])],
+            'niveau_enseignement' => ['nullable', 'string', Rule::in(['maternelle', 'primaire', 'college', 'lycee'])],
         ]);
 
         try {
@@ -80,27 +79,16 @@ class AdminDashboardController extends Controller
                 ? (string) $validated['password']
                 : $this->generateRandomPassword(12);
 
-            $hasUserAccountStatus = Schema::hasColumn('users', 'account_status');
-            $hasUserActivatedAt = Schema::hasColumn('users', 'activated_at');
-
-            $userPayload = [
+            $user = User::create([
                 'name' => $validated['name'],
                 'prenom' => $prenom,
                 'nom' => $nom,
                 'email' => $validated['email'],
                 'password' => bcrypt($generatedPassword),
                 'role' => $validated['role'],
-            ];
-
-            if ($hasUserAccountStatus) {
-                $userPayload['account_status'] = 'active';
-            }
-
-            if ($hasUserActivatedAt) {
-                $userPayload['activated_at'] = now();
-            }
-
-            $user = User::create($userPayload);
+                'account_status' => 'active',
+                'activated_at' => now(),
+            ]);
 
             if ($validated['role'] === 'directeur') {
                 Directeur::create([
@@ -112,29 +100,14 @@ class AdminDashboardController extends Controller
             if ($validated['role'] === 'professeur') {
                 $teachingSubjects = $this->buildTeachingSubjects($validated);
 
-                $hasProfesseurMatiere = Schema::hasColumn('professeurs', 'matiere_enseignement');
-                $hasProfesseurMatieres = Schema::hasColumn('professeurs', 'matieres_enseignement');
-                $hasProfesseurNiveau = Schema::hasColumn('professeurs', 'niveau_enseignement');
-
-                $professeurPayload = [
+                Professeur::create([
                     'id_professeur' => $user->id,
                     'specialite' => $teachingSubjects[0] ?? 'Non definie',
                     'telephone' => $validated['telephone'] ?? null,
-                ];
-
-                if ($hasProfesseurMatiere) {
-                    $professeurPayload['matiere_enseignement'] = $teachingSubjects[0] ?? null;
-                }
-
-                if ($hasProfesseurMatieres) {
-                    $professeurPayload['matieres_enseignement'] = $teachingSubjects;
-                }
-
-                if ($hasProfesseurNiveau) {
-                    $professeurPayload['niveau_enseignement'] = $validated['niveau_enseignement'] ?? null;
-                }
-
-                Professeur::create($professeurPayload);
+                    'matiere_enseignement' => $teachingSubjects[0] ?? null,
+                    'matieres_enseignement' => $teachingSubjects,
+                    'niveau_enseignement' => $validated['niveau_enseignement'] ?? null,
+                ]);
             }
 
             DB::commit();
@@ -147,7 +120,6 @@ class AdminDashboardController extends Controller
 
                 $roleLabel = match ($validated['role']) {
                     'secretaire' => 'Secretaire',
-                    'comptable' => 'Comptable',
                     'professeur' => 'Professeur',
                     'directeur' => 'Directeur',
                     default => ucfirst((string) $validated['role']),
@@ -197,8 +169,6 @@ class AdminDashboardController extends Controller
 
         $user = User::findOrFail($id);
 
-        $hasProfesseurNiveau = Schema::hasColumn('professeurs', 'niveau_enseignement');
-
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => [
@@ -208,7 +178,7 @@ class AdminDashboardController extends Controller
                 'max:255',
                 \Illuminate\Validation\Rule::unique('users')->ignore($id)->where(fn ($query) => $query->where('role', $request->input('role')))
             ],
-            'role' => 'required|string|in:etudiant,parent,secretaire,comptable,admin,directeur,professeur',
+            'role' => 'required|string|in:etudiant,parent,secretaire,admin,directeur,professeur',
             'password' => 'nullable|string|min:6',
             'id_classe' => 'required_if:role,etudiant|nullable|integer|exists:classes,id_classe',
             'id_parent' => 'required_if:role,etudiant|nullable|integer|exists:parents,id_parent',
@@ -216,7 +186,7 @@ class AdminDashboardController extends Controller
             'matiere_enseignement' => 'nullable|string|max:255',
             'matieres_enseignement' => 'nullable|array',
             'matieres_enseignement.*' => 'string|max:255',
-            'niveau_enseignement' => ['required_if:role,professeur', 'string', Rule::in(['maternelle', 'primaire', 'college', 'lycee'])],
+            'niveau_enseignement' => ['nullable', 'string', Rule::in(['maternelle', 'primaire', 'college', 'lycee'])],
         ]);
 
         try {
@@ -284,25 +254,24 @@ class AdminDashboardController extends Controller
 
             if ($validated['role'] === 'professeur') {
                 $teachingSubjects = $this->buildTeachingSubjects($validated);
-                if (empty($teachingSubjects)) {
-                    DB::rollBack();
-                    return response()->json([
-                        'message' => 'Veuillez selectionner au moins une matiere pour le professeur.',
-                    ], 422);
-                }
 
                 $professeur = Professeur::where('id_professeur', $user->id)->first();
                 if ($professeur) {
-                    $professeur->specialite = $teachingSubjects[0] ?? $professeur->specialite;
+                    $professeur->specialite = $teachingSubjects[0] ?? 'Non definie';
                     $professeur->telephone = $validated['telephone'] ?? null;
                     $professeur->matiere_enseignement = $teachingSubjects[0] ?? null;
                     $professeur->matieres_enseignement = $teachingSubjects;
                     $professeur->niveau_enseignement = $validated['niveau_enseignement'] ?? null;
                     $professeur->save();
                 } else {
-                    Professeur::create(array_merge([
+                    Professeur::create([
                         'id_professeur' => $user->id,
-                    ], $professeurPayload));
+                        'specialite' => $teachingSubjects[0] ?? 'Non definie',
+                        'telephone' => $validated['telephone'] ?? null,
+                        'matiere_enseignement' => $teachingSubjects[0] ?? null,
+                        'matieres_enseignement' => $teachingSubjects,
+                        'niveau_enseignement' => $validated['niveau_enseignement'] ?? null,
+                    ]);
                 }
             } else {
                 Professeur::where('id_professeur', $user->id)->delete();
@@ -385,48 +354,25 @@ class AdminDashboardController extends Controller
         if (!$request->user() || $request->user()->role !== 'admin') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
-
-        $hasUserAccountStatus = Schema::hasColumn('users', 'account_status');
-        $hasUserActivatedAt = Schema::hasColumn('users', 'activated_at');
-        $hasProfesseurMatiere = Schema::hasColumn('professeurs', 'matiere_enseignement');
-        $hasProfesseurMatieres = Schema::hasColumn('professeurs', 'matieres_enseignement');
-        $hasProfesseurNiveau = Schema::hasColumn('professeurs', 'niveau_enseignement');
-
-        $userSelect = [
-            'users.id',
-            'users.name',
-            'users.nom',
-            'users.prenom',
-            'users.email',
-            'users.role',
-            'users.created_at',
-            'etudiants.id_classe',
-            'etudiants.id_parent',
-            DB::raw("TRIM(CONCAT(COALESCE(classes.nom, ''), CASE WHEN classes.niveau IS NOT NULL AND classes.niveau <> '' THEN CONCAT(' - ', classes.niveau) ELSE '' END)) as classe"),
-            'parent_user.email as parent_email',
-        ];
-
-        $userSelect[] = $hasProfesseurMatiere
-            ? 'own_professeur.matiere_enseignement'
-            : DB::raw('NULL as matiere_enseignement');
-
-        $userSelect[] = $hasProfesseurMatieres
-            ? 'own_professeur.matieres_enseignement'
-            : DB::raw('NULL as matieres_enseignement');
-
-        $userSelect[] = $hasProfesseurNiveau
-            ? 'own_professeur.niveau_enseignement'
-            : DB::raw('NULL as niveau_enseignement');
-
-        $userSelect[] = $hasUserAccountStatus
-            ? 'users.account_status'
-            : DB::raw("'active' as account_status");
-
-        $userSelect[] = $hasUserActivatedAt
-            ? 'users.activated_at'
-            : DB::raw('NULL as activated_at');
         
-        $usersQuery = User::select($userSelect)
+        $usersQuery = User::select(
+                'users.id',
+                'users.name',
+                'users.nom',
+                'users.prenom',
+                'users.email',
+                'users.role',
+                'users.created_at',
+                'users.account_status',
+                'users.activated_at',
+                'etudiants.id_classe',
+                'etudiants.id_parent',
+                'own_professeur.matiere_enseignement',
+                'own_professeur.matieres_enseignement',
+                'own_professeur.niveau_enseignement',
+                DB::raw("TRIM(CONCAT(COALESCE(classes.nom, ''), CASE WHEN classes.niveau IS NOT NULL AND classes.niveau <> '' THEN CONCAT(' - ', classes.niveau) ELSE '' END)) as classe"),
+                'parent_user.email as parent_email'
+            )
             ->leftJoin('etudiants', 'users.id', '=', 'etudiants.id_etudiant')
             ->leftJoin('classes', 'etudiants.id_classe', '=', 'classes.id_classe')
             ->leftJoin('parents as own_parent', 'users.id', '=', 'own_parent.id_parent')
@@ -495,34 +441,22 @@ class AdminDashboardController extends Controller
             ->replaceMatches('/\s+/', '')
             ->value();
 
-        $hasUserAccountStatus = Schema::hasColumn('users', 'account_status');
-        $hasUserActivatedAt = Schema::hasColumn('users', 'activated_at');
-
         if ($parentPassword === '') {
             $parentPassword = $this->generateRandomPassword(12);
         }
 
-        DB::transaction(function () use ($studentUser, $parentUser, $studentPassword, $parentPassword, $hasUserAccountStatus, $hasUserActivatedAt) {
-            $studentUpdatePayload = [
+        DB::transaction(function () use ($studentUser, $parentUser, $studentPassword, $parentPassword) {
+            $studentUser->update([
                 'password' => Hash::make($studentPassword),
-            ];
+                'account_status' => 'active',
+                'activated_at' => now(),
+            ]);
 
-            $parentUpdatePayload = [
+            $parentUser->update([
                 'password' => Hash::make($parentPassword),
-            ];
-
-            if ($hasUserAccountStatus) {
-                $studentUpdatePayload['account_status'] = 'active';
-                $parentUpdatePayload['account_status'] = 'active';
-            }
-
-            if ($hasUserActivatedAt) {
-                $studentUpdatePayload['activated_at'] = now();
-                $parentUpdatePayload['activated_at'] = now();
-            }
-
-            $studentUser->update($studentUpdatePayload);
-            $parentUser->update($parentUpdatePayload);
+                'account_status' => 'active',
+                'activated_at' => now(),
+            ]);
         });
 
         $studentFullName = trim(($studentUser->prenom ?? '') . ' ' . ($studentUser->nom ?? ''));
@@ -610,30 +544,16 @@ class AdminDashboardController extends Controller
             ], 422);
         }
 
-        $hasUserAccountStatus = Schema::hasColumn('users', 'account_status');
-        $hasUserActivatedAt = Schema::hasColumn('users', 'activated_at');
+        DB::transaction(function () use ($studentUser, $parentUser) {
+            $studentUser->update([
+                'account_status' => 'pending_activation',
+                'activated_at' => null,
+            ]);
 
-        DB::transaction(function () use ($studentUser, $parentUser, $hasUserAccountStatus, $hasUserActivatedAt) {
-            $studentUpdatePayload = [];
-            $parentUpdatePayload = [];
-
-            if ($hasUserAccountStatus) {
-                $studentUpdatePayload['account_status'] = 'pending_activation';
-                $parentUpdatePayload['account_status'] = 'pending_activation';
-            }
-
-            if ($hasUserActivatedAt) {
-                $studentUpdatePayload['activated_at'] = null;
-                $parentUpdatePayload['activated_at'] = null;
-            }
-
-            if (!empty($studentUpdatePayload)) {
-                $studentUser->update($studentUpdatePayload);
-            }
-
-            if (!empty($parentUpdatePayload)) {
-                $parentUser->update($parentUpdatePayload);
-            }
+            $parentUser->update([
+                'account_status' => 'pending_activation',
+                'activated_at' => null,
+            ]);
         });
 
         return response()->json([
@@ -809,46 +729,6 @@ class AdminDashboardController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $hasClassFiliere = Schema::hasColumn('classes', 'filiere');
-        $hasClassPricing = Schema::hasColumn('classes', 'pricing');
-
-        $classSelect = [
-            'classes.id_classe',
-            'classes.nom',
-            'classes.niveau',
-            DB::raw('COUNT(DISTINCT etudiants.id_etudiant) as students_count'),
-            DB::raw('COUNT(DISTINCT professeur_user.id) as professeurs_count'),
-            DB::raw("GROUP_CONCAT(DISTINCT professeur_user.name ORDER BY professeur_user.id SEPARATOR '||') as professeurs_names"),
-            DB::raw("GROUP_CONCAT(DISTINCT professeur_user.id ORDER BY professeur_user.id SEPARATOR ',') as professeurs_ids"),
-            DB::raw("GROUP_CONCAT(DISTINCT COALESCE(professeur_data.telephone, '') ORDER BY professeur_user.id SEPARATOR '||') as professeurs_telephones"),
-            DB::raw("GROUP_CONCAT(DISTINCT CONCAT(COALESCE(ens.id_professeur, ''), ':', COALESCE(ens.id_matiere, '')) ORDER BY ens.id_professeur, ens.id_matiere SEPARATOR ',') as professeur_matiere_pairs"),
-            DB::raw("GROUP_CONCAT(DISTINCT etudiant_user.id ORDER BY etudiant_user.id SEPARATOR ',') as etudiants_ids"),
-            DB::raw("GROUP_CONCAT(DISTINCT etudiant_user.name ORDER BY etudiant_user.id SEPARATOR '||') as etudiants_names"),
-            DB::raw("GROUP_CONCAT(DISTINCT COALESCE(etudiants.matricule, '') ORDER BY etudiant_user.id SEPARATOR '||') as etudiants_matricules"),
-        ];
-
-        $classSelect[] = $hasClassFiliere
-            ? 'classes.filiere'
-            : DB::raw("'' as filiere");
-
-        $classSelect[] = $hasClassPricing
-            ? 'classes.pricing'
-            : DB::raw('0 as pricing');
-
-        $classesGroupBy = [
-            'classes.id_classe',
-            'classes.nom',
-            'classes.niveau',
-        ];
-
-        if ($hasClassFiliere) {
-            $classesGroupBy[] = 'classes.filiere';
-        }
-
-        if ($hasClassPricing) {
-            $classesGroupBy[] = 'classes.pricing';
-        }
-
         $classes = DB::table('classes')
             ->leftJoin('etudiants', 'classes.id_classe', '=', 'etudiants.id_classe')
             ->leftJoin('users as etudiant_user', 'etudiants.id_etudiant', '=', 'etudiant_user.id')
@@ -862,8 +742,23 @@ class AdminDashboardController extends Controller
                     ->where('professeur_user.role', '=', 'professeur');
             })
             ->leftJoin('professeurs as professeur_data', 'cpa.id_professeur', '=', 'professeur_data.id_professeur')
-            ->select($classSelect)
-            ->groupBy(...$classesGroupBy)
+            ->select(
+                'classes.id_classe',
+                'classes.nom',
+                'classes.niveau',
+                'classes.filiere',
+                'classes.pricing',
+                DB::raw('COUNT(DISTINCT etudiants.id_etudiant) as students_count'),
+                DB::raw('COUNT(DISTINCT professeur_user.id) as professeurs_count'),
+                DB::raw("GROUP_CONCAT(DISTINCT professeur_user.name ORDER BY professeur_user.id SEPARATOR '||') as professeurs_names"),
+                DB::raw("GROUP_CONCAT(DISTINCT professeur_user.id ORDER BY professeur_user.id SEPARATOR ',') as professeurs_ids"),
+                DB::raw("GROUP_CONCAT(DISTINCT COALESCE(professeur_data.telephone, '') ORDER BY professeur_user.id SEPARATOR '||') as professeurs_telephones"),
+                DB::raw("GROUP_CONCAT(DISTINCT CONCAT(COALESCE(ens.id_professeur, ''), ':', COALESCE(ens.id_matiere, '')) ORDER BY ens.id_professeur, ens.id_matiere SEPARATOR ',') as professeur_matiere_pairs"),
+                DB::raw("GROUP_CONCAT(DISTINCT etudiant_user.id ORDER BY etudiant_user.id SEPARATOR ',') as etudiants_ids"),
+                DB::raw("GROUP_CONCAT(DISTINCT etudiant_user.name ORDER BY etudiant_user.id SEPARATOR '||') as etudiants_names"),
+                DB::raw("GROUP_CONCAT(DISTINCT COALESCE(etudiants.matricule, '') ORDER BY etudiant_user.id SEPARATOR '||') as etudiants_matricules")
+            )
+            ->groupBy('classes.id_classe', 'classes.nom', 'classes.niveau', 'classes.filiere', 'classes.pricing')
             ->orderBy('classes.niveau')
             ->get();
 
@@ -966,55 +861,21 @@ class AdminDashboardController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $hasClassFiliere = Schema::hasColumn('classes', 'filiere');
-        $hasClassPricing = Schema::hasColumn('classes', 'pricing');
-
-        $validationRules = [
+        $validated = $request->validate([
             'nom' => 'required|string|max:255',
             'niveau' => ['required', 'string', Rule::in(array_column(config('school_options.niveaux', []), 'code'))],
             'filiere' => 'required|string|max:255',
             'pricing' => 'required|numeric|min:0',
-            'professeur_ids' => 'required|array|min:1',
+            'professeur_ids' => 'nullable|array',
             'professeur_ids.*' => 'integer|exists:professeurs,id_professeur',
             'professeur_matieres' => 'nullable|array',
             'professeur_matieres.*' => 'array',
             'professeur_matieres.*.*' => 'integer|exists:matieres,id_matiere',
-        ];
+        ]);
 
-        if ($hasClassFiliere) {
-            $validationRules['filiere'] = 'nullable|string|max:255';
-        }
-
-        if ($hasClassPricing) {
-            $validationRules['pricing'] = 'nullable|numeric|min:0';
-        }
-
-        $validated = $request->validate($validationRules);
-
-        $filiere = null;
-        if ($hasClassFiliere) {
-            $filiere = trim((string) ($validated['filiere'] ?? ''));
-            if ($filiere === '') {
-                $filiere = 'general';
-            }
-        }
-
-        $pricing = null;
-        if ($hasClassPricing) {
-            $pricing = array_key_exists('pricing', $validated)
-                ? (float) $validated['pricing']
-                : null;
-
-            if ($pricing === null) {
-                $pricing = $this->resolveAutomaticPricing(
-                    $validated['niveau'],
-                    (string) ($filiere ?? '')
-                ) ?? 0.0;
-            }
-        }
-
+        // Validate filière belongs to this niveau
         $allowedFilieres = config('school_options.filieres_by_niveau.' . $validated['niveau'], []);
-        if ($hasClassFiliere && is_array($allowedFilieres) && !empty($allowedFilieres) && !in_array($filiere, $allowedFilieres, true)) {
+        if (!in_array($validated['filiere'], $allowedFilieres, true)) {
             return response()->json([
                 'message' => 'La filiere selectionnee est invalide pour ce niveau.',
             ], 422);
@@ -1022,21 +883,13 @@ class AdminDashboardController extends Controller
 
         $classe = null;
 
-        DB::transaction(function () use (&$classe, $validated, $hasClassFiliere, $hasClassPricing, $filiere, $pricing) {
-            $classPayload = [
+        DB::transaction(function () use (&$classe, $validated) {
+            $classe = Classe::create([
                 'nom' => $validated['nom'],
                 'niveau' => $validated['niveau'],
-            ];
-
-            if ($hasClassFiliere) {
-                $classPayload['filiere'] = $filiere;
-            }
-
-            if ($hasClassPricing) {
-                $classPayload['pricing'] = $pricing;
-            }
-
-            $classe = Classe::create($classPayload);
+                'filiere' => $validated['filiere'],
+                'pricing' => $validated['pricing'],
+            ]);
 
             $now = now();
             $rows = collect($validated['professeur_ids'] ?? [])
@@ -1087,55 +940,21 @@ class AdminDashboardController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $hasClassFiliere = Schema::hasColumn('classes', 'filiere');
-        $hasClassPricing = Schema::hasColumn('classes', 'pricing');
-
-        $validationRules = [
+        $validated = $request->validate([
             'nom' => 'required|string|max:255',
             'niveau' => ['required', 'string', Rule::in(array_column(config('school_options.niveaux', []), 'code'))],
             'filiere' => 'required|string|max:255',
             'pricing' => 'required|numeric|min:0',
-            'professeur_ids' => 'required|array|min:1',
+            'professeur_ids' => 'nullable|array',
             'professeur_ids.*' => 'integer|exists:professeurs,id_professeur',
             'professeur_matieres' => 'nullable|array',
             'professeur_matieres.*' => 'array',
             'professeur_matieres.*.*' => 'integer|exists:matieres,id_matiere',
-        ];
+        ]);
 
-        if ($hasClassFiliere) {
-            $validationRules['filiere'] = 'nullable|string|max:255';
-        }
-
-        if ($hasClassPricing) {
-            $validationRules['pricing'] = 'nullable|numeric|min:0';
-        }
-
-        $validated = $request->validate($validationRules);
-
-        $filiere = null;
-        if ($hasClassFiliere) {
-            $filiere = trim((string) ($validated['filiere'] ?? ''));
-            if ($filiere === '') {
-                $filiere = 'general';
-            }
-        }
-
-        $pricing = null;
-        if ($hasClassPricing) {
-            $pricing = array_key_exists('pricing', $validated)
-                ? (float) $validated['pricing']
-                : null;
-
-            if ($pricing === null) {
-                $pricing = $this->resolveAutomaticPricing(
-                    $validated['niveau'],
-                    (string) ($filiere ?? '')
-                ) ?? 0.0;
-            }
-        }
-
+        // Validate filière belongs to this niveau
         $allowedFilieres = config('school_options.filieres_by_niveau.' . $validated['niveau'], []);
-        if ($hasClassFiliere && is_array($allowedFilieres) && !empty($allowedFilieres) && !in_array($filiere, $allowedFilieres, true)) {
+        if (!in_array($validated['filiere'], $allowedFilieres, true)) {
             return response()->json([
                 'message' => 'La filiere selectionnee est invalide pour ce niveau.',
             ], 422);
@@ -1143,21 +962,13 @@ class AdminDashboardController extends Controller
 
         $classe = Classe::findOrFail($id);
 
-        DB::transaction(function () use ($classe, $validated, $hasClassFiliere, $hasClassPricing, $filiere, $pricing) {
-            $classPayload = [
+        DB::transaction(function () use ($classe, $validated) {
+            $classe->update([
                 'nom' => $validated['nom'],
                 'niveau' => $validated['niveau'],
-            ];
-
-            if ($hasClassFiliere) {
-                $classPayload['filiere'] = $filiere;
-            }
-
-            if ($hasClassPricing) {
-                $classPayload['pricing'] = $pricing;
-            }
-
-            $classe->update($classPayload);
+                'filiere' => $validated['filiere'],
+                'pricing' => $validated['pricing'],
+            ]);
 
             DB::table('classe_professeur_assignments')
                 ->where('id_classe', $classe->id_classe)
@@ -1231,13 +1042,7 @@ class AdminDashboardController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $matieresQuery = Matiere::query();
-
-        if (Schema::hasColumn('matieres', 'niveau')) {
-            $matieresQuery->orderBy('niveau');
-        }
-
-        $matieres = $matieresQuery->orderBy('nom')->get();
+        $matieres = Matiere::orderBy('niveau')->orderBy('nom')->get();
 
         return response()->json($matieres);
     }
@@ -1248,54 +1053,29 @@ class AdminDashboardController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $hasMatiereNiveau = Schema::hasColumn('matieres', 'niveau');
-
-        $validationRules = [
+        $validated = $request->validate([
             'nom' => 'required|string|max:255',
+            'niveau' => 'required|string|in:general,maternelle,primaire,college,lycee',
             'coefficient' => 'required|integer|min:0|max:10',
-        ];
+            'coefficients_by_level' => 'nullable|array',
+            'coefficients_by_level.maternelle' => 'nullable|integer|min:0|max:10',
+            'coefficients_by_level.primaire' => 'nullable|integer|min:0|max:10',
+            'coefficients_by_level.college' => 'nullable|integer|min:0|max:10',
+            'coefficients_by_level.lycee' => 'nullable|integer|min:0|max:10',
+            'coefficients_by_niveau_code' => 'nullable|array',
+            'coefficients_by_niveau_code.*' => 'nullable|integer|min:0|max:10',
+            'lycee_niveau_code' => 'nullable|string|in:tc,1bac,2bac',
+            'lycee_filiere' => 'nullable|string|max:255',
+        ]);
 
-        if ($hasMatiereNiveau) {
-            $validationRules['niveau'] = 'required|string|in:general,maternelle,primaire,college,lycee';
-        }
+        $normalizedCoefficients = $this->normalizeMatierePayload($validated, true);
 
-        if (Schema::hasColumn('matieres', 'coefficients_by_level')) {
-            $validationRules['coefficients_by_level'] = 'nullable|array';
-            $validationRules['coefficients_by_level.*'] = 'nullable|integer|min:0|max:10';
-        }
-
-        if (Schema::hasColumn('matieres', 'coefficients_by_niveau_code')) {
-            $validationRules['coefficients_by_niveau_code'] = 'nullable|array';
-            $validationRules['coefficients_by_niveau_code.*'] = 'nullable|integer|min:0|max:10';
-        }
-
-        if (Schema::hasColumn('matieres', 'lycee_niveau_code')) {
-            $validationRules['lycee_niveau_code'] = 'nullable|string|in:tc,1bac,2bac';
-        }
-
-        if (Schema::hasColumn('matieres', 'lycee_filiere')) {
-            $validationRules['lycee_filiere'] = 'nullable|string|max:255';
-        }
-
-        $validated = $request->validate($validationRules);
-
-        if ($hasMatiereNiveau) {
-            $validated = $this->normalizeMatierePayload($validated, true);
-        } else {
-            unset($validated['niveau'], $validated['coefficients_by_level'], $validated['coefficients_by_niveau_code'], $validated['lycee_niveau_code'], $validated['lycee_filiere']);
-        }
-
-        $existingQuery = Matiere::where('nom', $validated['nom']);
-        if ($hasMatiereNiveau) {
-            $existingQuery->where('niveau', $validated['niveau']);
-        }
-
-        $existing = $existingQuery->first();
+        $existing = Matiere::where('nom', $validated['nom'])->where('niveau', $validated['niveau'])->first();
         if ($existing) {
             return response()->json(['message' => 'Cette matiere existe deja pour ce niveau.'], 422);
         }
 
-        $matiere = Matiere::create($validated);
+        $matiere = Matiere::create($normalizedCoefficients);
 
         return response()->json([
             'message' => 'Matiere creee avec succes !',
@@ -1311,47 +1091,25 @@ class AdminDashboardController extends Controller
 
         $matiere = Matiere::findOrFail($id);
 
-        $hasMatiereNiveau = Schema::hasColumn('matieres', 'niveau');
-
-        $validationRules = [
+        $validated = $request->validate([
             'nom' => 'required|string|max:255',
+            'niveau' => 'required|string|in:general,maternelle,primaire,college,lycee',
             'coefficient' => 'required|integer|min:0|max:10',
-        ];
+            'coefficients_by_level' => 'nullable|array',
+            'coefficients_by_level.maternelle' => 'nullable|integer|min:0|max:10',
+            'coefficients_by_level.primaire' => 'nullable|integer|min:0|max:10',
+            'coefficients_by_level.college' => 'nullable|integer|min:0|max:10',
+            'coefficients_by_level.lycee' => 'nullable|integer|min:0|max:10',
+            'coefficients_by_niveau_code' => 'nullable|array',
+            'coefficients_by_niveau_code.*' => 'nullable|integer|min:0|max:10',
+            'lycee_niveau_code' => 'nullable|string|in:tc,1bac,2bac',
+            'lycee_filiere' => 'nullable|string|max:255',
+        ]);
 
-        if ($hasMatiereNiveau) {
-            $validationRules['niveau'] = 'required|string|in:general,maternelle,primaire,college,lycee';
-        }
+        $normalizedCoefficients = $this->normalizeMatierePayload($validated, false);
 
-        if (Schema::hasColumn('matieres', 'coefficients_by_level')) {
-            $validationRules['coefficients_by_level'] = 'nullable|array';
-            $validationRules['coefficients_by_level.*'] = 'nullable|integer|min:0|max:10';
-        }
-
-        if (Schema::hasColumn('matieres', 'coefficients_by_niveau_code')) {
-            $validationRules['coefficients_by_niveau_code'] = 'nullable|array';
-            $validationRules['coefficients_by_niveau_code.*'] = 'nullable|integer|min:0|max:10';
-        }
-
-        if (Schema::hasColumn('matieres', 'lycee_niveau_code')) {
-            $validationRules['lycee_niveau_code'] = 'nullable|string|in:tc,1bac,2bac';
-        }
-
-        if (Schema::hasColumn('matieres', 'lycee_filiere')) {
-            $validationRules['lycee_filiere'] = 'nullable|string|max:255';
-        }
-
-        $validated = $request->validate($validationRules);
-
-        if ($hasMatiereNiveau) {
-            $validated = $this->normalizeMatierePayload($validated, false);
-        } else {
-            unset($validated['niveau'], $validated['coefficients_by_level'], $validated['coefficients_by_niveau_code'], $validated['lycee_niveau_code'], $validated['lycee_filiere']);
-        }
-
-        $existing = Matiere::where('nom', $validated['nom'])
-            ->when($hasMatiereNiveau, function ($query) use ($validated) {
-                $query->where('niveau', $validated['niveau']);
-            })
+        $existing = Matiere::where('nom', $normalizedCoefficients['nom'])
+            ->where('niveau', $normalizedCoefficients['niveau'])
             ->where('id_matiere', '!=', $matiere->id_matiere)
             ->first();
             
@@ -1359,7 +1117,7 @@ class AdminDashboardController extends Controller
             return response()->json(['message' => 'Cette matiere existe deja pour ce niveau.'], 422);
         }
 
-        $matiere->update($validated);
+        $matiere->update($normalizedCoefficients);
 
         return response()->json([
             'message' => 'Matiere mise a jour avec succes !',

@@ -10,9 +10,8 @@ export default function Header() {
   const { user, logout } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
-  const role = String(user?.role || '').toLowerCase();
-  const isSecretairePortalRole = role === 'secretaire' || role === 'comptable';
-  const profileRoute = isSecretairePortalRole ? '/secretaire/profil' : '/profil';
+  const isSecretaire = String(user?.role || '').toLowerCase() === 'secretaire';
+  const profileRoute = isSecretaire ? '/secretaire/profil' : '/profil';
 
   const handleLogoutConfirm = async () => {
     if (isLoggingOut) return;
@@ -88,7 +87,7 @@ export default function Header() {
         </div>
 
         <div className="header-actions">
-          <button className="header-profile" onClick={() => navigate(profileRoute)} title="Param├¿tres du profil" aria-label="Ouvrir les param├¿tres du profil">
+          <button className="header-profile" onClick={() => navigate(profileRoute)} title="Paramètres du profil" aria-label="Ouvrir les paramètres du profil">
             {user?.profilePhoto ? (
               <img src={user.profilePhoto} alt="Profil" className="header-profile-avatar" />
             ) : (

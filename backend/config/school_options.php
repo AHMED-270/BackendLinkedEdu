@@ -29,23 +29,29 @@ return [
         '4ap' => ['General'],
         '5ap' => ['General'],
         '6ap' => ['General'],
-        '1ac' => ['General'],
-        '2ac' => ['General'],
-        '3ac' => ['General'],
-        'tc' => ['TC Scientifique', 'TC Technologique', 'TC Lettres'],
+        '1ac' => ['Francais', 'Arabe'],
+        '2ac' => ['Francais', 'Arabe'],
+        '3ac' => ['Francais', 'Arabe'],
+        'tc' => ['TC Scientifique (Francais)', 'TC Scientifique (Arabe)', 'TC Technologique', 'TC Lettres'],
         '1bac' => [
-            'Sciences Experimentales',
-            'Sciences Mathematiques',
+            'Sciences Experimentales (Francais)',
+            'Sciences Experimentales (Arabe)',
+            'Sciences Mathematiques (Francais)',
+            'Sciences Mathematiques (Arabe)',
             'Sciences et Technologies',
             'Lettres et Ressources Humaines',
             
             'Economie',
         ],
         '2bac' => [
-            'Sciences Experimentales - SVT',
-            'Sciences Experimentales - Physique-Chimie',
-            'Sciences Mathematiques A',
-            'Sciences Mathematiques B',
+            'Sciences Experimentales - SVT (Francais)',
+            'Sciences Experimentales - SVT (Arabe)',
+            'Sciences Experimentales - Physique-Chimie (Francais)',
+            'Sciences Experimentales - Physique-Chimie (Arabe)',
+            'Sciences Mathematiques A (Francais)',
+            'Sciences Mathematiques A (Arabe)',
+            'Sciences Mathematiques B (Francais)',
+            'Sciences Mathematiques B (Arabe)',
             'Sciences et Technologies Electrique',
             'Sciences et Technologies Mecanique',
             'Lettres et Sciences Humaines',
@@ -63,26 +69,33 @@ return [
         '4ap' => ['General' => 1300],
         '5ap' => ['General' => 1400],
         '6ap' => ['General' => 1400],
-        '1ac' => ['General' => 1600],
-        '2ac' => ['General' => 1700],
-        '3ac' => ['General' => 1800],
+        '1ac' => ['Francais' => 1600, 'Arabe' => 1600],
+        '2ac' => ['Francais' => 1700, 'Arabe' => 1700],
+        '3ac' => ['Francais' => 1800, 'Arabe' => 1800],
         'tc' => [
-            'TC Scientifique' => 2100,
+            'TC Scientifique (Francais)' => 2100,
+            'TC Scientifique (Arabe)' => 2100,
             'TC Technologique' => 2100,
             'TC Lettres' => 1900,
         ],
         '1bac' => [
-            'Sciences Experimentales' => 2500,
-            'Sciences Mathematiques' => 2600,
+            'Sciences Experimentales (Francais)' => 2500,
+            'Sciences Experimentales (Arabe)' => 2500,
+            'Sciences Mathematiques (Francais)' => 2600,
+            'Sciences Mathematiques (Arabe)' => 2600,
             'Sciences et Technologies' => 2450,
             'Lettres et Ressources Humaines' => 2200,
             'Economie' => 2300,
         ],
         '2bac' => [
-            'Sciences Experimentales - SVT' => 3000,
-            'Sciences Experimentales - Physique-Chimie' => 3000,
-            'Sciences Mathematiques A' => 3200,
-            'Sciences Mathematiques B' => 3200,
+            'Sciences Experimentales - SVT (Francais)' => 3000,
+            'Sciences Experimentales - SVT (Arabe)' => 3000,
+            'Sciences Experimentales - Physique-Chimie (Francais)' => 3000,
+            'Sciences Experimentales - Physique-Chimie (Arabe)' => 3000,
+            'Sciences Mathematiques A (Francais)' => 3200,
+            'Sciences Mathematiques A (Arabe)' => 3200,
+            'Sciences Mathematiques B (Francais)' => 3200,
+            'Sciences Mathematiques B (Arabe)' => 3200,
             'Sciences et Technologies Electrique' => 2950,
             'Sciences et Technologies Mecanique' => 2950,
             'Lettres et Sciences Humaines' => 2400,
@@ -92,25 +105,41 @@ return [
 
     'matieres_by_niveau_filiere' => [
         '1ac' => [
-            'General' => [
+            'Francais' => [
+                'Mathematiques', 'Physique-Chimie', 'Sciences de la Vie et de la Terre (SVT)', 'Francais', 'Arabe',
+                'Education Islamique', 'Histoire-Geographie', 'Education Physique', 'Anglais',
+            ],
+            'Arabe' => [
                 'Mathematiques', 'Physique-Chimie', 'Sciences de la Vie et de la Terre (SVT)', 'Francais', 'Arabe',
                 'Education Islamique', 'Histoire-Geographie', 'Education Physique', 'Anglais',
             ],
         ],
         '2ac' => [
-            'General' => [
+            'Francais' => [
+                'Mathematiques', 'Physique-Chimie', 'Sciences de la Vie et de la Terre (SVT)', 'Francais', 'Arabe',
+                'Education Islamique', 'Histoire-Geographie', 'Education Physique', 'Anglais',
+            ],
+            'Arabe' => [
                 'Mathematiques', 'Physique-Chimie', 'Sciences de la Vie et de la Terre (SVT)', 'Francais', 'Arabe',
                 'Education Islamique', 'Histoire-Geographie', 'Education Physique', 'Anglais',
             ],
         ],
         '3ac' => [
-            'General' => [
+            'Francais' => [
+                'Mathematiques', 'Physique-Chimie', 'Sciences de la Vie et de la Terre (SVT)', 'Francais', 'Arabe',
+                'Education Islamique', 'Histoire-Geographie', 'Education Physique', 'Anglais',
+            ],
+            'Arabe' => [
                 'Mathematiques', 'Physique-Chimie', 'Sciences de la Vie et de la Terre (SVT)', 'Francais', 'Arabe',
                 'Education Islamique', 'Histoire-Geographie', 'Education Physique', 'Anglais',
             ],
         ],
         'tc' => [
-            'TC Scientifique' => [
+            'TC Scientifique (Francais)' => [
+                'Mathematiques', 'Physique-Chimie', 'Sciences de la Vie et de la Terre (SVT)', 'Francais', 'Arabe',
+                'Education Islamique', 'Histoire-Geographie', 'Economie Generale et Statistiques', 'Education Physique', 'Anglais',
+            ],
+            'TC Scientifique (Arabe)' => [
                 'Mathematiques', 'Physique-Chimie', 'Sciences de la Vie et de la Terre (SVT)', 'Francais', 'Arabe',
                 'Education Islamique', 'Histoire-Geographie', 'Economie Generale et Statistiques', 'Education Physique', 'Anglais',
             ],
@@ -123,11 +152,19 @@ return [
             ],
         ],
         '1bac' => [
-            'Sciences Experimentales' => [
+            'Sciences Experimentales (Francais)' => [
                 'Mathematiques', 'Physique-Chimie', 'Sciences de la Vie et de la Terre (SVT)', 'Francais', 'Arabe',
                 'Education Islamique', 'Histoire-Geographie', 'Education Physique', 'Philosophie', 'Anglais',
             ],
-            'Sciences Mathematiques' => [
+            'Sciences Experimentales (Arabe)' => [
+                'Mathematiques', 'Physique-Chimie', 'Sciences de la Vie et de la Terre (SVT)', 'Francais', 'Arabe',
+                'Education Islamique', 'Histoire-Geographie', 'Education Physique', 'Philosophie', 'Anglais',
+            ],
+            'Sciences Mathematiques (Francais)' => [
+                'Mathematiques', 'Physique-Chimie', 'Sciences d Ingenieur', 'Francais', 'Arabe',
+                'Education Islamique', 'Histoire-Geographie', 'Education Physique', 'Philosophie', 'Anglais',
+            ],
+            'Sciences Mathematiques (Arabe)' => [
                 'Mathematiques', 'Physique-Chimie', 'Sciences d Ingenieur', 'Francais', 'Arabe',
                 'Education Islamique', 'Histoire-Geographie', 'Education Physique', 'Philosophie', 'Anglais',
             ],
@@ -144,19 +181,35 @@ return [
             ],
         ],
         '2bac' => [
-            'Sciences Experimentales - SVT' => [
+            'Sciences Experimentales - SVT (Francais)' => [
                 'Mathematiques', 'Physique-Chimie', 'Sciences de la Vie et de la Terre (SVT)', 'Francais', 'Arabe',
                 'Education Islamique', 'Histoire-Geographie', 'Education Physique', 'Philosophie', 'Anglais',
             ],
-            'Sciences Experimentales - Physique-Chimie' => [
+            'Sciences Experimentales - SVT (Arabe)' => [
                 'Mathematiques', 'Physique-Chimie', 'Sciences de la Vie et de la Terre (SVT)', 'Francais', 'Arabe',
                 'Education Islamique', 'Histoire-Geographie', 'Education Physique', 'Philosophie', 'Anglais',
             ],
-            'Sciences Mathematiques A' => [
+            'Sciences Experimentales - Physique-Chimie (Francais)' => [
+                'Mathematiques', 'Physique-Chimie', 'Sciences de la Vie et de la Terre (SVT)', 'Francais', 'Arabe',
+                'Education Islamique', 'Histoire-Geographie', 'Education Physique', 'Philosophie', 'Anglais',
+            ],
+            'Sciences Experimentales - Physique-Chimie (Arabe)' => [
+                'Mathematiques', 'Physique-Chimie', 'Sciences de la Vie et de la Terre (SVT)', 'Francais', 'Arabe',
+                'Education Islamique', 'Histoire-Geographie', 'Education Physique', 'Philosophie', 'Anglais',
+            ],
+            'Sciences Mathematiques A (Francais)' => [
                 'Mathematiques', 'Physique-Chimie', 'Sciences d Ingenieur', 'Francais', 'Arabe',
                 'Education Islamique', 'Histoire-Geographie', 'Education Physique', 'Philosophie', 'Anglais',
             ],
-            'Sciences Mathematiques B' => [
+            'Sciences Mathematiques A (Arabe)' => [
+                'Mathematiques', 'Physique-Chimie', 'Sciences d Ingenieur', 'Francais', 'Arabe',
+                'Education Islamique', 'Histoire-Geographie', 'Education Physique', 'Philosophie', 'Anglais',
+            ],
+            'Sciences Mathematiques B (Francais)' => [
+                'Mathematiques', 'Physique-Chimie', 'Sciences de la Vie et de la Terre (SVT)', 'Francais', 'Arabe',
+                'Education Islamique', 'Histoire-Geographie', 'Education Physique', 'Philosophie', 'Anglais',
+            ],
+            'Sciences Mathematiques B (Arabe)' => [
                 'Mathematiques', 'Physique-Chimie', 'Sciences de la Vie et de la Terre (SVT)', 'Francais', 'Arabe',
                 'Education Islamique', 'Histoire-Geographie', 'Education Physique', 'Philosophie', 'Anglais',
             ],
