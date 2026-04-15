@@ -186,7 +186,7 @@ function DirecteurDashboard({ user, onLogout }) {
     }
 
     loadDashboard()
-  }, [user?.id, user?.role])
+  }, [user?.id, user?.role, user?.token])
 
   const handleLogoutConfirm = async () => {
     if (isLoggingOut) return;

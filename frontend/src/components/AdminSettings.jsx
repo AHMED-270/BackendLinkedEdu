@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { FiSave as Save, FiRotateCcw as RotateCcw, FiSettings as SettingsIcon } from 'react-icons/fi';
 
 const STORAGE_KEY = 'linkedu_admin_settings';
@@ -18,33 +18,37 @@ const defaultSubproject = {
 };
 
 export default function AdminSettings() {
-  const [settings, setSettings] = useState(defaultSettings);
-  const [subproject, setSubproject] = useState(defaultSubproject);
-  const [statusMessage, setStatusMessage] = useState('');
-
-  useEffect(() => {
+  const [settings, setSettings] = useState(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        setSettings({ ...defaultSettings, ...parsed });
-      }
+      if (!raw) return defaultSettings;
 
-      const subprojectRaw = localStorage.getItem(SUBPROJECT_STORAGE_KEY);
-      if (subprojectRaw) {
-        const parsedSubproject = JSON.parse(subprojectRaw);
-        setSubproject({ ...defaultSubproject, ...parsedSubproject });
-      }
+      const parsed = JSON.parse(raw);
+      return { ...defaultSettings, ...parsed };
     } catch (error) {
       console.error('Erreur lecture settings local:', error);
+      return defaultSettings;
     }
-  }, []);
+  });
+  const [subproject, setSubproject] = useState(() => {
+    try {
+      const raw = localStorage.getItem(SUBPROJECT_STORAGE_KEY);
+      if (!raw) return defaultSubproject;
+
+      const parsed = JSON.parse(raw);
+      return { ...defaultSubproject, ...parsed };
+    } catch (error) {
+      console.error('Erreur lecture sous-projet local:', error);
+      return defaultSubproject;
+    }
+  });
+  const [statusMessage, setStatusMessage] = useState('');
 
   const saveSettings = () => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
       setStatusMessage('Parametres enregistres avec succes.');
-    } catch (error) {
+    } catch {
       setStatusMessage("Impossible d'enregistrer les parametres.");
     }
   };
@@ -60,7 +64,7 @@ export default function AdminSettings() {
       localStorage.setItem(SUBPROJECT_STORAGE_KEY, JSON.stringify(subproject));
       window.dispatchEvent(new Event('linkedu-subproject-updated'));
       setStatusMessage('Parametres du sous-projet enregistres.');
-    } catch (error) {
+    } catch {
       setStatusMessage('Impossible d enregistrer les parametres du sous-projet.');
     }
   };
