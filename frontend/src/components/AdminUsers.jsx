@@ -163,6 +163,7 @@ export default function AdminUsers({ onCreateUser, onEditUser }) {
     if (role === 'professeur') return 'bg-blue-50 text-blue-700 border border-blue-200';
     if (role === 'etudiant') return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
     if (role === 'secretaire') return 'bg-indigo-50 text-indigo-700 border border-indigo-200';
+    if (role === 'comptable') return 'bg-violet-50 text-violet-700 border border-violet-200';
     return 'bg-gray-100 text-gray-700 border border-gray-200';
   };
 
@@ -222,6 +223,7 @@ export default function AdminUsers({ onCreateUser, onEditUser }) {
               <option value="admin">Admin</option>
               <option value="directeur">Directeur</option>
               <option value="secretaire">Secretaire</option>
+              <option value="comptable">Comptable</option>
               <option value="professeur">Professeur</option>
             </select>
 

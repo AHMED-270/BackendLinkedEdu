@@ -300,6 +300,7 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
   const roles = [
     { value: 'professeur', label: 'Professeur' },
     { value: 'secretaire', label: 'Secretariat' },
+    { value: 'comptable', label: 'Comptable' },
     { value: 'directeur', label: 'Directeur' }
   ];
 
