@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import axios from 'axios'
 import { FiLogOut } from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import {
   BarChart,
   Bar,
@@ -12,6 +14,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
+import Header from './Header';
 import DirectorSidebar from './DirectorSidebar'
 import DirectoryReclamations from './DirectoryReclamations';
 import DirectoryProfessors from './DirectoryProfessors';
@@ -22,7 +25,6 @@ import DirectoryClasses from './DirectoryClasses';
 import DirectoryGrades from './DirectoryGrades';
 import DirectoryTimetable from './DirectoryTimetable';
 import DirectoryAnnonces from './DirectoryAnnonces';
-import { getRoleLabel } from '../constants/roles';
 import Parametres from '../pages/Parametres';
 
 const AUTH_TOKEN_KEY = 'linkedu_token';
@@ -55,11 +57,11 @@ function NiveauTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
 
   return (
-    <div className="director-chart-tooltip">
-      <p className="director-chart-tooltip-label">{NIVEAU_MAP[payload[0].payload.niveau] || payload[0].payload.niveau}</p>
-      <p className="director-chart-tooltip-value">
-        <span className="director-chart-tooltip-dot" style={{ background: payload[0].payload.fill }} />
-        <strong>{payload[0].value}</strong> etudiants
+    <div className="rounded-2xl bg-white/90 backdrop-blur-xl border border-white/60 shadow-2xl px-4 py-3">
+      <p className="text-xs font-bold text-brand-navy mb-1">{NIVEAU_MAP[payload[0].payload.niveau] || payload[0].payload.niveau}</p>
+      <p className="text-sm font-black text-brand-teal flex items-center gap-2">
+        <span className="inline-block h-2 w-2 rounded-full" style={{ background: payload[0].payload.fill }} />
+        <strong>{payload[0].value}</strong> <span className="text-slate-400 font-medium">étudiants</span>
       </p>
     </div>
   );
@@ -126,35 +128,7 @@ function DirecteurDashboard({ user, onLogout }) {
     navigate(`${basePath}${p}`);
   };
 
-  const fallbackUserName = `le ${String(getRoleLabel(user?.role) || 'Utilisateur').toLowerCase()}`;
-  const directorDisplayName = `${String(user?.prenom || '').trim()} ${String(user?.nom || '').trim()}`.trim()
-    || String(user?.name || '').trim()
-    || fallbackUserName;
-
-  const directorInitials = useMemo(() => {
-    const sourceParts = [user?.prenom, user?.nom]
-      .map((part) => String(part || '').trim())
-      .filter(Boolean);
-
-    if (sourceParts.length >= 2) {
-      return `${sourceParts[0].charAt(0)}${sourceParts[1].charAt(0)}`.toUpperCase();
-    }
-
-    const fallbackParts = String(user?.name || '')
-      .split(/\s+/)
-      .map((part) => part.trim())
-      .filter(Boolean);
-
-    if (fallbackParts.length >= 2) {
-      return `${fallbackParts[0].charAt(0)}${fallbackParts[1].charAt(0)}`.toUpperCase();
-    }
-
-    if (fallbackParts.length === 1) {
-      return fallbackParts[0].charAt(0).toUpperCase();
-    }
-
-    return 'D';
-  }, [user?.name, user?.nom, user?.prenom]);
+  const fallbackUserName = String(user?.name || 'Directeur').trim() || 'Directeur';
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -246,260 +220,306 @@ function DirecteurDashboard({ user, onLogout }) {
     }
   }
 
-  return (
-    <div className="director-layout">
-      {showLogoutAlert && (
-        <div className="header-logout-modal-backdrop">
-          <div className="header-logout-modal-card" role="dialog" aria-modal="true" aria-label="Confirmation deconnexion">
-            <h3>Deconnexion</h3>
-            <p>Voulez-vous vraiment vous deconnecter ?</p>
-            <div className="header-logout-modal-actions">
+  // --- PREMIUM LOGOUT MODAL ---
+  const logoutModal = showLogoutAlert && typeof document !== 'undefined'
+    ? createPortal(
+      <AnimatePresence>
+        <div className="premium-modal-overlay">
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="premium-modal-backdrop"
+            onClick={() => setShowLogoutAlert(false)}
+          />
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            className="premium-modal-card"
+          >
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-500 shadow-inner">
+              <FiLogOut size={28} />
+            </div>
+            <h3 className="mb-2 text-xl font-black text-brand-navy tracking-tight">Déconnexion</h3>
+            <p className="mb-8 text-sm font-medium text-slate-500 leading-relaxed">
+              Voulez-vous vraiment quitter <span className="text-brand-navy font-bold">LinkEdu</span> ?
+            </p>
+            <div className="flex gap-3">
               <button
-                type="button"
-                className="header-logout-cancel"
+                className="flex-1 rounded-2xl bg-slate-100 py-3 text-sm font-bold text-slate-600 transition-all hover:bg-slate-200 active:scale-95"
                 onClick={() => setShowLogoutAlert(false)}
                 disabled={isLoggingOut}
               >
                 Annuler
               </button>
               <button
-                type="button"
-                className="header-logout-confirm"
+                className="flex-1 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 py-3 text-sm font-bold text-white shadow-lg shadow-red-200 transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
                 onClick={handleLogoutConfirm}
                 disabled={isLoggingOut}
               >
-                {isLoggingOut ? 'Deconnexion...' : 'Oui'}
+                {isLoggingOut ? '...' : 'Oui, sortir'}
               </button>
             </div>
-          </div>
+          </motion.div>
         </div>
-      )}
+      </AnimatePresence>,
+      document.body
+    ) : null;
 
-      <header className="director-header">
-        <div className="director-header-logo">
-          <span className="logo-link">Linked</span><span className="logo-edu">U</span>
+  // KPI data
+  const kpiCards = [
+    { label: 'Nombre de classes', value: stats?.classes ?? 0, gradient: 'from-brand-teal/10', hoverColor: 'group-hover:text-brand-teal' },
+    { label: "Nombre d'étudiants", value: stats?.etudiants ?? 0, gradient: 'from-blue-500/10', hoverColor: 'group-hover:text-blue-600' },
+    { label: 'Nombre de professeurs', value: stats?.professeurs ?? 0, gradient: 'from-purple-500/10', hoverColor: 'group-hover:text-purple-600' },
+    { label: 'Nombre de secrétaires', value: totalSecretaires, gradient: 'from-amber-500/10', hoverColor: 'group-hover:text-amber-600' },
+  ];
+
+  return (
+    <div className="premium-bg flex h-screen w-screen overflow-hidden fixed inset-0">
+      {logoutModal}
+
+      {/* Animated gradient orbs */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <motion.div
+          animate={{ scale: [1, 1.1, 1], x: [0, 30, 0], y: [0, -20, 0] }}
+          transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute -right-28 -top-28 h-[42rem] w-[42rem] rounded-full bg-gradient-to-br from-brand-teal/25 to-blue-400/15 blur-[120px] opacity-70"
+        />
+        <motion.div
+          animate={{ scale: [1, 1.2, 1], x: [0, -40, 0], y: [0, 30, 0] }}
+          transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute -bottom-36 -left-32 h-[46rem] w-[46rem] rounded-full bg-gradient-to-br from-brand-navy/20 to-brand-teal/10 blur-[140px] opacity-70"
+        />
+      </div>
+
+      {/* ===== PREMIUM SIDEBAR ===== */}
+      <motion.aside
+        initial={{ x: -20, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+        className="premium-sidebar w-[280px] flex-shrink-0 flex flex-col z-50 relative overflow-hidden"
+      >
+        <div className="relative h-full py-4 px-3 overflow-y-auto custom-scrollbar">
+          <DirectorSidebar
+            user={user}
+            activeMenu={activeMenu}
+            setActiveMenu={setActiveMenu}
+            onRequestLogout={() => setShowLogoutAlert(true)}
+            isLoggingOut={isLoggingOut}
+          />
         </div>
-        <div className="director-header-actions">
-          <button
-            type="button"
-            className="director-header-profile"
-            onClick={() => setActiveMenu('Parametres')}
-            title="Ouvrir le profil"
+      </motion.aside>
+
+      {/* ===== MAIN CONTENT ===== */}
+      <main className="flex-1 flex flex-col overflow-hidden relative z-10">
+        <motion.header
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 120, damping: 20 }}
+          className="h-[72px] flex-shrink-0 z-40"
+        >
+          <Header variant="shell" profileRouteOverride={`${basePath}/parametres`} />
+        </motion.header>
+
+        {/* Page Content */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <motion.div
+            key={activeMenu}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="p-6 lg:p-8 max-w-[1600px] mx-auto"
           >
-            <span className="director-header-avatar">{directorInitials}</span>
-            <span className="director-header-profile-meta">
-              <span className="director-header-profile-label">Profil</span>
-            </span>
-          </button>
-          <button
-            type="button"
-            className="director-header-logout"
-            onClick={() => setShowLogoutAlert(true)}
-            disabled={isLoggingOut}
-            aria-label="Se deconnecter"
-            title="Se deconnecter"
-          >
-            <FiLogOut size={18} />
-          </button>
-        </div>
-      </header>
+            <div className="mb-6 flex flex-col gap-1">
+              <span className="text-brand-teal font-semibold text-xs uppercase tracking-[0.2em]">Direction</span>
+            </div>
 
-      <main className="director-body">
-        <DirectorSidebar user={user} activeMenu={activeMenu} setActiveMenu={setActiveMenu} />
+            {isLoading && (
+              <div className="flex items-center justify-center py-20">
+                <div className="loading-spinner" />
+              </div>
+            )}
+            {error && (
+              <div className="premium-stat !bg-red-50/60 border-red-100/50 p-5 mb-6">
+                <p className="text-sm text-red-600 font-semibold">{error}</p>
+              </div>
+            )}
 
-        <section className="director-page-content">
-          {isLoading && <p className="director-info">Chargement des donnees...</p>}
-          {error && <p className="auth-feedback auth-feedback-error">{error}</p>}
-
-          {!isLoading && !error && activeMenu === 'Tableau de bord' && (
-            <div className="page-dashboard">
-              <header className="page-dashboard-header flex justify-between items-center">
-                <div>
-                  <h1>Bonjour, {user?.prenom ?? 'M.'} {user?.nom ?? fallbackUserName}</h1>
-                  <p>Resume du jour avec les indicateurs essentiels.</p>
-                </div>
-                {stats?.academic_year && (
-                  <div className="bg-blue-600 text-white px-3 py-1.5 rounded-lg shadow-sm flex flex-col items-center mr-4">
-                    <span className="text-[9px] uppercase font-bold opacity-80 leading-none mb-0.5">Scolaire</span>
-                    <span className="text-sm font-black leading-none">{stats.academic_year}</span>
+            {/* DASHBOARD HOME */}
+            {!isLoading && !error && activeMenu === 'Tableau de bord' && (
+              <div className="space-y-8">
+                {/* Welcome header */}
+                <div className="premium-stat !p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div>
+                    <h1 className="text-3xl font-extrabold bg-gradient-to-r from-brand-navy to-brand-teal bg-clip-text text-transparent tracking-tight">
+                      Bonjour, {user?.prenom ?? 'M.'} {user?.nom ?? fallbackUserName}
+                    </h1>
+                    <p className="text-slate-500 mt-2 text-sm font-medium">Résumé de la journée, préparé pour vous.</p>
                   </div>
-                )}
-              </header>
-
-              <section className="kpi-grid">
-                <article className="kpi-card">
-                  <p>Nombre de classes</p>
-                  <h3>{stats?.classes ?? 0}</h3>
-                </article>
-                <article className="kpi-card">
-                  <p>Nombre d'etudiants</p>
-                  <h3>{stats?.etudiants ?? 0}</h3>
-                </article>
-                <article className="kpi-card">
-                  <p>Nombre de professeurs</p>
-                  <h3>{stats?.professeurs ?? 0}</h3>
-                </article>
-                <article className="kpi-card">
-                  <p>Nombre de secretaires</p>
-                  <h3>{totalSecretaires}</h3>
-                </article>
-              </section>
-
-              <section className="director-level-chart-card">
-                <div className="card-header">
-                  <h2>Repartition des eleves par niveau</h2>
-                </div>
-                <div className="director-level-chart-body">
-                  {etudiantsParNiveau.length === 0 ? (
-                    <p className="director-chart-empty">Aucune donnee de niveau disponible.</p>
-                  ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={etudiantsParNiveau} layout="vertical" margin={{ top: 8, right: 12, left: 8, bottom: 8 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e8edf4" />
-                        <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: '#475569' }} />
-                        <YAxis
-                          type="category"
-                          dataKey="niveau"
-                          width={124}
-                          tick={{ fontSize: 11, fill: '#475569' }}
-                          tickFormatter={(value) => NIVEAU_MAP[value] || value}
-                        />
-                        <Tooltip content={<NiveauTooltip />} cursor={{ fill: 'rgba(29, 78, 216, 0.08)' }} />
-                        <Bar dataKey="total" radius={[0, 10, 10, 0]} maxBarSize={22}>
-                          {etudiantsParNiveau.map((entry, index) => (
-                            <Cell key={`${entry.niveau}-${index}`} fill={BAR_COLORS[index % BAR_COLORS.length]} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
+                  {stats?.academic_year && (
+                    <div className="bg-gradient-to-tr from-brand-teal to-blue-500 text-white px-5 py-2.5 rounded-2xl shadow-premium border border-white/20 flex flex-col items-center transition-transform hover:-translate-y-1 duration-300">
+                      <span className="text-[10px] uppercase font-extrabold tracking-wider opacity-90 leading-none mb-1">Année Scolaire</span>
+                      <span className="text-lg font-black leading-none">{stats.academic_year}</span>
+                    </div>
                   )}
                 </div>
-              </section>
 
-              <div className="dashboard-content-split director-tables-row">
-                <article className="recent-claims-card director-table-card">
-                  <div className="card-header">
-                    <h2>Reclamations recentes</h2>
-                    <a href="#" onClick={(event) => { event.preventDefault(); setActiveMenu('Reclamations'); }}>Voir toutes</a>
+                {/* KPI Cards */}
+                <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {kpiCards.map((kpi, i) => (
+                    <motion.article
+                      key={kpi.label}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.08, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                      className="premium-stat group overflow-hidden relative"
+                    >
+                      <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${kpi.gradient} to-transparent rounded-bl-[100px] z-0 transition-transform duration-500 group-hover:scale-110`} />
+                      <p className="text-slate-500 text-sm font-semibold uppercase tracking-wider relative z-10 mb-2">{kpi.label}</p>
+                      <h3 className={`text-4xl font-black text-brand-navy relative z-10 ${kpi.hoverColor} transition-colors`}>{kpi.value}</h3>
+                    </motion.article>
+                  ))}
+                </section>
+
+                {/* Chart */}
+                <section className="premium-stat !p-8">
+                  <div className="premium-section-header">
+                    <h2 className="premium-section-title">Répartition des élèves par niveau</h2>
                   </div>
-                  <div className="table-wrapper">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>SUJET</th>
-                          <th>CIBLE</th>
-                          <th>STATUT</th>
-                          <th>DATE</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {recentReclamations.length === 0 ? (
+                  <div className="director-level-chart-body" style={{ height: Math.max(300, etudiantsParNiveau.length * 36) }}>
+                    {etudiantsParNiveau.length === 0 ? (
+                      <div className="premium-empty">
+                        <p>Aucune donnée de niveau disponible.</p>
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={etudiantsParNiveau} layout="vertical" margin={{ top: 8, right: 12, left: 8, bottom: 8 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e8edf4" />
+                          <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: '#475569' }} />
+                          <YAxis
+                            type="category"
+                            dataKey="niveau"
+                            width={124}
+                            tick={{ fontSize: 11, fill: '#475569' }}
+                            tickFormatter={(value) => NIVEAU_MAP[value] || value}
+                          />
+                          <Tooltip content={<NiveauTooltip />} cursor={{ fill: 'rgba(29, 78, 216, 0.08)' }} />
+                          <Bar dataKey="total" radius={[0, 10, 10, 0]} maxBarSize={22}>
+                            {etudiantsParNiveau.map((entry, index) => (
+                              <Cell key={`${entry.niveau}-${index}`} fill={BAR_COLORS[index % BAR_COLORS.length]} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </section>
+
+                {/* Tables row */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Recent Reclamations */}
+                  <article className="premium-stat !p-0 overflow-hidden">
+                    <div className="premium-section-header !mb-0 px-6 pt-6 pb-4">
+                      <h2 className="premium-section-title">Réclamations récentes</h2>
+                      <button onClick={() => setActiveMenu('Reclamations')} className="text-xs font-bold text-brand-teal hover:text-brand-navy transition-colors">
+                        Voir toutes →
+                      </button>
+                    </div>
+                    <div className="premium-table-wrap !rounded-none !shadow-none">
+                      <table>
+                        <thead>
                           <tr>
-                            <td colSpan="4" style={{ textAlign: 'center', padding: '1rem 0', color: '#64748b' }}>
-                              Aucune reclamation recente.
-                            </td>
+                            <th>SUJET</th>
+                            <th>CIBLE</th>
+                            <th>STATUT</th>
+                            <th>DATE</th>
                           </tr>
-                        ) : (
-                          recentReclamations.map((claim) => {
-                            const claimDate = claim.date_reclamation
-                              ? new Date(claim.date_reclamation).toLocaleDateString('fr-FR')
-                              : '-';
+                        </thead>
+                        <tbody>
+                          {recentReclamations.length === 0 ? (
+                            <tr>
+                              <td colSpan="4" className="!text-center !text-slate-400 !py-8">Aucune réclamation récente.</td>
+                            </tr>
+                          ) : (
+                            recentReclamations.map((claim) => {
+                              const claimDate = claim.date_reclamation
+                                ? new Date(claim.date_reclamation).toLocaleDateString('fr-FR')
+                                : '-';
+                              return (
+                                <tr key={claim.id_reclamation}>
+                                  <td><strong className="text-brand-navy">{claim.sujet || 'Sans sujet'}</strong></td>
+                                  <td>{claim.cible_label || '-'}</td>
+                                  <td><span className="premium-badge-blue">{claim.statut || '-'}</span></td>
+                                  <td className="text-slate-400 text-xs">{claimDate}</td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </article>
 
-                            return (
-                              <tr key={claim.id_reclamation}>
-                                <td><strong>{claim.sujet || 'Sans sujet'}</strong></td>
-                                <td>{claim.cible_label || '-'}</td>
-                                <td>{claim.statut || '-'}</td>
-                                <td>{claimDate}</td>
-                              </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </article>
-
-                <article className="classes-overview-card director-table-card">
-                  <div className="card-header">
-                    <h2>Demandes des parents</h2>
-                  </div>
-                  <div className="table-wrapper">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>PARENT</th>
-                          <th>TYPE</th>
-                          <th>STATUT</th>
-                          <th>DATE</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {recentDemandes.length === 0 ? (
+                  {/* Parent Demandes */}
+                  <article className="premium-stat !p-0 overflow-hidden">
+                    <div className="premium-section-header !mb-0 px-6 pt-6 pb-4">
+                      <h2 className="premium-section-title">Demandes des parents</h2>
+                    </div>
+                    <div className="premium-table-wrap !rounded-none !shadow-none">
+                      <table>
+                        <thead>
                           <tr>
-                            <td colSpan="4" style={{ textAlign: 'center', padding: '1rem 0', color: '#64748b' }}>
-                              Aucune demande recente.
-                            </td>
+                            <th>PARENT</th>
+                            <th>TYPE</th>
+                            <th>STATUT</th>
+                            <th>DATE</th>
                           </tr>
-                        ) : (
-                          recentDemandes.map((demande) => {
-                            const parentName = `${demande.parent_nom || ''} ${demande.parent_prenom || ''}`.trim();
-                            const demandeDate = demande.date_demande
-                              ? new Date(demande.date_demande).toLocaleDateString('fr-FR')
-                              : '-';
-
-                            return (
-                              <tr key={demande.id_demande}>
-                                <td><strong>{parentName || demande.parent_email || '-'}</strong></td>
-                                <td>{demande.type_demande || '-'}</td>
-                                <td>{demande.statut || '-'}</td>
-                                <td>{demandeDate}</td>
-                              </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </article>
+                        </thead>
+                        <tbody>
+                          {recentDemandes.length === 0 ? (
+                            <tr>
+                              <td colSpan="4" className="!text-center !text-slate-400 !py-8">Aucune demande récente.</td>
+                            </tr>
+                          ) : (
+                            recentDemandes.map((demande) => {
+                              const parentName = `${demande.parent_nom || ''} ${demande.parent_prenom || ''}`.trim();
+                              const demandeDate = demande.date_demande
+                                ? new Date(demande.date_demande).toLocaleDateString('fr-FR')
+                                : '-';
+                              return (
+                                <tr key={demande.id_demande}>
+                                  <td><strong className="text-brand-navy">{parentName || demande.parent_email || '-'}</strong></td>
+                                  <td>{demande.type_demande || '-'}</td>
+                                  <td><span className="premium-badge-orange">{demande.statut || '-'}</span></td>
+                                  <td className="text-slate-400 text-xs">{demandeDate}</td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </article>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Fallback for other modes unstyled yet */}
-          {!isLoading && !error && activeMenu === 'Reclamations' && (
-              <DirectoryReclamations />
-            )}
-            {!isLoading && !error && activeMenu === 'Liste des Professeurs' && (
-              <DirectoryProfessors userRole={user?.role} />
-            )}
-            {!isLoading && !error && activeMenu === 'Liste des Etudiants' && (
-                <DirectoryStudents userRole={user?.role} />
-              )}
-              {!isLoading && !error && activeMenu === 'Liste des Classes' && (
-                <DirectoryClasses userRole={user?.role} />
-              )}
-              {!isLoading && !error && activeMenu === 'Notes & Examens' && (
-                <DirectoryGrades userRole={user?.role} />
-              )}
-              {!isLoading && !error && activeMenu === 'Parametres' && (
-                <Parametres />
-              )}
-              {!isLoading && !error && activeMenu === 'Communication' && (
-                <DirectoryFallback activeMenu={activeMenu} userRole={user?.role} />
-              )}
-              {!isLoading && !error && activeMenu === 'Rapports' && (<DirectoryReports />)}
-              {!isLoading && !error && activeMenu === 'Annonces' && (
-                <DirectoryAnnonces />
-              )}
-              {!isLoading && !error && activeMenu === 'Emploi du temps' && (
-                <DirectoryTimetable />
-              )}        </section>
+            {/* Sub-pages */}
+            {!isLoading && !error && activeMenu === 'Reclamations' && <DirectoryReclamations />}
+            {!isLoading && !error && activeMenu === 'Liste des Professeurs' && <DirectoryProfessors userRole={user?.role} />}
+            {!isLoading && !error && activeMenu === 'Liste des Etudiants' && <DirectoryStudents userRole={user?.role} />}
+            {!isLoading && !error && activeMenu === 'Liste des Classes' && <DirectoryClasses userRole={user?.role} />}
+            {!isLoading && !error && activeMenu === 'Notes & Examens' && <DirectoryGrades userRole={user?.role} />}
+            {!isLoading && !error && activeMenu === 'Parametres' && <Parametres />}
+            {!isLoading && !error && activeMenu === 'Communication' && <DirectoryFallback activeMenu={activeMenu} userRole={user?.role} />}
+            {!isLoading && !error && activeMenu === 'Rapports' && <DirectoryReports />}
+            {!isLoading && !error && activeMenu === 'Annonces' && <DirectoryAnnonces />}
+            {!isLoading && !error && activeMenu === 'Emploi du temps' && <DirectoryTimetable />}
+          </motion.div>
+        </div>
       </main>
     </div>
   )
 }
 
 export default DirecteurDashboard
-
 

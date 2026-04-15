@@ -28,3 +28,4 @@ function DirectoryFallback({ activeMenu, userRole = ROLE.DIRECTEUR }) {
 }
 
 export default DirectoryFallback;
+

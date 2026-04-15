@@ -304,19 +304,19 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
     { value: 'directeur', label: 'Directeur' }
   ];
 
-  const inputClassName = 'block w-full px-3 py-2.5 border border-black rounded-xl bg-white hover:border-blue-600 hover:bg-blue-50 focus:outline-none focus:ring-0 focus:border-black transition-colors duration-150';
-  const selectClassName = 'block w-full py-2.5 px-3 border border-black bg-white rounded-xl hover:border-blue-600 hover:bg-blue-50 focus:outline-none focus:ring-0 focus:border-black transition-colors duration-150';
+  const inputClassName = 'w-full px-4 py-3 bg-white/60 backdrop-blur-sm border border-white/80 rounded-2xl text-brand-navy font-medium focus:outline-none focus:ring-4 focus:ring-brand-teal/20 focus:border-brand-teal transition-all duration-300 placeholder-slate-400';
+  const selectClassName = 'w-full px-4 py-3 bg-white/60 backdrop-blur-sm border border-white/80 rounded-2xl text-brand-navy font-medium focus:outline-none focus:ring-4 focus:ring-brand-teal/20 focus:border-brand-teal transition-all duration-300';
 
   if (loading) {
     return (
-      <div className={isModal ? '' : 'dashboard-content'}>
+      <div className={isModal ? '' : 'space-y-8'}>
         <p>Chargement du formulaire...</p>
       </div>
     );
   }
 
   return (
-    <div className={isModal ? '' : 'dashboard-content'}>
+    <div className={isModal ? '' : 'space-y-8'}>
       {showCreationToast && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-xl w-[92%] sm:w-auto rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-800 shadow-lg">
           <div>Compte cree avec succes.</div>
@@ -340,33 +340,25 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
       )}
 
       {!isModal && (
-        <header className="content-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <header className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="mt-1 flex items-center gap-2 text-4xl lg:text-5xl font-extrabold italic tracking-tight text-slate-900">
-              <BiSolidUserDetail className="text-blue-600" />
+            <h1 className="text-3xl font-extrabold bg-gradient-to-r from-brand-navy to-brand-teal bg-clip-text text-transparent tracking-tight flex items-center gap-3">
+              <BiSolidUserDetail className="text-brand-teal" size={28} />
               {isEditing ? 'Modifier Utilisateur' : 'Nouvel Utilisateur'}
             </h1>
           </div>
-          <button
-            type="button"
-            onClick={onBack}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#0f172a', color: 'white', padding: '10px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '500' }}
-          > 
-            <ArrowLeft size={16} />
-            Retour 
+          <button type="button" onClick={onBack} className="premium-btn-secondary">
+            <ArrowLeft size={16} /> Retour 
           </button>
         </header>
       )}
 
-      <div
-        className={isModal ? 'bg-white rounded-2xl border border-gray-200 overflow-hidden' : 'bg-white border border-gray-100 rounded-2xl overflow-hidden'}
-        style={!isModal ? { marginBottom: '20px' } : undefined}
-      >
+      <div className={isModal ? 'premium-stat overflow-hidden' : 'premium-stat overflow-hidden'} style={!isModal ? { marginBottom: '20px' } : undefined}>
         {isModal && (
-          <div className="px-6 pt-6 pb-4 border-b border-gray-100 bg-gray-50/70">
-            <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">Users / {isEditing ? 'Modifier' : 'Ajouter'}</p>
-            <h2 className="text-3xl font-extrabold text-gray-900 mt-1">{isEditing ? 'Modifier un Utilisateur' : 'Ajouter un Utilisateur'}</h2>
-            <p className="text-sm text-gray-500 mt-1">Creation manuelle reservee aux cadres: secretaire, professeur, directeur.</p>
+          <div className="px-6 pt-6 pb-4 border-b border-white/40 bg-white/30 backdrop-blur-sm">
+            <p className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Users / {isEditing ? 'Modifier' : 'Ajouter'}</p>
+            <h2 className="text-2xl font-extrabold text-brand-navy mt-1">{isEditing ? 'Modifier un Utilisateur' : 'Ajouter un Utilisateur'}</h2>
+            <p className="text-sm text-slate-500 mt-1 font-medium">Création manuelle réservée aux cadres: secrétaire, professeur, directeur.</p>
           </div>
         )}
 
@@ -383,12 +375,12 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
           )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-8 mt-2">
-            <section className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <BiSolidUserDetail className="text-blue-600" />
+            <section className="premium-stat">
+              <h2 className="text-lg font-bold text-brand-navy flex items-center gap-2">
+                <BiSolidUserDetail className="text-brand-teal" />
                 Informations de compte
               </h2>
-              <p className="text-sm text-gray-500 mt-1">Identite du compte et role assigne dans la plateforme.</p>
+              <p className="text-sm text-slate-500 mt-1 font-medium">Identité du compte et rôle assigné dans la plateforme.</p>
 
               <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="flex flex-col gap-1.5">
@@ -467,7 +459,7 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
                       <p className="text-xs text-gray-500">
                         Source: base de donnees (niveau enseigne + matieres General transversales).
                       </p>
-                      <div className="max-h-56 overflow-y-auto rounded-xl border border-black bg-white p-3">
+                      <div className="max-h-56 overflow-y-auto rounded-xl border border-black bg-white/30 p-3">
                         {!formData.niveau_enseignement ? (
                           <p className="px-2 py-1 text-sm text-gray-500">Choisissez d'abord le niveau enseigne pour afficher les matieres.</p>
                         ) : filteredProfessorMatieres.length === 0 ? (
@@ -517,21 +509,8 @@ export default function AdminUserForm({ mode = 'create', userToEdit = null, onBa
             </section>
 
             <div className="flex flex-wrap gap-3 justify-end pt-1">
-              <button
-                type="button"
-                onClick={onBack}
-                disabled={saving}
-                className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium"
-              >
-                Annuler
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold"
-              >
-                {saving ? 'Enregistrement...' : 'Enregistrer'}
-              </button>
+              <button type="button" onClick={onBack} disabled={saving} className="premium-btn-secondary">Annuler</button>
+              <button type="submit" disabled={saving} className="premium-btn-primary">{saving ? 'Enregistrement...' : 'Enregistrer'}</button>
             </div>
           </form>
         </div>

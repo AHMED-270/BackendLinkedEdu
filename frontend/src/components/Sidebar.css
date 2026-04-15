@@ -1,18 +1,19 @@
 /* ===== SIDEBAR CONTAINER ===== */
 .sidebar {
   position: fixed;
-  top: var(--header-height, 64px); 
+  top: 72px; /* updated header height */
   left: 0;
   bottom: 0;
-  width: var(--sidebar-width, 260px);
-  background: white;
-  border-right: 1px solid var(--border-color);
+  width: var(--sidebar-width, 280px);
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(25px) saturate(150%);
+  -webkit-backdrop-filter: blur(25px) saturate(150%);
+  border-right: 1px solid rgba(255, 255, 255, 0.6);
   display: flex;
   flex-direction: column;
   z-index: 90;
   overflow-y: auto;
-  /* Add a subtle shadow to separate it from the main content */
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.02);
+  box-shadow: 4px 0 30px rgba(20, 39, 78, 0.05);
 }
 
 /* ===== USER PROFILE ===== */

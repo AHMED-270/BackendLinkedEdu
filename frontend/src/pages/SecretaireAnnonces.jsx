@@ -145,7 +145,7 @@ export default function SecretaireAnnonces() {
       }
       await loadData();
       resetForm();
-      alert(isEditMode ? "Annonce mise à jour avec succès !" : "Annonce publiée avec succès !");
+      alert(isEditMode ? "Annonce mise Ã  jour avec succès !" : "Annonce publiée avec succès !");
     } catch (err) {
       console.error("Erreur complète:", err);
       const msg = err.response?.data?.message || "Erreur lors de l'enregistrement";
@@ -219,7 +219,7 @@ export default function SecretaireAnnonces() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] p-4 lg:p-8 font-sans text-gray-900">
+    <div className="min-h-screen bg-[#f8fafc] p-4 lg:p-8 font-sans text-gray-900 relative overflow-hidden backdrop-saturate-150">
       <div className="max-w-[1400px] mx-auto">
         
         {/* Header */}
@@ -250,13 +250,13 @@ export default function SecretaireAnnonces() {
                   placeholder="Rechercher un titre ou un contenu"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  className="w-full pl-10 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal/20 focus:border-brand-teal"
                 />
               </div>
               <select
                 value={filterCible}
                 onChange={(e) => setFilterCible(e.target.value)}
-                className="w-full sm:w-40 px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-gray-700"
+                className="w-full sm:w-40 px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal/20 focus:border-brand-teal font-medium text-gray-700"
               >
                 <option value="">Filtrer par cible</option>
                 <option value="Etudiants">Étudiants</option>
@@ -266,7 +266,7 @@ export default function SecretaireAnnonces() {
             </div>
 
             {/* Table Card */}
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden pb-4">
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden pb-4 backdrop-blur-xl border border-white/80 !shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(41,107,116,0.06)] transition-all duration-300">
               <div className="overflow-x-auto">
                 <table className="table w-full text-left border-collapse min-w-[700px]">
                   <thead>
@@ -317,7 +317,7 @@ export default function SecretaireAnnonces() {
                                  setPhotoPreview(a.photo_url || '');
                                  window.scrollTo({ top: 0, behavior: 'smooth' });
                                }}
-                               className="p-1.5 text-blue-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors"
+                               className="p-1.5 text-brand-teal hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors"
                              >
                                 <Edit2 className="w-4 h-4" />
                              </button>
@@ -353,11 +353,11 @@ export default function SecretaireAnnonces() {
           <div className="lg:col-span-4 flex flex-col gap-6">
             
             {/* Quick Action Card (Action Rapide) */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-6 relative">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-6 relative backdrop-blur-xl border border-white/80 !shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(41,107,116,0.06)] transition-all duration-300">
               <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50/50 rounded-bl-[100px] -z-0"></div>
               
               <div className="flex items-center gap-2 mb-6 relative z-10">
-                <Zap className="w-5 h-5 text-blue-600 fill-blue-600/20" />
+                <Zap className="w-5 h-5 text-brand-teal fill-blue-600/20" />
                 <h3 className="font-bold text-gray-900 text-lg">Nouvelle annonce</h3>
               </div>
               
@@ -371,7 +371,7 @@ export default function SecretaireAnnonces() {
                     value={form.titre}
                     onChange={(e) => setForm({ ...form, titre: e.target.value })}
                     required
-                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all"
+                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-teal/20 focus:bg-white transition-all"
                   />
                 </div>
 
@@ -383,7 +383,7 @@ export default function SecretaireAnnonces() {
                     value={form.contenu}
                     onChange={(e) => setForm({ ...form, contenu: e.target.value })}
                     required
-                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all resize-none"
+                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-teal/20 focus:bg-white transition-all resize-none"
                   />
                 </div>
 
@@ -393,7 +393,7 @@ export default function SecretaireAnnonces() {
                     <select
                       value={form.cible}
                       onChange={(e) => setForm({ ...form, cible: e.target.value })}
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white"
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-teal/20 focus:bg-white backdrop-blur-xl border border-white/80 !shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(41,107,116,0.06)] transition-all duration-300"
                     >
                       <option value="Tous">Tous</option>
                       <option value="Etudiants">Étudiants</option>
@@ -430,9 +430,9 @@ export default function SecretaireAnnonces() {
                 <div className="flex gap-2 mt-2">
                   <button
                     type="submit"
-                    className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-sm transition-colors"
+                    className="flex-1 py-3 bg-brand-teal hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-sm transition-colors"
                   >
-                    {editingId ? 'Mettre à jour' : 'Envoyer l\'annonce'}
+                    {editingId ? 'Mettre Ã  jour' : 'Envoyer l\'annonce'}
                   </button>
                   {editingId && (
                     <button
@@ -524,3 +524,10 @@ export default function SecretaireAnnonces() {
     </div>
   );
 }
+
+
+
+
+
+
+

@@ -53,6 +53,18 @@ class CompleteSchoolSeeder extends Seeder
             ]
         );
 
+        $comptable = User::updateOrCreate(
+            ['email' => 'comptable@linkedu.com'],
+            [
+                'name' => 'Comptable Test',
+                'nom' => 'Comptable',
+                'prenom' => 'Test',
+                'password' => Hash::make('Compt@2026'),
+                'role' => 'comptable',
+                'account_status' => 'active',
+            ]
+        );
+
         $professeur = User::updateOrCreate(
             ['email' => 'professeur@linkedu.com'],
             [

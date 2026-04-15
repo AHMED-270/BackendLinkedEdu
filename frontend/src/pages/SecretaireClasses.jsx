@@ -96,10 +96,10 @@ export default function SecretaireClasses() {
     doc.setFontSize(10);
     doc.text('Document Officiel', margin, 31);
     
-    // Titre document et Infos de la classe (aligné à droite)
+    // Titre document et Infos de la classe (aligné Ã  droite)
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
-    doc.text(`LISTE DES D'ÉLÈVES`, pageWidth - margin, 25, { align: 'right' });
+    doc.text(`LISTE DES D'ÉLÃˆVES`, pageWidth - margin, 25, { align: 'right' });
     
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
@@ -130,7 +130,7 @@ export default function SecretaireClasses() {
     const colNom = margin + 30;
     const colEmail = margin + 105;
     
-    doc.text('ID / N°', colId, startY + 7);
+    doc.text('ID / NÂ°', colId, startY + 7);
     doc.text('NOM & PRÉNOM', colNom, startY + 7);
     doc.text('EMAIL / CONTACT', colEmail, startY + 7);
     
@@ -160,7 +160,7 @@ export default function SecretaireClasses() {
         startY = 25;
         doc.setFillColor(240, 240, 240);
         doc.rect(margin, startY, pageWidth - (margin * 2), 10, 'F');
-        doc.text('ID / N°', colId, startY + 7);
+        doc.text('ID / NÂ°', colId, startY + 7);
         doc.text('NOM & PRÉNOM', colNom, startY + 7);
         doc.text('EMAIL / CONTACT', colEmail, startY + 7);
         startY += 12;
@@ -232,11 +232,11 @@ export default function SecretaireClasses() {
   }, [selectedClass]);
 
   return (
-    <div className="min-h-screen p-6 lg:p-10 bg-gray-50/50">
+    <div className="min-h-screen p-6 lg:p-10 bg-gray-50/50 relative overflow-hidden backdrop-saturate-150">
       <div className="max-w-6xl mx-auto space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
-            <School className="w-8 h-8 text-blue-600" />
+            <School className="w-8 h-8 text-brand-teal" />
             Liste des Classes
           </h1>
           
@@ -248,7 +248,7 @@ export default function SecretaireClasses() {
               </div>
               <input
                 type="text"
-                className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm shadow-sm"
+                className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-teal/20 focus:border-brand-teal transition-colors sm:text-sm shadow-sm backdrop-blur-xl border border-white/80 !shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(41,107,116,0.06)] transition-all duration-300"
                 placeholder="Rechercher une classe..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -259,7 +259,7 @@ export default function SecretaireClasses() {
                 <Filter className="h-4 w-4 text-gray-400" />
               </div>
               <select 
-                className="block w-full py-2.5 pl-10 pr-3 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors cursor-pointer shadow-sm font-medium text-gray-700" 
+                className="block w-full py-2.5 pl-10 pr-3 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal/20 focus:border-brand-teal transition-colors cursor-pointer shadow-sm font-medium text-gray-700" 
                 value={levelFilter} 
                 onChange={(e) => setLevelFilter(e.target.value)}
               >
@@ -311,7 +311,7 @@ export default function SecretaireClasses() {
                     >
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                          <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm group-hover:bg-brand-teal group-hover:text-white transition-colors">
                             {(c.nom || '??').substring(0, 2).toUpperCase()}
                           </div>
                           <span className="font-semibold text-gray-900">{c.nom}</span>
@@ -323,7 +323,7 @@ export default function SecretaireClasses() {
                       <td className="py-4 px-6 text-sm text-gray-500">
                         {c.filiere || '-'}
                       </td>
-                      <td className="py-4 px-6 text-sm font-bold text-blue-600 text-right">
+                      <td className="py-4 px-6 text-sm font-bold text-brand-teal text-right">
                         {c.pricing ? `${Number(c.pricing).toLocaleString()} DH` : '0 DH'}
                       </td>
                       <td className="py-4 px-6 text-sm font-semibold text-gray-700 text-right">
@@ -389,7 +389,7 @@ export default function SecretaireClasses() {
                 <h2 className="text-lg font-bold text-gray-900">Etudiants de la classe {selectedClass.nom}</h2>
                 <div className="flex gap-3 mt-1">
                   <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">Niveau: {selectedClass.niveau}</span>
-                  <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">Filière: {selectedClass.filiere || 'Général'}</span>
+                  <span className="text-xs bg-blue-50 text-brand-teal px-2 py-0.5 rounded-full font-medium">Filière: {selectedClass.filiere || 'Général'}</span>
                   <span className="text-xs bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-medium">Prix: {selectedClass.pricing || 0} DH</span>
                 </div>
               </div>
@@ -449,3 +449,10 @@ export default function SecretaireClasses() {
     </div>
   );
 }
+
+
+
+
+
+
+

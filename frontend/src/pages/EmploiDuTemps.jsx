@@ -239,19 +239,19 @@ export default function EmploiDuTemps() {
   };
 
   return (
-    <div className="layout-content">
+    <div className="relative">
       {/* En-tête */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight flex items-center gap-2">
-            <CalendarIcon className="text-blue-600" size={28} /> Mon Emploi du Temps
+            <CalendarIcon className="text-brand-teal" size={28} /> Mon Emploi du Temps
           </h1>
           <p className="text-slate-500 text-sm mt-1">Consultez votre planning hebdomadaire dynamique.</p>
         </div>
         
         <div className="flex items-center gap-3 flex-wrap">
           <select
-            className="form-select min-w-[240px] !px-4 !py-2.5 rounded-xl border border-slate-300 bg-white shadow-sm"
+            className="form-select min-w-[240px] !px-4 !py-2.5 rounded-xl border border-slate-300 bg-white shadow-sm backdrop-blur-xl border border-white/80 !shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(41,107,116,0.06)] transition-all duration-300"
             value={selectedClass}
             onChange={(e) => {
               const value = e.target.value;
@@ -296,7 +296,7 @@ export default function EmploiDuTemps() {
         
         {loading ? (
           <div className="flex flex-col justify-center items-center py-24">
-            <span className="loading-spinner border-blue-500 mb-4"></span>
+            <span className="loading-spinner border-brand-teal mb-4"></span>
             <p className="text-slate-500 font-medium">Chargement du calendrier...</p>
           </div>
         ) : error ? (
@@ -345,4 +345,9 @@ export default function EmploiDuTemps() {
     </div>
   );
 }
+
+
+
+
+
 

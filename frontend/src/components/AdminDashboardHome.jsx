@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { motion } from 'framer-motion';
 import { 
   FiUsers as Users, 
   FiBookOpen as GraduationCap, 
-  FiAlertCircle as AlertCircle, 
-  FiFileText as FileText, 
   FiBookOpen as BookOpen,
   FiUserCheck as UserCheck,
   FiShield as Shield,
@@ -12,8 +11,19 @@ import {
   FiUser as UserIcon,
   FiDollarSign as DollarSign
 } from 'react-icons/fi';
-import { BiSolidUserDetail } from 'react-icons/bi';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
+
+const COLORS = ['#3a7bd5', '#00d2ff', '#11998e', '#38ef7d', '#6a11cb', '#2575fc', '#f2994a'];
+
+const roleCards = [
+  { key: 'admin', label: 'ADMINISTRATEURS', badge: 'Admin', Icon: Shield, gradient: 'from-blue-500/10' },
+  { key: 'directeur', label: 'DIRECTEURS', badge: 'Directeur', Icon: UserCheck, gradient: 'from-indigo-500/10' },
+  { key: 'professeur', label: 'PROFESSEURS', badge: 'Prof', Icon: Briefcase, gradient: 'from-amber-500/10' },
+  { key: 'secretaire', label: 'SECRÉTAIRES', badge: 'Staff', Icon: UserIcon, gradient: 'from-emerald-500/10' },
+  { key: 'comptable', label: 'COMPTABLES', badge: 'Finance', Icon: DollarSign, gradient: 'from-cyan-500/10' },
+  { key: 'etudiant', label: 'ÉLÈVES', badge: 'Étudiant', Icon: Users, gradient: 'from-purple-500/10' },
+  { key: 'parent', label: 'PARENTS', badge: 'Famille', Icon: Users, gradient: 'from-orange-500/10', combineKey: 'parent_eleve' },
+];
 
 export default function AdminDashboardHome() {
   const [stats, setStats] = useState({
@@ -47,8 +57,6 @@ export default function AdminDashboardHome() {
     fetchStats();
   }, []);
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#a4de6c'];
-
   const chartData = stats.classDistribution.map(cls => ({
     name: cls.nom,
     level: cls.niveau,
@@ -57,132 +65,98 @@ export default function AdminDashboardHome() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-20">
-        <div className="text-xl text-slate-500 font-medium animate-pulse">Chargement des statistiques...</div>
+      <div className="flex items-center justify-center py-20">
+        <div className="loading-spinner" />
       </div>
     );
   }
 
   return (
-    <div className="dashboard-content">
-      <header className="content-header mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="premium-stat !p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="mt-1 flex items-center gap-3 text-3xl lg:text-4xl font-extrabold italic tracking-tight text-slate-900">
-            <BiSolidUserDetail className="text-blue-600" />
+          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-brand-navy to-brand-teal bg-clip-text text-transparent tracking-tight flex items-center gap-3">
+            <Shield className="text-brand-teal" size={28} />
             Vue d'ensemble
           </h1>
-          <p className="text-slate-600">État du système LinkEdu en temps réel.</p>
+          <p className="text-slate-500 mt-2 text-sm font-medium">État du système LinkEdu en temps réel.</p>
         </div>
-        <div className="bg-indigo-600 text-white px-6 py-3 rounded-2xl shadow-lg shadow-indigo-200 flex flex-col items-center justify-center">
-           <span className="text-[10px] uppercase font-bold tracking-widest opacity-80">Année Académique</span>
-           <span className="text-xl font-black">{stats.anneeScolaireActuelle}</span>
-        </div>
-      </header>
+        {stats.anneeScolaireActuelle && (
+          <div className="bg-gradient-to-tr from-brand-navy to-brand-teal text-white px-6 py-3 rounded-2xl shadow-premium border border-white/20 flex flex-col items-center transition-transform hover:-translate-y-1 duration-300">
+            <span className="text-[10px] uppercase font-bold tracking-widest opacity-80">Année Académique</span>
+            <span className="text-xl font-black">{stats.anneeScolaireActuelle}</span>
+          </div>
+        )}
+      </div>
 
-      <div className="mb-6">
-        <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
-           <Shield className="text-blue-600" size={20} /> Répartition par Rôle
+      {/* Role Cards */}
+      <div>
+        <h2 className="text-base font-bold text-brand-navy flex items-center gap-2 mb-5">
+          <Shield className="text-brand-teal" size={18} /> Répartition par Rôle
         </h2>
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-header">
-              <div className="stat-icon-wrapper bg-blue-light">
-                <Shield size={20} className="text-blue" />
-              </div>
-              <span className="stat-badge badge-gray">Admin</span>
-            </div>
-            <p className="stat-label">ADMINISTRATEURS</p>
-            <h3 className="stat-value">{stats.roleCounts.admin || 0}</h3>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-header">
-              <div className="stat-icon-wrapper bg-indigo-light">
-                <UserCheck size={20} className="text-indigo" />
-              </div>
-              <span className="stat-badge badge-gray">Directeur</span>
-            </div>
-            <p className="stat-label">DIRECTEURS</p>
-            <h3 className="stat-value">{stats.roleCounts.directeur || 0}</h3>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-header">
-              <div className="stat-icon-wrapper bg-orange-light">
-                <Briefcase size={20} className="text-orange" />
-              </div>
-              <span className="stat-badge badge-gray">Prof</span>
-            </div>
-            <p className="stat-label">PROFESSEURS</p>
-            <h3 className="stat-value">{stats.roleCounts.professeur || 0}</h3>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-header">
-              <div className="stat-icon-wrapper bg-emerald-light">
-                <UserIcon size={20} className="text-emerald" />
-              </div>
-              <span className="stat-badge badge-gray">Staff</span>
-            </div>
-            <p className="stat-label">SECRÉTAIRES</p>
-            <h3 className="stat-value">{stats.roleCounts.secretaire || 0}</h3>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-header">
-              <div className="stat-icon-wrapper bg-blue-light">
-                <DollarSign size={20} className="text-blue" />
-              </div>
-              <span className="stat-badge badge-gray">Finance</span>
-            </div>
-            <p className="stat-label">COMPTABLES</p>
-            <h3 className="stat-value">{stats.roleCounts.comptable || 0}</h3>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-header">
-              <div className="stat-icon-wrapper bg-indigo-light">
-                <Users size={20} className="text-indigo" />
-              </div>
-              <span className="stat-badge badge-green">Étudiant</span>
-            </div>
-            <p className="stat-label">ÉLÈVES</p>
-            <h3 className="stat-value">{stats.roleCounts.etudiant || 0}</h3>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-header">
-              <div className="stat-icon-wrapper bg-orange-light">
-                <Users size={20} className="text-orange" />
-              </div>
-              <span className="stat-badge badge-gray">Famille</span>
-            </div>
-            <p className="stat-label">PARENTS</p>
-            <h3 className="stat-value">{(stats.roleCounts.parent || 0) + (stats.roleCounts.parent_eleve || 0)}</h3>
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+          {roleCards.map((card, i) => {
+            const Icon = card.Icon;
+            const count = card.combineKey
+              ? (stats.roleCounts[card.key] || 0) + (stats.roleCounts[card.combineKey] || 0)
+              : (stats.roleCounts[card.key] || 0);
+            return (
+              <motion.div
+                key={card.key}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                className="premium-stat group overflow-hidden relative text-center"
+              >
+                <div className={`absolute top-0 right-0 w-16 h-16 bg-gradient-to-br ${card.gradient} to-transparent rounded-bl-[60px] z-0 transition-transform duration-500 group-hover:scale-125`} />
+                <div className="relative z-10">
+                  <div className="mx-auto mb-3 h-10 w-10 rounded-2xl bg-white/80 border border-white/60 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all">
+                    <Icon size={18} className="text-brand-teal" />
+                  </div>
+                  <span className="premium-badge-gray text-[9px] mb-2">{card.badge}</span>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-2 mb-1">{card.label}</p>
+                  <h3 className="text-2xl font-black text-brand-navy group-hover:text-brand-teal transition-colors">{count}</h3>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
 
-      <div className="main-grid">
-        <div className="recent-activities">
-          <div className="section-header">
-            <h2 className="flex items-center gap-2">
-              <GraduationCap className="text-indigo-600" size={20} /> Répartition des élèves par Classe
+      {/* Chart + Summary */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Chart */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+          className="premium-stat !p-8 lg:col-span-2"
+        >
+          <div className="premium-section-header">
+            <h2 className="premium-section-title">
+              <GraduationCap className="text-brand-teal" size={20} /> Répartition des élèves par Classe
             </h2>
           </div>
-          
           <div style={{ width: '100%', height: 350 }}>
             <ResponsiveContainer>
               <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} />
-                <Tooltip 
-                  cursor={{ fill: '#F1F5F9' }}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
+                <Tooltip
+                  cursor={{ fill: 'rgba(64, 161, 216, 0.06)' }}
+                  contentStyle={{
+                    borderRadius: '1rem',
+                    border: '1px solid rgba(255,255,255,0.6)',
+                    boxShadow: '0 10px 40px rgba(20,39,78,0.08)',
+                    backdropFilter: 'blur(12px)',
+                    background: 'rgba(255,255,255,0.85)',
+                    padding: '12px 16px',
+                  }}
                   labelFormatter={(name, props) => `${name} (${props[0]?.payload?.level})`}
                 />
-                <Bar dataKey="total" radius={[4, 4, 0, 0]} barSize={40}>
+                <Bar dataKey="total" radius={[8, 8, 0, 0]} barSize={36}>
                   {chartData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
@@ -190,29 +164,31 @@ export default function AdminDashboardHome() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="right-panel">
-          <div className="panel-card mb-4">
-            <h2 className="text-lg font-bold mb-4">Résumé Académique</h2>
-            <div className="health-list space-y-4">
-              <div className="health-item flex justify-between">
-                <span className="health-label text-slate-600">Classes totales</span>
-                <span className="font-bold text-slate-800">{stats.totalClasses}</span>
-              </div>
-              <div className="health-item flex justify-between">
-                <span className="health-label text-slate-600">Matières actives</span>
-                <span className="font-bold text-slate-800">{stats.totalMatieres}</span>
-              </div>
-              <div className="health-item flex justify-between">
-                <span className="health-label text-slate-600">Élèves / Professeur</span>
-                <span className="font-bold text-slate-800">
-                  {stats.totalProfesseurs > 0 ? (stats.totalStudents / stats.totalProfesseurs).toFixed(1) : 0}
-                </span>
-              </div>
-            </div>
+        {/* Summary */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
+          className="premium-stat !p-8"
+        >
+          <div className="premium-section-header">
+            <h2 className="premium-section-title">Résumé Académique</h2>
           </div>
-        </div>
+          <div className="space-y-5">
+            {[
+              { label: 'Classes totales', value: stats.totalClasses },
+              { label: 'Matières actives', value: stats.totalMatieres },
+              { label: 'Élèves / Professeur', value: stats.totalProfesseurs > 0 ? (stats.totalStudents / stats.totalProfesseurs).toFixed(1) : 0 },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center justify-between py-3 border-b border-white/40 last:border-0">
+                <span className="text-sm font-semibold text-slate-500">{item.label}</span>
+                <span className="text-lg font-black text-brand-navy">{item.value}</span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
       </div>
     </div>
   );

@@ -6,8 +6,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, Users, GraduationCap, FileText, Calendar, 
   Bell, UserCheck, Clock, LifeBuoy, AlertCircle, 
-  Send, CheckCircle2, ChevronDown, Download, BookOpen, User, LogOut
+  Send, CheckCircle2, ChevronDown, ChevronRight, Download, BookOpen, User, LogOut
 } from 'lucide-react';
+import Header from '../components/Header';
+import logo from '../assets/images/linkedu-logo.png';
 import Parametres from './Parametres';
 import './RolePortal.css'; 
 import '../components/DirectoryTimetable.css';
@@ -18,9 +20,6 @@ const tabs = [
   { key: 'notes', label: 'Notes', icon: GraduationCap },
   { key: 'devoirs', label: 'Devoirs', icon: FileText },
   { key: 'emploi', label: 'Planning', icon: Calendar },
-  { key: 'annonces', label: 'Annonces', icon: Bell },
-  { key: 'ressources', label: 'Ressources', icon: BookOpen },
-  { key: 'professeurs', label: 'Professeurs', icon: UserCheck },
   { key: 'absences', label: 'Absences', icon: Clock },
   { key: 'reclamations', label: 'Reclamations', icon: LifeBuoy },
   { key: 'demandes', label: 'Demandes', icon: Send },
@@ -89,6 +88,14 @@ export default function ParentPortal() {
   const [demandeFeedback, setDemandeFeedback] = useState({ type: '', msg: '' });
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const allowedTabKeys = useMemo(() => tabs.map((tab) => tab.key), []);
+
+  useEffect(() => {
+    if (!allowedTabKeys.includes(activeTab)) {
+      setActiveTab('dashboard');
+    }
+  }, [activeTab, allowedTabKeys]);
 
   const normalizeTime = (value) => String(value || '').slice(0, 5);
   const timeToMinutes = (value) => {
@@ -425,91 +432,94 @@ export default function ParentPortal() {
   );
 
   return (
-    <div className="portal-shell min-h-screen bg-[#F4F7FE] flex flex-col font-sans text-slate-800 pb-12">
+    <div className="premium-bg flex h-screen w-screen overflow-hidden fixed inset-0 font-sans text-slate-800">
+      {/* Animated gradient orbs */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute -right-28 -top-28 h-[42rem] w-[42rem] rounded-full bg-gradient-to-br from-brand-teal/20 to-blue-400/10 blur-[120px] opacity-70" style={{ animation: 'pulse 25s infinite alternate' }} />
+        <div className="absolute -bottom-36 -left-32 h-[46rem] w-[46rem] rounded-full bg-gradient-to-br from-brand-navy/15 to-brand-teal/10 blur-[140px] opacity-70" style={{ animation: 'pulse 30s infinite alternate-reverse' }} />
+      </div>
+
       {showLogoutAlert && (
-        <div className="header-logout-modal-backdrop">
-          <div className="header-logout-modal-card" role="dialog" aria-modal="true" aria-label="Confirmation deconnexion">
-            <h3>Deconnexion</h3>
-            <p>Voulez-vous vraiment vous deconnecter ?</p>
-            <div className="header-logout-modal-actions">
-              <button
-                type="button"
-                className="header-logout-cancel"
-                onClick={() => setShowLogoutAlert(false)}
-                disabled={isLoggingOut}
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                className="header-logout-confirm"
-                onClick={handleLogoutConfirm}
-                disabled={isLoggingOut}
-              >
-                {isLoggingOut ? 'Deconnexion...' : 'Oui'}
-              </button>
+        <div className="premium-modal-overlay">
+          <div className="premium-modal-backdrop" onClick={() => setShowLogoutAlert(false)} />
+          <div className="premium-modal-card" role="dialog" aria-modal="true">
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-500 shadow-inner">
+              <LogOut size={28} />
+            </div>
+            <h3 className="mb-2 text-xl font-black text-brand-navy tracking-tight">Déconnexion</h3>
+            <p className="mb-8 text-sm font-medium text-slate-500">Voulez-vous vraiment quitter <span className="text-brand-navy font-bold">LinkEdu</span> ?</p>
+            <div className="flex gap-3">
+              <button className="flex-1 rounded-2xl bg-slate-100 py-3 text-sm font-bold text-slate-600 transition-all hover:bg-slate-200 active:scale-95" onClick={() => setShowLogoutAlert(false)} disabled={isLoggingOut}>Annuler</button>
+              <button className="flex-1 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 py-3 text-sm font-bold text-white shadow-lg shadow-red-200 transition-all hover:brightness-110 active:scale-95 disabled:opacity-50" onClick={handleLogoutConfirm} disabled={isLoggingOut}>{isLoggingOut ? '...' : 'Oui, sortir'}</button>
             </div>
           </div>
         </div>
       )}
       
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 px-6 py-4 shadow-sm flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-md">
-            {parentName.charAt(0)}
-          </div>
-          <div>
-            <p className="text-xs font-bold text-indigo-600 tracking-wider uppercase">LinkEdu Parent</p>
-            <h1 className="text-lg font-extrabold text-slate-800 leading-tight">Bonjour, {parentName}</h1>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          {dashboard?.academic_year && (
-            <div className="bg-blue-600 text-white px-3 py-1.5 rounded-lg shadow-sm flex flex-col items-center mr-4 hidden md:flex">
-                <span className="text-[9px] uppercase font-bold opacity-80 leading-none mb-0.5">Scolaire</span>
-                <span className="text-sm font-black leading-none">{dashboard.academic_year}</span>
+      <aside className="premium-sidebar w-[280px] flex-shrink-0 flex flex-col z-50 relative overflow-hidden">
+          <div className="flex items-center justify-center py-8 mb-2 relative z-10">
+            <div className="relative group cursor-pointer">
+              <div className="absolute inset-0 bg-brand-teal/20 blur-2xl rounded-full group-hover:bg-brand-teal/40 transition-all duration-700" />
+              <img src={logo} alt="LinkEdu" className="h-10 w-auto relative z-10 drop-shadow-xl transition-transform duration-500 group-hover:scale-110" />
             </div>
-          )}
-          <motion.button
-            whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-red-500 hover:bg-red-50 rounded-full transition-colors"
-            onClick={() => setShowLogoutAlert(true)}
-          >
-            <LogOut size={16} /> <span className="hidden sm:inline">Déconnexion</span>
-          </motion.button>
-        </div>
-      </header>
-
-      <div className="portal-body">
-        <aside className="portal-sidebar">
-          <div className="portal-sidebar-brand">
-            <h2>LinkEdu Parent</h2>
           </div>
 
-          <div className="portal-profile-card">
-            <strong>{parentName}</strong>
-            <p>Espace parent</p>
+          <div className="px-5 mb-6 relative z-10">
+            <div className="rounded-2xl border border-white/60 bg-white/40 p-4 backdrop-blur-md shadow-glass-sm">
+              <h3 className="text-xs font-black uppercase tracking-widest text-brand-navy/70 mb-1">Espace Parent</h3>
+              <p className="text-sm font-bold text-brand-navy truncate">{parentName}</p>
+            </div>
           </div>
 
-          <nav className="portal-sidebar-nav">
+          <div className="px-6 mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 relative z-10">Menu</div>
+
+          <nav className="flex-1 space-y-1 px-3 overflow-y-auto custom-scrollbar relative z-10">
             {tabs.map((tab) => {
               const Icon = tab.icon;
+              const isActive = activeTab === tab.key;
               return (
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={activeTab === tab.key ? 'portal-side-link active' : 'portal-side-link'}
+                  className={`group relative flex w-full items-center gap-3.5 rounded-2xl px-4 py-3 text-sm font-bold transition-all duration-300 ${
+                    isActive
+                      ? 'bg-brand-navy text-white shadow-premium'
+                      : 'text-slate-500 hover:bg-white/50 hover:text-brand-navy'
+                  }`}
                 >
-                  <Icon size={16} />
-                  <span>{tab.label}</span>
+                  <Icon size={18} className={`${isActive ? 'text-brand-teal' : 'text-slate-400 group-hover:text-brand-teal'} transition-colors duration-300`} />
+                  <span className="flex-1 text-left tracking-tight">{tab.label}</span>
+                  {isActive ? (
+                    <div className="h-1.5 w-1.5 rounded-full bg-brand-teal shadow-glow" />
+                  ) : (
+                    <ChevronRight size={14} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-slate-300" />
+                  )}
                 </button>
               );
             })}
           </nav>
+
+          <div className="p-4 mt-auto relative z-10">
+            <button
+              type="button"
+              className="flex w-full items-center justify-center gap-3 rounded-[1.4rem] bg-red-50/50 px-4 py-4 text-sm font-bold text-red-500 border border-red-100/50 transition-all hover:bg-red-50 hover:shadow-md active:scale-95 group"
+              onClick={() => setShowLogoutAlert(true)}
+            >
+              <LogOut size={18} className="group-hover:rotate-12 transition-transform" />
+              Quitter LinkEdu
+            </button>
+          </div>
         </aside>
 
-        <main className="portal-content max-w-6xl w-full mx-auto px-4 mt-8">
+        <main className="flex-1 flex flex-col overflow-hidden relative z-10">
+          <header className="h-[72px] flex-shrink-0 z-40">
+            <Header variant="shell" profileRouteOverride="/parent" />
+          </header>
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <div className="p-6 lg:p-8 max-w-[1600px] mx-auto w-full">
+          <div className="mb-6 flex flex-col gap-1">
+            <span className="text-brand-teal font-semibold text-xs uppercase tracking-[0.2em]">Parent</span>
+          </div>
           {/* Toolbar: Child Selector */}
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
             {/* Child Selector */}
@@ -599,7 +609,7 @@ export default function ParentPortal() {
                     <div className="dashboard-main-layout">
                       {/* Main Column: Children Sessions */}
                       <div className="dashboard-col-main space-y-6">
-                        <div className="section-card-header mb-2 !border-none !pb-0">
+                        <div className="section-card-header mb-2 !border-none !pb-0 premium-section-header">
                           <h3><Calendar size={18} className="text-indigo-500" /> Séance(s) du jour pour vos enfants</h3>
                         </div>
                         
@@ -662,7 +672,7 @@ export default function ParentPortal() {
                                 </p>
                                 <div className="flex justify-between items-center mt-2">
                                   <span className="text-[10px] font-bold text-slate-400">{dashboard.annonces[0].date_publication?.substring(0, 10)}</span>
-                                  <button onClick={() => setActiveTab('annonces')} className="text-[10px] font-bold text-indigo-600 hover:underline">Détails</button>
+                                  <span className="text-[10px] font-bold text-indigo-400">Info</span>
                                 </div>
                               </div>
                             )}
@@ -844,7 +854,7 @@ export default function ParentPortal() {
                           <div className="flex flex-col">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Matière / Prof</span>
                             <span className="text-[11px] font-bold text-slate-600 truncate max-w-[120px]">
-                              {res.matiere || '-'} • {res.professeur || '-'}
+                              {res.matiere || '-'} - {res.professeur || '-'}
                             </span>
                           </div>
                           {res.fichier_url && (
@@ -968,7 +978,7 @@ export default function ParentPortal() {
                         <div className="form-group">
                           <label className="form-label">Nom de l eleve</label>
                           <select
-                            className="form-input"
+                            className="form-input backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300"
                             value={complaintChildId}
                             onChange={(event) => setComplaintChildId(event.target.value)}
                             required
@@ -986,7 +996,7 @@ export default function ParentPortal() {
                           <label className="form-label">Classe</label>
                           <input
                             type="text"
-                            className="form-input bg-slate-50"
+                            className="form-input bg-slate-50 backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300"
                             value={selectedComplaintChild?.classe || '-'}
                             readOnly
                           />
@@ -996,7 +1006,7 @@ export default function ParentPortal() {
                           <label className="form-label">Objet</label>
                           <input
                             type="text"
-                            className="form-input"
+                            className="form-input backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300"
                             value={complaintSubject}
                             onChange={(event) => setComplaintSubject(event.target.value)}
                             placeholder="Sujet de la reclamation"
@@ -1007,7 +1017,7 @@ export default function ParentPortal() {
                         <div className="form-group">
                           <label className="form-label">Message</label>
                           <textarea
-                            className="form-input resize-none"
+                            className="form-input resize-none backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300"
                             value={complaintMessage}
                             onChange={(event) => setComplaintMessage(event.target.value)}
                             placeholder="Decrivez votre reclamation..."
@@ -1089,7 +1099,7 @@ export default function ParentPortal() {
                         <div className="form-group">
                           <label className="form-label">Nom de l eleve</label>
                           <select
-                            className="form-input"
+                            className="form-input backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300"
                             value={requestChildId}
                             onChange={(event) => setRequestChildId(event.target.value)}
                             required
@@ -1107,7 +1117,7 @@ export default function ParentPortal() {
                           <label className="form-label">Classe</label>
                           <input
                             type="text"
-                            className="form-input bg-slate-50"
+                            className="form-input bg-slate-50 backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300"
                             value={selectedRequestChild?.classe || '-'}
                             readOnly
                           />
@@ -1115,13 +1125,13 @@ export default function ParentPortal() {
 
                         <div className="form-group">
                           <label className="form-label">Date</label>
-                          <input type="date" className="form-input bg-slate-50" value={requestDate} readOnly />
+                          <input type="date" className="form-input bg-slate-50 backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300" value={requestDate} readOnly />
                         </div>
 
                         <div className="form-group">
                           <label className="form-label">Type de demande</label>
                           <select
-                            className="form-input"
+                            className="form-input backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300"
                             value={requestType}
                             onChange={(event) => setRequestType(event.target.value)}
                             required
@@ -1135,7 +1145,7 @@ export default function ParentPortal() {
                         <div className="form-group">
                           <label className="form-label">Cause (optionnel)</label>
                           <textarea
-                            className="form-input resize-none"
+                            className="form-input resize-none backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300"
                             value={requestMessage}
                             onChange={(event) => setRequestMessage(event.target.value)}
                             placeholder="Precisez un detail si necessaire..."
@@ -1196,9 +1206,12 @@ export default function ParentPortal() {
             )}
           </AnimatePresence>
         </div>
+            </div>
+          </div>
         </main>
-      </div>
     </div>
   );
 }
+
+
 

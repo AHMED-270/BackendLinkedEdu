@@ -45,7 +45,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="layout-content relative">
+    <div className="relative">
       {/* Header */}
       <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -53,7 +53,7 @@ export default function Dashboard() {
           <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Voici un aperçu de vos activités pour l'année scolaire {stats?.academic_year}.</p>
         </div>
         {stats?.academic_year && (
-          <div className="bg-blue-600 text-white px-4 py-2 rounded-xl shadow-md flex flex-col items-center">
+          <div className="bg-brand-teal text-white px-4 py-2 rounded-xl shadow-md flex flex-col items-center">
             <span className="text-[10px] uppercase font-bold opacity-80">Année Académique</span>
             <span className="text-lg font-black leading-none">{stats.academic_year}</span>
           </div>
@@ -62,7 +62,7 @@ export default function Dashboard() {
 
       {loading ? (
         <div className="flex flex-col justify-center items-center py-20">
-          <span className="loading-spinner border-blue-500 mb-4"></span>
+          <span className="loading-spinner border-brand-teal mb-4"></span>
           <p className="text-slate-500 font-medium">Chargement de votre tableau de bord...</p>
         </div>
       ) : error ? (
@@ -211,4 +211,6 @@ export default function Dashboard() {
     </div>
   );
 }
+
+
 

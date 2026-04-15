@@ -178,37 +178,35 @@ export default function AdminUsers({ onCreateUser, onEditUser }) {
   const lastItem = Math.min(page * USERS_PER_PAGE, filteredUsers.length);
 
   return (
-    <div className="min-h-screen p-4 lg:p-8 bg-[#f5f7fb]">
-      <div className="max-w-[1400px] mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
+    <div className="space-y-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <h1 className="mt-1 flex items-center gap-2 text-4xl lg:text-5xl font-extrabold italic tracking-tight text-slate-900">
-            <BiSolidUserDetail className="text-blue-600" />
-            Gerer Utilisateurs
+          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-brand-navy to-brand-teal bg-clip-text text-transparent tracking-tight flex items-center gap-3">
+            <UsersIcon className="text-brand-teal" size={28} />
+            Gérer Utilisateurs
           </h1>
-         
         </div>
         <button
           onClick={handleCreateUser}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#2563eb] text-white font-semibold rounded-xl shadow-sm hover:bg-[#1d4ed8] transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          className="premium-btn-primary"
         >
           <Plus className="w-4 h-4" />
           Nouvel Utilisateur
         </button>
       </div>
 
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-        <div className="px-6 py-5 border-b border-gray-100 flex flex-col xl:flex-row xl:items-center gap-3 bg-gray-50/60">
+      <div className="premium-stat !p-0 overflow-hidden">
+        <div className="px-6 py-5 border-b border-white/40 flex flex-col xl:flex-row xl:items-center gap-3 bg-white/30 backdrop-blur-sm">
           <div className="relative w-full xl:flex-1">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-gray-400" />
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-slate-400" />
             </div>
             <input
               type="text"
               placeholder="Rechercher (nom, email, rôle...)"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
+              className="premium-input !pl-11"
             />
           </div>
 
@@ -217,7 +215,7 @@ export default function AdminUsers({ onCreateUser, onEditUser }) {
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              className="premium-select w-auto"
             >
               <option value="tous">Role: Tous</option>
               <option value="admin">Admin</option>
@@ -234,15 +232,15 @@ export default function AdminUsers({ onCreateUser, onEditUser }) {
         <div className="overflow-x-auto">
           <table className="table w-full text-left border-collapse min-w-[980px]">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Utilisateur</th>
-                <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Role</th>
-                <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Date Inscription</th>
-                <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Statut</th>
-                <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Actions</th>
+              <tr className="bg-white/40 border-b border-slate-100/50">
+                <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Utilisateur</th>
+                <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Role</th>
+                <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Date Inscription</th>
+                <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Statut</th>
+                <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-slate-50/80">
               {loading ? (
                 <TableSkeletonRows rowCount={4} colCount={5} />
               ) : filteredUsers.length === 0 ? (
@@ -257,14 +255,14 @@ export default function AdminUsers({ onCreateUser, onEditUser }) {
                   const statusUi = getStatusUI(user);
                   const canActivate = user.role === 'etudiant' && user.account_status === 'pending_activation';
                   return (
-                  <tr key={user.id} className="hover:bg-blue-50/50 transition-colors group">
+                  <tr key={user.id} className="transition-colors duration-200 hover:bg-white/60 group">
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand-navy/10 to-brand-teal/10 text-brand-navy flex items-center justify-center font-bold text-sm group-hover:from-brand-navy group-hover:to-brand-teal group-hover:text-white transition-all">
                           {user.name ? user.name.substring(0, 2).toUpperCase() : '?'}
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-900 text-sm">{user.name}</p>
+                          <p className="font-bold text-brand-navy text-sm">{user.name}</p>
                           <p className="text-xs text-gray-500">{user.email}</p>
                         </div>
                       </div>
@@ -287,7 +285,7 @@ export default function AdminUsers({ onCreateUser, onEditUser }) {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => setViewTarget(user)}
-                          className="text-slate-500 hover:text-slate-700 hover:bg-slate-100 p-2 rounded-lg transition-colors cursor-pointer"
+                          className="text-slate-500 hover:text-slate-700 hover:bg-white/20 p-2 rounded-lg transition-colors cursor-pointer"
                           title="Afficher"
                         >
                           <Eye size={18} />
@@ -323,7 +321,7 @@ export default function AdminUsers({ onCreateUser, onEditUser }) {
           </table>
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-3 bg-white">
+        <div className="px-6 py-4 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-3 bg-white/20">
           
           <div className="flex items-center gap-2">
             <button
@@ -348,45 +346,45 @@ export default function AdminUsers({ onCreateUser, onEditUser }) {
           </div>
         </div>
       </div>
-      </div>
 
       {viewTarget && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-900">Informations de l'utilisateur</h3>
+        <div className="premium-modal-overlay">
+          <div className="premium-modal-backdrop" onClick={() => setViewTarget(null)} />
+          <div className="premium-modal-card !max-w-2xl !text-left">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-black text-brand-navy">Informations de l'utilisateur</h3>
               <button
                 type="button"
                 onClick={() => setViewTarget(null)}
-                className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium"
+                className="premium-btn-secondary premium-btn-sm"
               >
                 Fermer
               </button>
             </div>
-            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">Nom complet</p>
-                <p className="mt-1 text-gray-900 font-semibold">{viewTarget.name || '-'}</p>
+                <p className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Nom complet</p>
+                <p className="mt-1 text-brand-navy font-bold">{viewTarget.name || '-'}</p>
               </div>
               <div>
-                <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">Email</p>
-                <p className="mt-1 text-gray-800">{viewTarget.email || '-'}</p>
+                <p className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Email</p>
+                <p className="mt-1 text-slate-700">{viewTarget.email || '-'}</p>
               </div>
               <div>
-                <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">Role</p>
-                <p className="mt-1 text-gray-800">{viewTarget.role || '-'}</p>
+                <p className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Role</p>
+                <p className="mt-1 text-slate-700">{viewTarget.role || '-'}</p>
               </div>
               <div>
-                <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">Telephone</p>
-                <p className="mt-1 text-gray-800">{viewTarget.telephone || '-'}</p>
+                <p className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Telephone</p>
+                <p className="mt-1 text-slate-700">{viewTarget.telephone || '-'}</p>
               </div>
               <div>
-                <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">Date inscription</p>
-                <p className="mt-1 text-gray-800">{formatDate(viewTarget.created_at)}</p>
+                <p className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Date inscription</p>
+                <p className="mt-1 text-slate-700">{formatDate(viewTarget.created_at)}</p>
               </div>
               <div>
-                <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">Statut</p>
-                <p className="mt-1 text-gray-800">{getStatusUI(viewTarget).label}</p>
+                <p className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Statut</p>
+                <p className="mt-1 text-slate-700">{getStatusUI(viewTarget).label}</p>
               </div>
             </div>
           </div>
@@ -394,35 +392,33 @@ export default function AdminUsers({ onCreateUser, onEditUser }) {
       )}
 
       {deleteTarget && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
-            <div className="p-6 text-center">
-              <div className="w-16 h-16 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
-                <Trash2 size={32} />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Confirmer la suppression</h3>
-              <p className="text-gray-500 mb-6">
-                Voulez-vous vraiment supprimer l&apos;utilisateur <strong className="text-gray-900">{deleteTarget.name}</strong> ? Cette action est irréversible.
-              </p>
-              
-              <div className="flex gap-3 justify-center">
-                <button
-                  type="button"
-                  onClick={() => setDeleteTarget(null)}
-                  disabled={isDeleting}
-                  className="px-5 py-2.5 rounded-xl font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                  className="px-5 py-2.5 rounded-xl font-medium text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50"
-                >
-                  {isDeleting ? 'Suppression...' : 'Supprimer'}
-                </button>
-              </div>
+        <div className="premium-modal-overlay">
+          <div className="premium-modal-backdrop" onClick={() => setDeleteTarget(null)} />
+          <div className="premium-modal-card">
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-500 shadow-inner">
+              <Trash2 size={28} />
+            </div>
+            <h3 className="mb-2 text-xl font-black text-brand-navy tracking-tight">Confirmer la suppression</h3>
+            <p className="mb-8 text-sm font-medium text-slate-500 leading-relaxed">
+              Voulez-vous vraiment supprimer <strong className="text-brand-navy">{deleteTarget.name}</strong> ? Cette action est irréversible.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                disabled={isDeleting}
+                className="flex-1 rounded-2xl bg-slate-100 py-3 text-sm font-bold text-slate-600 transition-all hover:bg-slate-200 active:scale-95"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="flex-1 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 py-3 text-sm font-bold text-white shadow-lg shadow-red-200 transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
+              >
+                {isDeleting ? 'Suppression...' : 'Supprimer'}
+              </button>
             </div>
           </div>
         </div>
@@ -431,3 +427,4 @@ export default function AdminUsers({ onCreateUser, onEditUser }) {
     </div>
   );
 }
+

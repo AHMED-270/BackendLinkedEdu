@@ -82,7 +82,7 @@ export default function Ressources() {
   // Type badge color mapping
   const getTypeBadgeClass = (resourceType) => {
     switch (resourceType) {
-      case 'Cours': return 'badge-blue bg-blue-50 text-blue-600 border border-blue-100';
+      case 'Cours': return 'badge-blue bg-blue-50 text-brand-teal border border-blue-100';
       case 'Exercice': return 'badge-green bg-emerald-50 text-emerald-600 border border-emerald-100';
       case 'TP': return 'badge-orange bg-orange-50 text-orange-600 border border-orange-100';
       case 'Fiche': return 'badge-gray bg-purple-50 text-purple-600 border border-purple-100';
@@ -109,7 +109,7 @@ export default function Ressources() {
   const classesDisponibles = niveau ? (CLASSES_PAR_NIVEAU[niveau] || []) : [];
 
   return (
-    <div className="layout-content relative">
+    <div className="relative">
       
       {/* Floating Success Toast */}
       <AnimatePresence>
@@ -143,7 +143,7 @@ export default function Ressources() {
         <motion.div variants={itemVariants} className="xl:col-span-4 flex flex-col gap-6">
           <div className="card p-6">
             <h3 className="text-lg font-bold text-slate-800 mb-6 pb-4 border-b border-slate-100 flex items-center gap-2">
-              <UploadCloud className="text-blue-600" size={20} /> Nouvelle ressource
+              <UploadCloud className="text-brand-teal" size={20} /> Nouvelle ressource
             </h3>
             
             <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -151,7 +151,7 @@ export default function Ressources() {
                 <label className="form-label">Titre de la ressource</label>
                 <input 
                   type="text" 
-                  className="form-input" 
+                  className="form-input backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300" 
                   placeholder="Ex: Chapitre 4 - Thermodynamique" 
                   value={title} 
                   onChange={(e) => setTitle(e.target.value)} 
@@ -337,4 +337,7 @@ export default function Ressources() {
     </div>
   );
 }
+
+
+
 

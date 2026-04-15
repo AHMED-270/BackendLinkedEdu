@@ -2,81 +2,82 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FiLogOut } from 'react-icons/fi';
+import { FiLogOut, FiSearch, FiBell, FiCommand } from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import './Header.css';
 
-export default function Header() {
+export default function Header({ variant = 'full', profileRouteOverride = '' }) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
+  const isShellVariant = variant === 'shell';
+  
   const role = String(user?.role || '').toLowerCase();
   const isFinancePortalRole = role === 'secretaire' || role === 'comptable';
-  const profileRoute = isFinancePortalRole ? '/secretaire/profil' : '/profil';
+  const profileRoute = profileRouteOverride || (isFinancePortalRole ? '/secretaire/profil' : '/profil');
 
+  // --- LOGOUT MODAL (REDESIGN PREMIUM) ---
   const logoutModal = showLogoutAlert && typeof document !== 'undefined'
     ? createPortal(
-      <div className="header-logout-modal-backdrop">
-        <div className="header-logout-modal-card" role="dialog" aria-modal="true" aria-label="Confirmation deconnexion">
-          <h3>Deconnexion</h3>
-          {isLoggingOut ? (
-            <div className="header-logout-skeleton-wrap" aria-hidden="true">
-              <div className="header-logout-skeleton-line" />
-              <div className="header-logout-skeleton-line short" />
+      <AnimatePresence>
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-brand-navy/40 backdrop-blur-md" 
+            onClick={() => setShowLogoutAlert(false)} 
+          />
+          
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            className="relative w-full max-w-sm overflow-hidden rounded-[2.5rem] bg-white/90 p-8 text-center shadow-2xl backdrop-blur-xl border border-white"
+          >
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-500 shadow-inner">
+              <FiLogOut size={28} />
             </div>
-          ) : (
-            <p>Voulez-vous vraiment vous deconnecter ?</p>
-          )}
-          <div className="header-logout-modal-actions">
-            <button
-              type="button"
-              className="header-logout-cancel"
-              onClick={() => setShowLogoutAlert(false)}
-              disabled={isLoggingOut}
-            >
-              Annuler
-            </button>
-            <button
-              type="button"
-              className="header-logout-confirm"
-              onClick={handleLogoutConfirm}
-              disabled={isLoggingOut}
-            >
-              {isLoggingOut ? 'Deconnexion...' : 'Oui'}
-            </button>
-          </div>
+            <h3 className="text-xl font-black text-brand-navy tracking-tight mb-2">Déconnexion</h3>
+            
+            {isLoggingOut ? (
+              <div className="space-y-2 py-4 animate-pulse">
+                <div className="h-2 bg-slate-200 rounded-full w-3/4 mx-auto" />
+                <div className="h-2 bg-slate-100 rounded-full w-1/2 mx-auto" />
+              </div>
+            ) : (
+              <p className="text-sm font-medium text-slate-500 mb-8">Voulez-vous vraiment quitter <span className="text-brand-navy font-bold">LinkEdu</span> ?</p>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                className="flex-1 py-3 rounded-2xl bg-slate-100 text-slate-600 font-bold text-sm hover:bg-slate-200 transition-all"
+                onClick={() => setShowLogoutAlert(false)}
+                disabled={isLoggingOut}
+              >
+                Annuler
+              </button>
+              <button
+                className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-sm shadow-lg shadow-red-100 hover:brightness-110 active:scale-95 transition-all"
+                onClick={handleLogoutConfirm}
+                disabled={isLoggingOut}
+              >
+                {isLoggingOut ? '...' : 'Oui, sortir'}
+              </button>
+            </div>
+          </motion.div>
         </div>
-      </div>,
+      </AnimatePresence>,
       document.body
-    )
-    : null;
+    ) : null;
 
   async function handleLogoutConfirm() {
     if (isLoggingOut) return;
-
     setIsLoggingOut(true);
     try {
       const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000';
-
-      // Keep a short loading state visible before redirecting.
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      await axios.get(apiBaseUrl + '/sanctum/csrf-cookie', {
-        withCredentials: true,
-        withXSRFToken: true,
-      });
-
-      await axios.post(apiBaseUrl + '/api/admin/logout', {}, {
-        withCredentials: true,
-        withXSRFToken: true,
-        headers: {
-          Accept: 'application/json',
-        },
-      });
-    } catch {
-      // Continue local logout even if API request fails.
-    } finally {
+      await axios.post(apiBaseUrl + '/api/admin/logout', {}, { withCredentials: true });
+    } catch { /* Fail silently */ } 
+    finally {
       logout();
       setIsLoggingOut(false);
       setShowLogoutAlert(false);
@@ -88,35 +89,89 @@ export default function Header() {
     <>
       {logoutModal}
 
-      <header className="header">
-        <div className="header-logo">
-          <span className="logo-link">Linked</span><span className="logo-edu">U</span>
-        </div>
+      <header className={isShellVariant
+        ? 'premium-header h-[72px] flex items-center justify-end px-8 flex-shrink-0 z-40 relative'
+        : 'fixed top-0 left-0 right-0 z-[100] h-20 flex items-center justify-between px-6 bg-white/60 backdrop-blur-glass-md border-b border-white/40 shadow-glass-sm transition-all duration-500'}>
 
-        <div className="header-actions">
-          <button className="header-profile" onClick={() => navigate(profileRoute)} title="Paramètres du profil" aria-label="Ouvrir les paramètres du profil">
-            {user?.profilePhoto ? (
-              <img src={user.profilePhoto} alt="Profil" className="header-profile-avatar" />
-            ) : (
-              <div className="header-profile-avatar header-profile-avatar-fallback">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                  <path fillRule="evenodd" d="M18.685 19.097A9.723 9.723 0 0 0 21.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 0 0 3.065 7.097A9.716 9.716 0 0 0 12 21.75a9.716 9.716 0 0 0 6.685-2.653Zm-12.54-1.285A7.486 7.486 0 0 1 12 15a7.486 7.486 0 0 1 5.855 2.812A8.224 8.224 0 0 1 12 20.25a8.224 8.224 0 0 1-5.855-2.438ZM15.75 9a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" clipRule="evenodd" />
-                </svg>
+        {!isShellVariant && (
+          <div className="flex items-center gap-10">
+            <div
+              onClick={() => navigate('/')}
+              className="group flex items-center gap-2 cursor-pointer"
+            >
+              <div className="w-9 h-9 bg-gradient-to-br from-brand-teal to-brand-navy rounded-xl shadow-glow flex items-center justify-center text-white font-bold text-lg group-hover:rotate-6 transition-transform">
+                L
               </div>
-            )}
-            <span className="header-profile-label">Profil</span>
+              <div className="text-2xl font-black tracking-tighter">
+                <span className="text-brand-navy">Link</span>
+                <span className="text-brand-teal">Edu</span>
+              </div>
+            </div>
+
+            {/* MODERN SEARCH BAR (APPLE STYLE) */}
+            <div className="hidden lg:flex items-center relative group w-64">
+              <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                <FiSearch className="h-4 w-4 text-slate-400 group-focus-within:text-brand-teal transition-colors" />
+              </div>
+              <input
+                type="text"
+                placeholder="Recherche rapide..."
+                className="w-full bg-slate-100/50 border border-transparent focus:bg-white focus:border-brand-teal/30 focus:ring-4 focus:ring-brand-teal/5 tracking-tight rounded-2xl py-2.5 pl-11 pr-10 text-sm outline-none transition-all duration-300"
+              />
+              <div className="absolute right-3 flex items-center gap-1 bg-white border border-slate-200 px-1.5 py-0.5 rounded-md shadow-sm">
+                <FiCommand className="w-3 h-3 text-slate-400" />
+                <span className="text-[10px] font-bold text-slate-400">K</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* RIGHT: ACTIONS & PROFILE */}
+        <div className="flex items-center gap-3 shrink-0">
+          
+          {/* NOTIFICATIONS */}
+          <button className="relative p-2.5 rounded-2xl text-slate-500 hover:bg-white hover:text-brand-teal hover:shadow-glass-sm border border-transparent hover:border-white/60 transition-all group">
+            <FiBell size={20} className="group-hover:rotate-12 transition-transform" />
+            <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
           </button>
 
-          <button
-            type="button"
-            className="header-logout-icon"
-            onClick={() => setShowLogoutAlert(true)}
-            disabled={isLoggingOut}
-            aria-label="Se deconnecter"
-            title="Se deconnecter"
+          <div className="h-8 w-px bg-slate-200 mx-2" />
+
+          {/* PROFILE PILL */}
+          <button 
+            onClick={() => navigate(profileRoute)} 
+            className="flex items-center gap-3 p-1.5 pr-4 rounded-2xl bg-white/40 border border-white/60 hover:bg-white/80 hover:shadow-glass hover:border-brand-teal/20 transition-all duration-300 group"
           >
-            <FiLogOut size={18} />
+            <div className="relative">
+              {user?.profilePhoto ? (
+                <img src={user.profilePhoto} alt="Profil" className="h-9 w-9 rounded-xl object-cover ring-2 ring-white shadow-sm" />
+              ) : (
+                <div className="h-9 w-9 flex items-center justify-center rounded-xl bg-gradient-to-br from-brand-navy to-brand-teal text-white font-bold text-sm ring-2 ring-white shadow-premium">
+                  {String(user?.name || 'U').charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></div>
+            </div>
+            <div className="text-left hidden sm:block">
+              <p className="text-xs font-black text-brand-navy leading-none mb-1 group-hover:text-brand-teal transition-colors">
+                {user?.name?.split(' ')[0] || 'Utilisateur'}
+              </p>
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                {user?.role || 'Membre'}
+              </p>
+            </div>
           </button>
+
+          {!isShellVariant && (
+            <button
+              type="button"
+              className="p-2.5 rounded-2xl text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all duration-300 group"
+              onClick={() => setShowLogoutAlert(true)}
+              title="Déconnexion"
+            >
+              <FiLogOut size={18} className="group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          )}
         </div>
       </header>
     </>

@@ -261,3 +261,6 @@ const DirectorySettings = ({ userRole = ROLE.DIRECTEUR }) => {
 };
 
 export default DirectorySettings;
+
+
+

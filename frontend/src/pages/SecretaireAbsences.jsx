@@ -342,7 +342,7 @@ export default function SecretaireAbsences() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] p-4 lg:p-8 font-sans text-gray-900">
+    <div className="min-h-screen bg-[#f8fafc] p-4 lg:p-8 font-sans text-gray-900 relative overflow-hidden backdrop-saturate-150">
       <div className="max-w-[1400px] mx-auto">
         
         {/* Header */}
@@ -350,7 +350,7 @@ export default function SecretaireAbsences() {
           <div className="w-full md:w-auto">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
-                <Calendar className="w-8 h-8 text-blue-600" />
+                <Calendar className="w-8 h-8 text-brand-teal" />
                 Registre des Absences
               </h1>
             </div>
@@ -364,7 +364,7 @@ export default function SecretaireAbsences() {
               placeholder="Rechercher un étudiant..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              className="w-full pl-10 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal/20 focus:border-brand-teal"
             />
           </div>
         </div>
@@ -382,7 +382,7 @@ export default function SecretaireAbsences() {
                 <button
                   type="button"
                   onClick={() => setSelectedDate((prev) => shiftISODate(prev, -1))}
-                  className="px-3 py-2.5 rounded-xl text-xs font-semibold border bg-white text-gray-600 border-gray-200 hover:bg-gray-50 transition-colors"
+                  className="px-3 py-2.5 rounded-xl text-xs font-semibold border bg-white text-gray-600 border-gray-200 hover:bg-gray-50 transition-colors backdrop-blur-xl border border-white/80 !shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(41,107,116,0.06)] transition-all duration-300"
                   aria-label="Jour précédent"
                 >
                   <ChevronLeft className="w-4 h-4" />
@@ -391,12 +391,12 @@ export default function SecretaireAbsences() {
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-full sm:w-44 px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-gray-700"
+                  className="w-full sm:w-44 px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal/20 focus:border-brand-teal font-medium text-gray-700"
                 />
                 <button
                   type="button"
                   onClick={() => setSelectedDate((prev) => shiftISODate(prev, 1))}
-                  className="px-3 py-2.5 rounded-xl text-xs font-semibold border bg-white text-gray-600 border-gray-200 hover:bg-gray-50 transition-colors"
+                  className="px-3 py-2.5 rounded-xl text-xs font-semibold border bg-white text-gray-600 border-gray-200 hover:bg-gray-50 transition-colors backdrop-blur-xl border border-white/80 !shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(41,107,116,0.06)] transition-all duration-300"
                   aria-label="Jour suivant"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -409,7 +409,7 @@ export default function SecretaireAbsences() {
                 <select
                   value={filterClasse}
                   onChange={(e) => setFilterClasse(e.target.value)}
-                  className="w-full sm:w-44 pl-10 pr-8 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none font-medium text-gray-700"
+                  className="w-full sm:w-44 pl-10 pr-8 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal/20 focus:border-brand-teal appearance-none font-medium text-gray-700"
                 >
                   <option value="all">Toutes classes</option>
                   {uniqueClasses.map(c => <option key={c} value={c}>{c}</option>)}
@@ -418,7 +418,7 @@ export default function SecretaireAbsences() {
               <select
                 value={filterStatut}
                 onChange={(e) => setFilterStatut(e.target.value)}
-                className="w-full sm:w-36 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-gray-700"
+                className="w-full sm:w-36 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal/20 focus:border-brand-teal font-medium text-gray-700"
               >
                 <option value="all">Statut: Tous</option>
                 <option value="non-justifiee">Non-justifiés</option>
@@ -436,7 +436,7 @@ export default function SecretaireAbsences() {
             </div>
 
             {/* Table Card */}
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden pb-4">
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden pb-4 backdrop-blur-xl border border-white/80 !shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(41,107,116,0.06)] transition-all duration-300">
               <div className="px-6 py-5 border-b border-gray-50 flex justify-between items-center bg-transparent">
                 <h2 className="text-lg font-bold text-gray-900">Liste des Absences Récentes</h2>
                 <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -462,7 +462,7 @@ export default function SecretaireAbsences() {
                       <tr key={a.id_absence} className="hover:bg-blue-50/50 transition-colors group">
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
+                            <div className="w-10 h-10 rounded-full bg-blue-50 text-brand-teal flex items-center justify-center font-bold text-sm">
                               {a.etu_nom?.substring(0,2).toUpperCase()}
                             </div>
                             <div>
@@ -509,7 +509,7 @@ export default function SecretaireAbsences() {
                                  });
                                  window.scrollTo({ top: 0, behavior: 'smooth' });
                                }}
-                               className="p-1.5 text-blue-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors"
+                               className="p-1.5 text-brand-teal hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors"
                              >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                              </button>
@@ -545,7 +545,7 @@ export default function SecretaireAbsences() {
           <div className="lg:col-span-4 flex flex-col gap-6">
             
             {/* Quick Action Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden backdrop-blur-xl border border-white/80 !shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(41,107,116,0.06)] transition-all duration-300">
               <div className="bg-[#0b4d96] text-white p-5">
                 <h3 className="font-bold text-base">Justifier</h3>
                 <p className="text-blue-100 text-xs mt-1">Justifier une absence</p>
@@ -569,11 +569,11 @@ export default function SecretaireAbsences() {
                         }}
                         required
                         disabled={!!editingId}
-                        className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50"
+                        className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-teal/20 disabled:opacity-50"
                       />
 
                       {!editingId && showStudentOptions && (
-                        <div className="absolute z-20 mt-2 w-full max-h-56 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg">
+                        <div className="absolute z-20 mt-2 w-full max-h-56 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg backdrop-blur-xl border border-white/80 !shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(41,107,116,0.06)] transition-all duration-300">
                           {studentSuggestions.length > 0 ? (
                             studentSuggestions.map((s) => (
                               <button
@@ -609,7 +609,7 @@ export default function SecretaireAbsences() {
                       value={form.date_abs}
                       onChange={(e) => setForm({ ...form, date_abs: e.target.value })}
                       required
-                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-teal/20"
                     />
                   </div>
 
@@ -642,10 +642,10 @@ export default function SecretaireAbsences() {
                         className="hidden"
                         onChange={handleJustificationChange}
                       />
-                      <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                      <div className="w-10 h-10 bg-blue-50 text-brand-teal rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                         <UploadCloud className="w-5 h-5" />
                       </div>
-                      <span className="text-xs font-semibold text-blue-600">Importer la pièce justificative</span>
+                      <span className="text-xs font-semibold text-brand-teal">Importer la pièce justificative</span>
                       <span className="text-[10px] text-gray-400 mt-1">PDF, PNG, JPG (Max 5MB)</span>
                       {justificationFile && (
                         <span className="text-[11px] text-emerald-700 mt-2 font-semibold">{justificationFile.name}</span>
@@ -657,9 +657,9 @@ export default function SecretaireAbsences() {
                   <div className="flex gap-2">
                     <button
                       type="submit"
-                      className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-sm transition-colors"
+                      className="flex-1 py-3 bg-brand-teal hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-sm transition-colors"
                     >
-                      {editingId ? 'Mettre à jour' : 'Valider la Justification'}
+                      {editingId ? 'Mettre Ã  jour' : 'Valider la Justification'}
                     </button>
                     {editingId && (
                       <button
@@ -703,7 +703,7 @@ export default function SecretaireAbsences() {
             </div>
 
             <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-3">
-              <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-4">
+              <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-4 backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300">
                 <p className="text-[11px] font-bold uppercase tracking-widest text-blue-500">Nombre d'absences</p>
                 <p className="mt-2 text-3xl font-black text-blue-700">{absenceInsightStudent.totalAbsences}</p>
               </div>
@@ -717,7 +717,7 @@ export default function SecretaireAbsences() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-4">
+              <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-4 backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300">
                 <p className="text-[11px] font-bold uppercase tracking-widest text-amber-600">Note d'absence</p>
                 <p className="mt-2 text-3xl font-black text-amber-700">{absenceInsightStudent.absenceNote.toFixed(2)}</p>
               </div>
@@ -732,3 +732,10 @@ export default function SecretaireAbsences() {
     </div>
   );
 }
+
+
+
+
+
+
+

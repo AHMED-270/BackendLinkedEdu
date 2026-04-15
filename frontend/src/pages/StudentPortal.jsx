@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, GraduationCap, FileText, Calendar, FolderOpen, Bell, Download, Eye, X, Clock, BookOpen, AlertCircle, User, LogOut } from 'lucide-react';
+import { LayoutDashboard, GraduationCap, FileText, Calendar, FolderOpen, Bell, Download, Eye, X, Clock, BookOpen, AlertCircle, User, LogOut, ChevronRight } from 'lucide-react';
+import Header from '../components/Header';
+import logo from '../assets/images/linkedu-logo.png';
 import Parametres from './Parametres';
 import './RolePortal.css';
 import '../components/DirectoryTimetable.css';
@@ -613,79 +615,95 @@ export default function StudentPortal() {
   ] || '';
 
   return (
-    <div className="portal-shell">
+    <div className="premium-bg flex h-screen w-screen overflow-hidden fixed inset-0 font-sans text-slate-800">
+      {/* Animated gradient orbs */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute -right-28 -top-28 h-[42rem] w-[42rem] rounded-full bg-gradient-to-br from-brand-teal/20 to-blue-400/10 blur-[120px] opacity-70" style={{ animation: 'pulse 25s infinite alternate' }} />
+        <div className="absolute -bottom-36 -left-32 h-[46rem] w-[46rem] rounded-full bg-gradient-to-br from-brand-navy/15 to-brand-teal/10 blur-[140px] opacity-70" style={{ animation: 'pulse 30s infinite alternate-reverse' }} />
+      </div>
+
       {showLogoutAlert && (
-        <div className="header-logout-modal-backdrop">
-          <div className="header-logout-modal-card" role="dialog" aria-modal="true" aria-label="Confirmation deconnexion">
-            <h3>Deconnexion</h3>
-            <p>Voulez-vous vraiment vous deconnecter ?</p>
-            <div className="header-logout-modal-actions">
-              <button
-                type="button"
-                className="header-logout-cancel"
-                onClick={() => setShowLogoutAlert(false)}
-                disabled={isLoggingOut}
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                className="header-logout-confirm"
-                onClick={handleLogoutConfirm}
-                disabled={isLoggingOut}
-              >
-                {isLoggingOut ? 'Deconnexion...' : 'Oui'}
-              </button>
+        <div className="premium-modal-overlay">
+          <div className="premium-modal-backdrop" onClick={() => setShowLogoutAlert(false)} />
+          <div className="premium-modal-card" role="dialog" aria-modal="true">
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-500 shadow-inner">
+              <LogOut size={28} />
+            </div>
+            <h3 className="mb-2 text-xl font-black text-brand-navy tracking-tight">Déconnexion</h3>
+            <p className="mb-8 text-sm font-medium text-slate-500">Voulez-vous vraiment quitter <span className="text-brand-navy font-bold">LinkEdu</span> ?</p>
+            <div className="flex gap-3">
+              <button className="flex-1 rounded-2xl bg-slate-100 py-3 text-sm font-bold text-slate-600 transition-all hover:bg-slate-200 active:scale-95" onClick={() => setShowLogoutAlert(false)} disabled={isLoggingOut}>Annuler</button>
+              <button className="flex-1 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 py-3 text-sm font-bold text-white shadow-lg shadow-red-200 transition-all hover:brightness-110 active:scale-95 disabled:opacity-50" onClick={handleLogoutConfirm} disabled={isLoggingOut}>{isLoggingOut ? '...' : 'Oui, sortir'}</button>
             </div>
           </div>
         </div>
       )}
 
-      <header className="portal-header">
-        <div>
-          <p className="portal-kicker">LinkEdu - Espace Etudiant</p>
-          <h1>Bienvenue {studentName}</h1>
-        </div>
-        <div className="flex items-center gap-4">
-          {dashboard?.academic_year && (
-            <div className="bg-blue-600 text-white px-3 py-1.5 rounded-lg shadow-sm flex flex-col items-center mr-4 hidden md:flex">
-              <span className="text-[9px] uppercase font-bold opacity-80 leading-none mb-0.5">Scolaire</span>
-              <span className="text-sm font-black leading-none">{dashboard.academic_year}</span>
+      <aside className="premium-sidebar w-[280px] flex-shrink-0 flex flex-col z-50 relative overflow-hidden">
+          <div className="flex items-center justify-center py-8 mb-2 relative z-10">
+            <div className="relative group cursor-pointer">
+              <div className="absolute inset-0 bg-brand-teal/20 blur-2xl rounded-full group-hover:bg-brand-teal/40 transition-all duration-700" />
+              <img src={logo} alt="LinkEdu" className="h-10 w-auto relative z-10 drop-shadow-xl transition-transform duration-500 group-hover:scale-110" />
             </div>
-          )}
-          <button className="portal-logout" onClick={() => setShowLogoutAlert(true)}>Se deconnecter</button>
-        </div>
-      </header>
-
-      <div className="portal-body">
-        <aside className="portal-sidebar">
-          <div className="portal-sidebar-brand">
-            <h2>LinkEdu Etudiant</h2>
           </div>
 
-          <div className="portal-profile-card">
-            <strong>{studentName}</strong>
-            <p>Espace etudiant</p>
+          <div className="px-5 mb-6 relative z-10">
+            <div className="rounded-2xl border border-white/60 bg-white/40 p-4 backdrop-blur-md shadow-glass-sm">
+              <h3 className="text-xs font-black uppercase tracking-widest text-brand-navy/70 mb-1">Espace Etudiant</h3>
+              <p className="text-sm font-bold text-brand-navy truncate">{studentName}</p>
+            </div>
           </div>
 
-          <nav className="portal-sidebar-nav">
+          <div className="px-6 mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 relative z-10">Menu</div>
+
+          <nav className="flex-1 space-y-1 px-3 overflow-y-auto custom-scrollbar relative z-10">
             {tabs.map((tab) => {
               const Icon = tab.icon;
+              const isActive = activeTab === tab.key;
               return (
                 <button
                   key={tab.key}
-                  className={activeTab === tab.key ? 'portal-side-link active' : 'portal-side-link'}
+                  className={`group relative flex w-full items-center gap-3.5 rounded-2xl px-4 py-3 text-sm font-bold transition-all duration-300 ${
+                    isActive
+                      ? 'bg-brand-navy text-white shadow-premium'
+                      : 'text-slate-500 hover:bg-white/50 hover:text-brand-navy'
+                  }`}
                   onClick={() => setActiveTab(tab.key)}
                 >
-                  <Icon size={16} />
-                  <span>{tab.label}</span>
+                  <Icon size={18} className={`${isActive ? 'text-brand-teal' : 'text-slate-400 group-hover:text-brand-teal'} transition-colors duration-300`} />
+                  <span className="flex-1 text-left tracking-tight">{tab.label}</span>
+                  {isActive ? (
+                    <div className="h-1.5 w-1.5 rounded-full bg-brand-teal shadow-glow" />
+                  ) : (
+                    <ChevronRight size={14} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-slate-300" />
+                  )}
                 </button>
               );
             })}
           </nav>
+
+          <div className="p-4 mt-auto relative z-10">
+            <button
+              type="button"
+              className="flex w-full items-center justify-center gap-3 rounded-[1.4rem] bg-red-50/50 px-4 py-4 text-sm font-bold text-red-500 border border-red-100/50 transition-all hover:bg-red-50 hover:shadow-md active:scale-95 group"
+              onClick={() => setShowLogoutAlert(true)}
+            >
+              <LogOut size={18} className="group-hover:rotate-12 transition-transform" />
+              Quitter LinkEdu
+            </button>
+          </div>
         </aside>
 
-        <main className="portal-content">
+        <main className="flex-1 flex flex-col overflow-hidden relative z-10">
+          <header className="h-[72px] flex-shrink-0 z-40">
+            <Header variant="shell" profileRouteOverride="/student" />
+          </header>
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <div className="p-6 lg:p-8 max-w-[1600px] mx-auto w-full">
+          <div className="mb-6 flex flex-col gap-1">
+            <span className="text-brand-teal font-semibold text-xs uppercase tracking-[0.2em]">Etudiant</span>
+          </div>
+
           {loading && <p className="portal-state">Chargement...</p>}
           {error && <p className="portal-state portal-error"><AlertCircle size={16} style={{ display: 'inline', marginRight: '0.5rem' }} /> {error}</p>}
 
@@ -740,7 +758,7 @@ export default function StudentPortal() {
             {/* Left Column: Schedule & Announcements */}
             <div className="dashboard-col-main">
               <motion.section variants={cardVariants} className="dashboard-section-card">
-                <div className="section-card-header">
+                <div className="section-card-header premium-section-header">
                   <h3><Calendar size={18} /> Emploi du temps d'aujourd'hui</h3>
                   <span className="current-date-tag">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
                 </div>
@@ -775,7 +793,7 @@ export default function StudentPortal() {
 
               {dashboard.annonces?.length > 0 && (
                 <motion.section variants={cardVariants} className="dashboard-section-card mt-6">
-                  <div className="section-card-header">
+                  <div className="section-card-header premium-section-header">
                     <h3><Bell size={18} /> Annonces récentes</h3>
                     <button onClick={() => setActiveTab('annonces')} className="view-all-btn">Voir tout</button>
                   </div>
@@ -798,7 +816,7 @@ export default function StudentPortal() {
             {/* Right Column: Quick Links / Grades / Assignments */}
             <div className="dashboard-col-side">
               <motion.section variants={cardVariants} className="dashboard-section-card">
-                <div className="section-card-header">
+                <div className="section-card-header premium-section-header">
                   <h3><GraduationCap size={18} /> Notes Récentes</h3>
                 </div>
                 <div className="mini-grades-feed">
@@ -921,7 +939,7 @@ export default function StudentPortal() {
               className={showDevoirHistory ? 'portal-history-btn is-active' : 'portal-history-btn'}
               onClick={() => setShowDevoirHistory((current) => !current)}
             >
-              {showDevoirHistory ? 'Retour aux devoirs' : 'Voir l historique'}
+              {showDevoirHistory ? 'Retour aux devoirs' : 'Voir l\'historique'}
             </button>
           </div>
 
@@ -964,7 +982,7 @@ export default function StudentPortal() {
           {devoirsDisplayed.length === 0 && (
             <p className="portal-state">
               {showDevoirHistory
-                ? 'Aucun devoir dans l historique pour ce filtre.'
+                ? 'Aucun devoir dans l\'historique pour ce filtre.'
                 : 'Aucun devoir actif pour ce filtre.'}
             </p>
           )}
@@ -1189,8 +1207,11 @@ export default function StudentPortal() {
               </motion.div>
             )}
           </AnimatePresence>
+              </div>
+            </div>
         </main>
-      </div>
     </div>
   );
 }
+
+

@@ -69,7 +69,7 @@ export default function Reclamation() {
   const getStatusBadge = (status) => {
     const s = String(status).toLowerCase();
     if (s.includes('résolu') || s.includes('traité')) return 'bg-emerald-50 text-emerald-600 border-emerald-100';
-    if (s.includes('en cours')) return 'bg-blue-50 text-blue-600 border-blue-100';
+    if (s.includes('en cours')) return 'bg-blue-50 text-brand-teal border-blue-100';
     return 'bg-orange-50 text-orange-600 border-orange-100'; // En attente
   };
 
@@ -106,7 +106,7 @@ export default function Reclamation() {
   }, [myReclamations, searchTerm]);
 
   return (
-    <div className="layout-content relative">
+    <div className="relative">
       
       {/* Floating Success/Error Toast */}
       <AnimatePresence>
@@ -155,7 +155,7 @@ export default function Reclamation() {
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="text"
-                    className="form-input w-full"
+                    className="form-input w-full backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300"
                     style={{ paddingLeft: '2.5rem' }}
                     placeholder="Rechercher une réclamation..."
                     value={searchTerm}
@@ -168,7 +168,7 @@ export default function Reclamation() {
             <div className="p-6 flex-1 overflow-y-auto bg-slate-50/50">
               {loading ? (
                 <div className="flex justify-center items-center py-12">
-                  <span className="loading-spinner border-blue-500"></span>
+                  <span className="loading-spinner border-brand-teal"></span>
                 </div>
               ) : filteredReclamations.length === 0 ? (
                 <div className="text-center py-12 text-slate-400">
@@ -229,7 +229,7 @@ export default function Reclamation() {
         {/* === RIGHT COLUMN: SIMPLE FORM === */}
         <motion.div variants={itemVariants} className="xl:col-span-4 flex flex-col gap-6">
           <div className="card p-0 overflow-hidden">
-            <div className="bg-blue-600 text-white p-6">
+            <div className="bg-brand-teal text-white p-6">
               <h3 className="text-lg font-bold">Nouvelle Réclamation</h3>
               <p className="text-blue-100 text-sm mt-1">Envoyez votre réclamation à la bonne personne.</p>
             </div>
@@ -239,7 +239,7 @@ export default function Reclamation() {
                 <label className="text-sm font-semibold text-slate-700">Titre</label>
                 <input
                   type="text"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-brand-teal focus:ring-4 focus:ring-brand-teal/10 outline-none transition-all"
                   placeholder="Sujet de votre réclamation"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -250,7 +250,7 @@ export default function Reclamation() {
               <div className="form-group flex flex-col gap-1">
                 <label className="text-sm font-semibold text-slate-700">Description</label>
                 <textarea
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all resize-none"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-brand-teal focus:ring-4 focus:ring-brand-teal/10 outline-none transition-all resize-none"
                   placeholder="Saisissez votre réclamation ici..."
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
@@ -262,7 +262,7 @@ export default function Reclamation() {
               <div className="form-group flex flex-col gap-1">
                 <label className="text-sm font-semibold text-slate-700">Public cible</label>
                 <select 
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all appearance-none cursor-pointer"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-brand-teal focus:ring-4 focus:ring-brand-teal/10 outline-none transition-all appearance-none cursor-pointer"
                   value={cible} 
                   onChange={(e) => setCible(e.target.value)} 
                   required
@@ -278,7 +278,7 @@ export default function Reclamation() {
                 whileTap={{ scale: 0.98 }}
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full flex items-center justify-center py-3.5 px-4 mt-2 bg-blue-600 text-white rounded-xl font-semibold shadow-md shadow-blue-500/30 hover:bg-blue-700 transition-colors"
+                className="w-full flex items-center justify-center py-3.5 px-4 mt-2 bg-brand-teal text-white rounded-xl font-semibold shadow-md shadow-blue-500/30 hover:bg-blue-700 transition-colors"
                 style={{ border: 'none' }}
               >
                 {isSubmitting ? (
@@ -295,4 +295,8 @@ export default function Reclamation() {
     </div>
   );
 }
+
+
+
+
 

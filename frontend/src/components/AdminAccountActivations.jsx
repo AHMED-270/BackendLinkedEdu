@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { motion } from 'framer-motion';
 import {
   FiSearch as Search,
   FiUserCheck as UserCheck,
   FiUserX as UserX,
   FiUsers as Users,
   FiRefreshCw as RefreshCw,
+  FiShield as Shield,
 } from 'react-icons/fi';
-import { BiSolidUserDetail } from 'react-icons/bi';
 import TableSkeletonRows from './TableSkeletonRows';
 
 export default function AdminAccountActivations() {
@@ -144,166 +145,157 @@ export default function AdminAccountActivations() {
   }, [students, searchTerm, classFilter, statusFilter]);
 
   return (
-    <div className="min-h-screen p-4 lg:p-8 bg-[#f5f7fb]">
-      <div className="max-w-[1400px] mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
-          <div>
-            <h1 className="mt-1 flex items-center gap-2 text-4xl lg:text-5xl font-extrabold italic tracking-tight text-slate-900">
-              <BiSolidUserDetail className="text-blue-600" />
-              Activation des Comptes
-            </h1>
-            <p className="text-slate-500 mt-2 text-sm">Validation admin des comptes eleves avec envoi des identifiants aux eleves et parents.</p>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-brand-navy to-brand-teal bg-clip-text text-transparent tracking-tight flex items-center gap-3">
+            <Shield className="text-brand-teal" size={28} />
+            Activation des Comptes
+          </h1>
+          <p className="text-slate-500 mt-2 text-sm font-medium">Validation admin des comptes élèves avec envoi des identifiants.</p>
+        </div>
+        <button
+          type="button"
+          onClick={fetchData}
+          className="premium-btn-secondary"
+        >
+          <RefreshCw size={16} className="text-brand-teal" />
+          Actualiser
+        </button>
+      </div>
+
+      {/* Main Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="premium-stat !p-0 overflow-hidden"
+      >
+        {loadError && (
+          <div className="mx-6 mt-5 rounded-2xl border border-red-100/50 bg-red-50/60 backdrop-blur-sm px-5 py-4 text-sm font-semibold text-red-600">
+            {loadError}
+          </div>
+        )}
+
+        {/* Filters */}
+        <div className="px-6 py-5 border-b border-white/40 flex flex-col xl:flex-row xl:items-center gap-4 bg-white/30 backdrop-blur-sm">
+          <div className="relative w-full xl:w-96">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-slate-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Rechercher (élève, parent...)"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="premium-input !pl-11"
+            />
           </div>
 
-          <button
-            type="button"
-            onClick={fetchData}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          <select
+            value={classFilter}
+            onChange={(e) => setClassFilter(e.target.value)}
+            className="premium-select w-full xl:w-64"
           >
-            <RefreshCw className="w-4 h-4 text-blue-600" />
-            Actualiser
-          </button>
+            <option value="all">Filtre par classe (Tous)</option>
+            {classes.map((c) => (
+              <option key={c.id_classe} value={String(c.id_classe)}>
+                {c.nom}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="premium-select w-full xl:w-64"
+          >
+            <option value="all">Statut: Tous</option>
+            <option value="pending_activation">Non activés</option>
+            <option value="active">Activés</option>
+          </select>
         </div>
 
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-          {loadError && (
-            <div className="mx-6 mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
-              {loadError}
-            </div>
-          )}
-          <div className="px-6 py-5 border-b border-gray-100 flex flex-col xl:flex-row xl:items-center gap-4 bg-gray-50/60">
-            <div className="relative w-full xl:w-96">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="Rechercher (eleve, parent...)"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm font-medium"
-              />
-            </div>
-
-            <div className="relative w-full xl:w-64">
-              <select
-                value={classFilter}
-                onChange={(e) => setClassFilter(e.target.value)}
-                className="block w-full pl-3 pr-10 py-2.5 border border-gray-200 rounded-xl leading-5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm font-medium appearance-none cursor-pointer"
-              >
-                <option value="all">Filtre par classe (Tous)</option>
-                {classes.map((c) => (
-                  <option key={c.id_classe} value={String(c.id_classe)}>
-                    {c.nom}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-400">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-
-            <div className="relative w-full xl:w-64">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="block w-full pl-3 pr-10 py-2.5 border border-gray-200 rounded-xl leading-5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm font-medium appearance-none cursor-pointer"
-              >
-                <option value="all">Statut: Tous</option>
-                <option value="pending_activation">Non actives</option>
-                <option value="active">Actives</option>
-              </select>
-              <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-400">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="table w-full text-left border-collapse min-w-[980px]">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Eleve</th>
-                  <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Classe</th>
-                  <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Email Eleve</th>
-                  <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Email Parent</th>
-                  <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Statut</th>
-                  <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Action</th>
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[980px]">
+            <thead>
+              <tr className="bg-white/40 border-b border-slate-100/50">
+                <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Élève</th>
+                <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Classe</th>
+                <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email Élève</th>
+                <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email Parent</th>
+                <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Statut</th>
+                <th className="py-4 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50/80">
+              {loading ? (
+                <TableSkeletonRows rowCount={6} colCount={6} />
+              ) : filteredStudents.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="py-16 text-center">
+                    <div className="premium-empty">
+                      <Users size={40} />
+                      <p>Aucun compte pour ce filtre</p>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {loading ? (
-                  <TableSkeletonRows rowCount={6} colCount={6} />
-                ) : filteredStudents.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="py-14 text-center text-gray-400">
-                      <Users className="w-12 h-12 mb-3 text-gray-200 mx-auto" />
-                      <p className="text-base font-medium text-gray-500">Aucun compte pour ce filtre</p>
+              ) : (
+                filteredStudents.map((student) => (
+                  <tr key={student.id_etudiant} className="transition-colors duration-200 hover:bg-white/60">
+                    <td className="py-4 px-6">
+                      <div className="font-bold text-brand-navy text-sm">{student.nom} {student.prenom}</div>
+                      <div className="text-[11px] text-slate-400 font-medium">ID: {student.id_etudiant}</div>
+                    </td>
+                    <td className="py-4 px-6 text-sm text-slate-600 font-medium">{student.classe || '-'}</td>
+                    <td className="py-4 px-6 text-sm text-slate-500">{student.email || '-'}</td>
+                    <td className="py-4 px-6 text-sm text-slate-500">{student.parent_email || '-'}</td>
+                    <td className="py-4 px-6">
+                      {student.account_status === 'active' ? (
+                        <span className="premium-badge-green">Activé</span>
+                      ) : (
+                        <span className="premium-badge-orange">En attente</span>
+                      )}
+                    </td>
+                    <td className="py-4 px-6 text-right">
+                      <div className="inline-flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleActivate(student)}
+                          disabled={activatingId === student.id_etudiant || student.account_status === 'active'}
+                          className="premium-btn premium-btn-sm bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                        >
+                          <UserCheck size={14} />
+                          {activatingId === student.id_etudiant
+                            ? '...'
+                            : student.account_status === 'active'
+                              ? 'Activé'
+                              : 'Activer'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeactivate(student)}
+                          disabled={deactivatingId === student.id_etudiant || student.account_status !== 'active'}
+                          className="premium-btn premium-btn-sm bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                        >
+                          <UserX size={14} />
+                          {deactivatingId === student.id_etudiant
+                            ? '...'
+                            : student.account_status !== 'active'
+                              ? 'Inactif'
+                              : 'Désactiver'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
-                ) : (
-                  filteredStudents.map((student) => (
-                    <tr key={student.id_etudiant} className="hover:bg-blue-50/50 transition-colors">
-                      <td className="py-4 px-6">
-                        <div className="font-semibold text-gray-900 text-sm">{student.nom} {student.prenom}</div>
-                        <div className="text-xs text-gray-500">ID: {student.id_etudiant}</div>
-                      </td>
-                      <td className="py-4 px-6 text-sm text-gray-700">{student.classe || '-'}</td>
-                      <td className="py-4 px-6 text-sm text-gray-600">{student.email || '-'}</td>
-                      <td className="py-4 px-6 text-sm text-gray-600">{student.parent_email || '-'}</td>
-                      <td className="py-4 px-6">
-                        {student.account_status === 'active' ? (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            Active
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                            En attente activation
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-4 px-6 text-right">
-                        <div className="inline-flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleActivate(student)}
-                            disabled={activatingId === student.id_etudiant || student.account_status === 'active'}
-                            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed"
-                          >
-                            <UserCheck className="w-3.5 h-3.5" />
-                            {activatingId === student.id_etudiant
-                              ? 'Activation...'
-                              : student.account_status === 'active'
-                                ? 'Deja active'
-                                : 'Activer'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeactivate(student)}
-                            disabled={deactivatingId === student.id_etudiant || student.account_status !== 'active'}
-                            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-60 disabled:cursor-not-allowed"
-                          >
-                            <UserX className="w-3.5 h-3.5" />
-                            {deactivatingId === student.id_etudiant
-                              ? 'Desactivation...'
-                              : student.account_status !== 'active'
-                                ? 'Non active'
-                                : 'Desactiver'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

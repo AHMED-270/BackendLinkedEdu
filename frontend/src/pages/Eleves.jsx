@@ -100,7 +100,7 @@ export default function Eleves() {
   }, [classStudents, studentsSearch]);
 
   return (
-    <div className="layout-content relative !pt-2 pb-4">
+    <div className="relative pb-4">
       <div className="mx-auto w-full max-w-6xl space-y-4">
       <header className="flex flex-col gap-1 -mt-2">
         <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">
@@ -128,7 +128,7 @@ export default function Eleves() {
             className="card p-0 overflow-hidden"
           >
             <div className="p-4 md:p-5 border-b border-slate-100 bg-slate-50/70 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-blue-100 text-brand-teal flex items-center justify-center shrink-0">
                 <BookOpen size={20} />
               </div>
               <div>
@@ -140,7 +140,7 @@ export default function Eleves() {
             <div className="overflow-x-auto min-h-[150px]">
               {loading ? (
                 <div className="flex flex-col justify-center items-center py-10">
-                  <span className="loading-spinner border-blue-500 mb-3"></span>
+                  <span className="loading-spinner border-brand-teal mb-3"></span>
                   <p className="text-slate-500 font-medium">Chargement des classes...</p>
                 </div>
               ) : error ? (
@@ -240,7 +240,7 @@ export default function Eleves() {
                 </div>
                 <input
                   type="text"
-                  className="form-input w-full pl-10"
+                  className="form-input w-full pl-10 backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300"
                   style={{ paddingLeft: '2.5rem' }}
                   placeholder="Rechercher un eleve..."
                   value={studentsSearch}
@@ -253,7 +253,7 @@ export default function Eleves() {
           <div className="overflow-x-auto min-h-[150px]">
             {studentsLoading ? (
               <div className="flex flex-col justify-center items-center py-10">
-                <span className="loading-spinner border-blue-500 mb-3"></span>
+                <span className="loading-spinner border-brand-teal mb-3"></span>
                 <p className="text-slate-500 font-medium">Chargement des eleves...</p>
               </div>
             ) : studentsError ? (
@@ -310,4 +310,7 @@ export default function Eleves() {
     </div>
   );
 }
+
+
+
 

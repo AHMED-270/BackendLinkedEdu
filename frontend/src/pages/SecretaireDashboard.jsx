@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -390,7 +390,7 @@ export default function SecretaireDashboard() {
         </div>
         <div className="flex items-center gap-3">
           {stats?.academic_year && (
-            <div className="bg-blue-600 text-white px-3 py-1.5 rounded-lg shadow-sm flex flex-col items-center mr-2">
+            <div className="bg-brand-teal text-white px-3 py-1.5 rounded-lg shadow-sm flex flex-col items-center mr-2">
                 <span className="text-[9px] uppercase font-bold opacity-80 leading-none mb-0.5">Scolaire</span>
                 <span className="text-sm font-black leading-none">{stats.academic_year}</span>
             </div>
@@ -685,3 +685,6 @@ export default function SecretaireDashboard() {
     </div>
   );
 }
+
+
+

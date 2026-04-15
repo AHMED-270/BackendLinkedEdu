@@ -1,7 +1,6 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
 import { FiFileText as FileText, FiDownload as Download, FiCheckCircle as CheckCircle } from 'react-icons/fi';
-import { BiSolidUserDetail } from 'react-icons/bi';
 
 export default function AdminReports() {
   const [reportType, setReportType] = useState('attendance');
@@ -38,28 +37,27 @@ export default function AdminReports() {
   };
 
   return (
-    <div className="dashboard-content">
-      <header className="content-header">
-        <h1 className="mt-1 flex items-center gap-2 text-4xl lg:text-5xl font-extrabold italic tracking-tight text-slate-900">
-          <BiSolidUserDetail className="text-blue-600" />
+    <div className="space-y-8">
+      <header>
+        <h1 className="text-3xl font-extrabold bg-gradient-to-r from-brand-navy to-brand-teal bg-clip-text text-transparent tracking-tight flex items-center gap-3">
+          <FileText className="text-brand-teal" size={28} />
           Générateur de Rapports
         </h1>
-        <p>Générez et exportez les rapports statistiques de l'établissement.</p>
+        <p className="text-sm text-slate-500 mt-2 font-medium">Générez et exportez les rapports statistiques de l'établissement.</p>
       </header>
 
-      <div className="card-panel" style={{ maxWidth: '600px' }}>
-        <div className="stat-icon-wrapper bg-emerald-light" style={{ marginBottom: '20px', width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px' }}>
-          <FileText size={24} className="text-emerald" style={{ color: '#10b981' }} />
+      <div className="premium-stat max-w-2xl">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400/20 to-emerald-600/20 flex items-center justify-center mb-6">
+          <FileText size={24} className="text-emerald-500" />
         </div>
         
-        <h2 style={{ fontSize: '1.2rem', marginBottom: '8px' }}>Nouveau Rapport</h2>
-        <p style={{ color: '#64748b', marginBottom: '24px' }}>Sélectionnez les paramètres du rapport que vous souhaitez compiler.</p>
+        <h2 className="text-lg font-black text-brand-navy mb-1">Nouveau Rapport</h2>
+        <p className="text-sm text-slate-500 mb-6 font-medium">Sélectionnez les paramètres du rapport que vous souhaitez compiler.</p>
 
-        <form onSubmit={handleGenerate} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <label style={{ fontWeight: '500', color: '#475569' }}>Type de rapport</label>
-            <select value={reportType} onChange={e => setReportType(e.target.value)} style={{ padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}>
+        <form onSubmit={handleGenerate} className="flex flex-col gap-5">
+          <div>
+            <label className="block mb-2 text-sm font-bold text-brand-navy">Type de rapport</label>
+            <select value={reportType} onChange={e => setReportType(e.target.value)} className="premium-select w-full">
               <option value="attendance">Assiduité (Absences)</option>
               <option value="performance">Performances académiques (Notes)</option>
               <option value="financial">Rapport financier</option>
@@ -67,10 +65,10 @@ export default function AdminReports() {
             </select>
           </div>
 
-          <div style={{ display: 'flex', gap: '16px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: '1' }}>
-              <label style={{ fontWeight: '500', color: '#475569' }}>Mois</label>
-              <select value={month} onChange={e => setMonth(e.target.value)} style={{ padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block mb-2 text-sm font-bold text-brand-navy">Mois</label>
+              <select value={month} onChange={e => setMonth(e.target.value)} className="premium-select w-full">
                 <option value="1">Janvier</option>
                 <option value="2">Février</option>
                 <option value="3">Mars</option>
@@ -86,28 +84,28 @@ export default function AdminReports() {
               </select>
             </div>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: '1' }}>
-              <label style={{ fontWeight: '500', color: '#475569' }}>Année</label>
-              <input type="number" value={year} onChange={e => setYear(e.target.value)} min="2020" max="2100" style={{ padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
+            <div>
+              <label className="block mb-2 text-sm font-bold text-brand-navy">Année</label>
+              <input type="number" value={year} onChange={e => setYear(e.target.value)} min="2020" max="2100" className="premium-input" />
             </div>
           </div>
 
           <button 
             type="submit" 
             disabled={isGenerating}
-            style={{ 
-              marginTop: '12px', background: '#0f172a', color: 'white', padding: '14px', borderRadius: '8px', 
-              border: 'none', fontWeight: '600', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-              cursor: isGenerating ? 'not-allowed' : 'pointer', opacity: isGenerating ? 0.7 : 1
-            }}
+            className="premium-btn-primary w-full justify-center py-3.5 mt-2 disabled:opacity-60"
           >
             {isGenerating ? 'Compilation en cours...' : <><Download size={18} /> Générer le document PDF</>}
           </button>
         </form>
 
         {successMsg && (
-          <div style={{ marginTop: '24px', padding: '16px', background: successMsg.includes('Erreur') ? '#fef2f2' : '#ecfdf5', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px', color: successMsg.includes('Erreur') ? '#ef4444' : '#059669', fontWeight: '500' }}>
-             {!successMsg.includes('Erreur') && <CheckCircle size={24} />}
+          <div className={`mt-6 p-4 rounded-2xl flex items-center gap-3 text-sm font-bold ${
+            successMsg.includes('Erreur') 
+              ? 'bg-red-50 border border-red-200 text-red-700' 
+              : 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+          }`}>
+             {!successMsg.includes('Erreur') && <CheckCircle size={20} />}
              {successMsg}
           </div>
         )}

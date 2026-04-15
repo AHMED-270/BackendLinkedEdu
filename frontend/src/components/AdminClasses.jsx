@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FiSearch as Search, FiPlus as Plus, FiEdit2 as Edit, FiTrash2 as Trash2, FiEye as Eye } from 'react-icons/fi';
 import { BiSolidUserDetail } from 'react-icons/bi';
@@ -89,37 +89,34 @@ export default function AdminClasses({ onCreateClass, onEditClass, userRole = 'a
   });
 
   return (
-    <div className="dashboard-content bg-gray-50/50 min-h-screen">
-      <header className="content-header flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+    <div className="space-y-8">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-         
-          <h1 className="mt-1 flex items-center gap-3 text-4xl lg:text-5xl font-extrabold italic tracking-tight text-slate-900">
-            <BiSolidUserDetail className="text-blue-600" />
+          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-brand-navy to-brand-teal bg-clip-text text-transparent tracking-tight flex items-center gap-3">
+            <BiSolidUserDetail className="text-brand-teal" size={28} />
             Gestion des Classes
           </h1>
         </div>
         {userRole === 'admin' && (
           <button 
             onClick={handleCreateClass}
-            className="flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-slate-200 active:scale-95"
+            className="premium-btn-primary"
           >
-            <Plus size={20} strokeWidth={3} /> Créer une Classe
+            <Plus size={18} /> Créer une Classe
           </button>
         )}
       </header>
 
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white">
-            
-            
+      <div className="premium-stat !p-0 overflow-hidden">
+          <div className="p-6 border-b border-white/40 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/30 backdrop-blur-sm">
             <div className="relative group w-full md:w-80">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-teal transition-colors" size={18} />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Rechercher une classe..."
-                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+                className="premium-input !pl-11"
               />
             </div>
           </div>
@@ -133,7 +130,7 @@ export default function AdminClasses({ onCreateClass, onEditClass, userRole = 'a
           <div className="overflow-x-auto">
             <table className="table w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50/50">
+                <tr className="bg-white/10">
                   <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Détails Classe</th>
                   <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Niveau Scolaire</th>
                   <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-center">Professeurs</th>
@@ -150,7 +147,7 @@ export default function AdminClasses({ onCreateClass, onEditClass, userRole = 'a
                   </tr>
                 ) : (
                   filteredClasses.map(cls => (
-                    <tr key={cls.id_classe} className="hover:bg-slate-50/80 transition-colors group">
+                    <tr key={cls.id_classe} className="hover:bg-white/20 transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 font-black text-sm group-hover:scale-110 transition-transform">
@@ -163,7 +160,7 @@ export default function AdminClasses({ onCreateClass, onEditClass, userRole = 'a
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="px-3 py-1 bg-white border border-slate-200 text-slate-600 rounded-full text-xs font-bold shadow-sm">
+                        <span className="px-3 py-1 bg-white/30 border border-slate-200 text-slate-600 rounded-full text-xs font-bold shadow-sm">
                           {cls.niveau}
                         </span>
                       </td>
@@ -217,32 +214,19 @@ export default function AdminClasses({ onCreateClass, onEditClass, userRole = 'a
 
       {/* Delete Confirmation Modal */}
       {deleteTarget && userRole === 'admin' && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setDeleteTarget(null)}></div>
-          <div className="relative bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in zoom-in duration-200">
-            <div className="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Trash2 size={40} strokeWidth={2.5} />
+        <div className="premium-modal-overlay">
+          <div className="premium-modal-backdrop" onClick={() => setDeleteTarget(null)} />
+          <div className="premium-modal-card">
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-500 shadow-inner">
+              <Trash2 size={28} />
             </div>
-            <h3 className="text-2xl font-black text-slate-900 text-center mb-2">Confirmer la suppression</h3>
-            <p className="text-slate-500 text-center px-4 leading-relaxed">
-              Voulez-vous vraiment supprimer la classe <strong className="text-slate-900 font-extrabold">{deleteTarget.nom}</strong> ? Cette action est irréversible.
+            <h3 className="mb-2 text-xl font-black text-brand-navy tracking-tight">Confirmer la suppression</h3>
+            <p className="mb-8 text-sm font-medium text-slate-500 leading-relaxed">
+              Voulez-vous vraiment supprimer la classe <strong className="text-brand-navy">{deleteTarget.nom}</strong> ? Cette action est irréversible.
             </p>
-
-            <div className="flex gap-3 mt-8">
-              <button
-                onClick={() => setDeleteTarget(null)}
-                disabled={isDeleting}
-                className="flex-1 px-6 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-bold transition-all"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="flex-1 px-6 py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold transition-all shadow-lg shadow-red-200 active:scale-95"
-              >
-                {isDeleting ? 'Suppression...' : 'Supprimer'}
-              </button>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteTarget(null)} disabled={isDeleting} className="flex-1 rounded-2xl bg-slate-100 py-3 text-sm font-bold text-slate-600 transition-all hover:bg-slate-200 active:scale-95">Annuler</button>
+              <button onClick={handleDelete} disabled={isDeleting} className="flex-1 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 py-3 text-sm font-bold text-white shadow-lg shadow-red-200 transition-all hover:brightness-110 active:scale-95 disabled:opacity-50">{isDeleting ? 'Suppression...' : 'Supprimer'}</button>
             </div>
           </div>
         </div>
@@ -252,12 +236,12 @@ export default function AdminClasses({ onCreateClass, onEditClass, userRole = 'a
       {classDetailTarget && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setClassDetailTarget(null)}></div>
-          <div className="relative bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom-8 duration-300">
+          <div className="relative bg-white/30 rounded-[2rem] shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom-8 duration-300">
             {/* Modal Header */}
             <div className="px-8 pt-8 pb-6 border-b border-slate-100 bg-gradient-to-br from-blue-50/50 to-white">
               <div className="flex items-center justify-between mb-2">
                 <span className="px-3 py-1 bg-blue-600 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-full">Détails Classe</span>
-                <button onClick={() => setClassDetailTarget(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                <button onClick={() => setClassDetailTarget(null)} className="p-2 hover:bg-white/20 rounded-full transition-colors">
                   <Plus size={24} className="rotate-45 text-slate-400" />
                 </button>
               </div>
@@ -294,7 +278,7 @@ export default function AdminClasses({ onCreateClass, onEditClass, userRole = 'a
                   ) : (
                     <div className="space-y-2">
                       {(classDetailTarget.professeurs_details || []).map((prof) => (
-                        <div key={prof.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100 group">
+                        <div key={prof.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-white/20 transition-colors border border-transparent hover:border-slate-100 group">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs uppercase">
                               {prof.name.charAt(0)}
@@ -320,8 +304,8 @@ export default function AdminClasses({ onCreateClass, onEditClass, userRole = 'a
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       {(classDetailTarget.effectif_details || []).map((student) => (
-                        <div key={student.id} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
-                          <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center font-bold text-xs text-slate-400 uppercase">
+                        <div key={student.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/20 border border-slate-100">
+                          <div className="w-8 h-8 rounded-lg bg-white/30 shadow-sm flex items-center justify-center font-bold text-xs text-slate-400 uppercase">
                             {student.name.charAt(0)}
                           </div>
                           <div className="overflow-hidden">
@@ -337,7 +321,7 @@ export default function AdminClasses({ onCreateClass, onEditClass, userRole = 'a
             </div>
 
             {/* Modal Footer */}
-            <div className="p-6 bg-slate-50 border-t border-slate-100">
+            <div className="p-6 bg-white/20 border-t border-slate-100">
               <button
                 onClick={() => setClassDetailTarget(null)}
                 className="w-full px-6 py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black text-sm transition-all shadow-lg active:scale-[0.98]"

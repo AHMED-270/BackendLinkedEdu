@@ -165,9 +165,9 @@ export default function Parametres() {
       const backendErrors = submitError?.response?.data?.errors;
       if (backendErrors) {
         const firstError = Object.values(backendErrors)?.[0]?.[0];
-        setProfileError(firstError || 'Erreur lors de la mise à jour du profil.');
+        setProfileError(firstError || 'Erreur lors de la mise Ã  jour du profil.');
       } else {
-        setProfileError(submitError?.response?.data?.message || 'Erreur lors de la mise à jour du profil.');
+        setProfileError(submitError?.response?.data?.message || 'Erreur lors de la mise Ã  jour du profil.');
       }
     } finally {
       setSavingProfile(false);
@@ -193,7 +193,7 @@ export default function Parametres() {
       });
 
       setPasswordForm(emptyPasswordForm);
-      setPasswordMessage(res.data?.message || 'Mot de passe mis à jour avec succès.');
+      setPasswordMessage(res.data?.message || 'Mot de passe mis Ã  jour avec succès.');
     } catch (submitError) {
       const backendErrors = submitError?.response?.data?.errors;
       if (backendErrors) {
@@ -208,29 +208,32 @@ export default function Parametres() {
   };
 
   return (
-    <div className="dashboard-content">
-      <header className="content-header">
-        <h1>Mon Profil</h1>
-        <p>Gerez votre photo et votre mot de passe.</p>
+    <div className="space-y-8">
+      <header>
+        <h1 className="text-3xl font-extrabold bg-gradient-to-r from-brand-navy to-brand-teal bg-clip-text text-transparent tracking-tight flex items-center gap-3">
+          <User className="text-brand-teal" size={28} />
+          Mon Profil
+        </h1>
+        <p className="text-sm text-slate-500 mt-2 font-medium">Gérez votre photo et votre mot de passe.</p>
       </header>
 
       {loading ? (
-        <div className="card-panel" style={{ maxWidth: '1150px', margin: '0 auto', padding: '30px' }}>Chargement...</div>
+        <div className="premium-stat max-w-5xl mx-auto"><div className="flex items-center justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-teal" /></div></div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2" style={{ maxWidth: '1150px', margin: '0 auto' }}>
-          <form onSubmit={handleSubmitProfile} className="card-panel p-6 space-y-5">
-            <h2 className="text-lg font-bold text-slate-900">Informations personnelles</h2>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 max-w-5xl mx-auto">
+          <form onSubmit={handleSubmitProfile} className="premium-stat space-y-5">
+            <h2 className="text-lg font-black text-brand-navy">Informations personnelles</h2>
 
-            {profileMessage && <div className="rounded-lg bg-green-100 px-3 py-2 text-sm text-green-700">{profileMessage}</div>}
-            {profileError && <div className="rounded-lg bg-red-100 px-3 py-2 text-sm text-red-700">{profileError}</div>}
+            {profileMessage && <div className="rounded-2xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-bold text-emerald-700">{profileMessage}</div>}
+            {profileError && <div className="rounded-2xl bg-red-50 border border-red-200 px-4 py-3 text-sm font-bold text-red-700">{profileError}</div>}
 
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <label className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-600">
-                <Camera size={16} /> Photo de profil
+            <div className="rounded-2xl border border-white/60 bg-white/40 backdrop-blur-sm p-4">
+              <label className="mb-3 flex items-center gap-2 text-sm font-bold text-brand-navy">
+                <Camera size={16} className="text-brand-teal" /> Photo de profil
               </label>
 
               <div className="flex flex-wrap items-center gap-4">
-                <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-slate-200">
+                <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-brand-navy/10 to-brand-teal/10 ring-2 ring-white shadow-premium">
                   {avatarPreview ? (
                     <img src={avatarPreview} alt="Profil" className="h-full w-full object-cover" />
                   ) : (
@@ -239,7 +242,7 @@ export default function Parametres() {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  <label className="cursor-pointer rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+                  <label className="premium-btn-primary cursor-pointer text-sm">
                     Choisir une photo
                     <input
                       ref={fileInputRef}
@@ -254,7 +257,7 @@ export default function Parametres() {
                     <button
                       type="button"
                       onClick={handleRemovePhoto}
-                      className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                      className="premium-btn-secondary text-sm"
                     >
                       <Trash2 size={14} /> Supprimer
                     </button>
@@ -265,8 +268,8 @@ export default function Parametres() {
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-600">
-                  <User size={16} /> Nom
+                <label className="mb-2 flex items-center gap-2 text-sm font-bold text-brand-navy">
+                  <User size={16} className="text-brand-teal" /> Nom
                 </label>
                 <input
                   type="text"
@@ -274,13 +277,13 @@ export default function Parametres() {
                   value={profileForm.nom}
                   readOnly
                   disabled
-                  className="w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-100 px-3 py-2.5 text-sm text-slate-500"
+                  className="w-full cursor-not-allowed rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-400 font-medium"
                 />
               </div>
 
               <div>
-                <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-600">
-                  <User size={16} /> Prénom
+                <label className="mb-2 flex items-center gap-2 text-sm font-bold text-brand-navy">
+                  <User size={16} className="text-brand-teal" /> Prénom
                 </label>
                 <input
                   type="text"
@@ -288,14 +291,14 @@ export default function Parametres() {
                   value={profileForm.prenom}
                   readOnly
                   disabled
-                  className="w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-100 px-3 py-2.5 text-sm text-slate-500"
+                  className="w-full cursor-not-allowed rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-400 font-medium"
                 />
               </div>
             </div>
 
             <div>
-              <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-600">
-                <Mail size={16} /> Adresse email 
+              <label className="mb-2 flex items-center gap-2 text-sm font-bold text-brand-navy">
+                <Mail size={16} className="text-brand-teal" /> Adresse email 
               </label>
               <input
                 type="email"
@@ -303,29 +306,29 @@ export default function Parametres() {
                 value={profileForm.email}
                 readOnly
                 disabled
-                className="w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-100 px-3 py-2.5 text-sm text-slate-500"
+                className="w-full cursor-not-allowed rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-400 font-medium"
               />
             </div>
 
             <button
               type="submit"
               disabled={savingProfile}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="premium-btn-primary w-full justify-center disabled:opacity-60"
             >
               <Save size={16} />
               {savingProfile ? 'Enregistrement...' : 'Enregistrer la photo'}
             </button>
           </form>
 
-          <form onSubmit={handleSubmitPassword} className="card-panel p-6 space-y-5">
-            <h2 className="text-lg font-bold text-slate-900">Changer le mot de passe</h2>
+          <form onSubmit={handleSubmitPassword} className="premium-stat space-y-5">
+            <h2 className="text-lg font-black text-brand-navy">Changer le mot de passe</h2>
 
-            {passwordMessage && <div className="rounded-lg bg-green-100 px-3 py-2 text-sm text-green-700">{passwordMessage}</div>}
-            {passwordError && <div className="rounded-lg bg-red-100 px-3 py-2 text-sm text-red-700">{passwordError}</div>}
+            {passwordMessage && <div className="rounded-2xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-bold text-emerald-700">{passwordMessage}</div>}
+            {passwordError && <div className="rounded-2xl bg-red-50 border border-red-200 px-4 py-3 text-sm font-bold text-red-700">{passwordError}</div>}
 
             <div>
-              <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-600">
-                <Lock size={16} /> Mot de passe actuel
+              <label className="mb-2 flex items-center gap-2 text-sm font-bold text-brand-navy">
+                <Lock size={16} className="text-brand-teal" /> Mot de passe actuel
               </label>
               <input
                 type="password"
@@ -333,15 +336,15 @@ export default function Parametres() {
                 value={passwordForm.current_password}
                 onChange={handlePasswordInputChange}
                 required
-                className="form-input"
+                className="premium-input"
                 placeholder="Mot de passe actuel"
               />
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-600">
-                  <Lock size={16} /> Nouveau mot de passe
+                <label className="mb-2 flex items-center gap-2 text-sm font-bold text-brand-navy">
+                  <Lock size={16} className="text-brand-teal" /> Nouveau mot de passe
                 </label>
                 <input
                   type="password"
@@ -349,14 +352,14 @@ export default function Parametres() {
                   value={passwordForm.password}
                   onChange={handlePasswordInputChange}
                   required
-                  className="form-input"
+                  className="premium-input"
                   placeholder="Nouveau mot de passe"
                 />
               </div>
 
               <div>
-                <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-600">
-                  <Lock size={16} /> Confirmer le mot de passe
+                <label className="mb-2 flex items-center gap-2 text-sm font-bold text-brand-navy">
+                  <Lock size={16} className="text-brand-teal" /> Confirmer le mot de passe
                 </label>
                 <input
                   type="password"
@@ -364,7 +367,7 @@ export default function Parametres() {
                   value={passwordForm.password_confirmation}
                   onChange={handlePasswordInputChange}
                   required
-                  className="form-input"
+                  className="premium-input"
                   placeholder="Confirmer le mot de passe"
                 />
               </div>
@@ -373,10 +376,10 @@ export default function Parametres() {
             <button
               type="submit"
               disabled={savingPassword}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="premium-btn-primary w-full justify-center disabled:opacity-60"
             >
               <Lock size={16} />
-              {savingPassword ? 'Mise à jour...' : 'Mettre à jour le mot de passe'}
+              {savingPassword ? 'Mise Ã  jour...' : 'Mettre Ã  jour le mot de passe'}
             </button>
           </form>
         </div>
@@ -384,3 +387,6 @@ export default function Parametres() {
     </div>
   );
 }
+
+
+

@@ -1,7 +1,6 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FiUser as User, FiMail as Mail, FiLock as Lock, FiSave as Save, FiCamera as Camera, FiTrash2 as Trash2 } from 'react-icons/fi';
-import { BiSolidUserDetail } from 'react-icons/bi';
 import { useAuth } from '../context/AuthContext';
 
 const ADMIN_AVATAR_STORAGE_KEY = 'linkedu_admin_avatar';
@@ -121,50 +120,56 @@ export default function AdminProfile() {
       setMessage(res.data.message);
       setFormData(prev => ({ ...prev, password: '' })); // clear password field
     } catch (err) {
-      setError(err.response?.data?.message || 'Erreur lors de la mise à jour.');
+      setError(err.response?.data?.message || 'Erreur lors de la mise Ã  jour.');
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="dashboard-content">
-      <header className="content-header">
-        <h1 className="mt-1 flex items-center gap-2 text-4xl lg:text-5xl font-extrabold italic tracking-tight text-slate-900">
-          <BiSolidUserDetail className="text-blue-600" />
+    <div className="space-y-8">
+      <header>
+        <h1 className="text-3xl font-extrabold bg-gradient-to-r from-brand-navy to-brand-teal bg-clip-text text-transparent tracking-tight flex items-center gap-3">
+          <User className="text-brand-teal" size={28} />
           Mon Profil
         </h1>
-        <p>Modification du nom, prenom et email desactivee. Changement de mot de passe uniquement.</p>
+        <p className="text-sm text-slate-500 mt-2 font-medium">Modification du nom, prénom et email désactivée. Changement de mot de passe uniquement.</p>
       </header>
 
-      <div className="card-panel" style={{ maxWidth: '600px', margin: '0 auto', padding: '30px' }}>
+      <div className="premium-stat max-w-2xl mx-auto">
         {loading ? (
-          <p>Chargement...</p>
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-teal" />
+          </div>
         ) : (
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {message && <div style={{ padding: '10px', backgroundColor: '#dcfce7', color: '#166534', borderRadius: '8px' }}>{message}</div>}
-            {error && <div style={{ padding: '10px', backgroundColor: '#fee2e2', color: '#9f1239', borderRadius: '8px' }}>{error}</div>}
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+            {message && (
+              <div className="rounded-2xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-bold text-emerald-700">{message}</div>
+            )}
+            {error && (
+              <div className="rounded-2xl bg-red-50 border border-red-200 px-4 py-3 text-sm font-bold text-red-700">{error}</div>
+            )}
 
-            <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', fontWeight: '500', color: '#475569' }}>
-                <Camera size={18} /> Photo de Profil
+            {/* Avatar Section */}
+            <div className="premium-stat !bg-white/40">
+              <label className="flex items-center gap-2 mb-4 font-bold text-brand-navy text-sm">
+                <Camera size={18} className="text-brand-teal" /> Photo de Profil
               </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-                <div style={{ width: '84px', height: '84px', borderRadius: '9999px', overflow: 'hidden', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="flex items-center gap-5 flex-wrap">
+                <div className="w-20 h-20 rounded-2xl overflow-hidden bg-gradient-to-br from-brand-navy/10 to-brand-teal/10 flex items-center justify-center ring-2 ring-white shadow-premium">
                   {avatarPreview ? (
-                    <img src={avatarPreview} alt="Profil admin" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={avatarPreview} alt="Profil admin" className="w-full h-full object-cover" />
                   ) : (
-                    <User size={32} color="#64748b" />
+                    <User size={32} className="text-slate-400" />
                   )}
                 </div>
-
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  <label style={{ padding: '9px 12px', borderRadius: '8px', background: '#0f172a', color: '#fff', cursor: 'pointer', fontWeight: '500' }}>
+                <div className="flex gap-3 flex-wrap">
+                  <label className="premium-btn-primary cursor-pointer text-sm">
                     Choisir une photo
-                    <input type="file" accept="image/*" onChange={handleAvatarChange} style={{ display: 'none' }} />
+                    <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
                   </label>
                   {avatarPreview && (
-                    <button type="button" onClick={removeAvatar} style={{ padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', color: '#334155', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button type="button" onClick={removeAvatar} className="premium-btn-secondary flex items-center gap-2 text-sm">
                       <Trash2 size={16} /> Supprimer
                     </button>
                   )}
@@ -172,9 +177,10 @@ export default function AdminProfile() {
               </div>
             </div>
             
+            {/* Name */}
             <div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontWeight: '500', color: '#475569' }}>
-                <User size={18} /> Nom / Prénom
+              <label className="flex items-center gap-2 mb-2 font-bold text-brand-navy text-sm">
+                <User size={16} className="text-brand-teal" /> Nom / Prénom
               </label>
               <input
                 type="text"
@@ -182,13 +188,14 @@ export default function AdminProfile() {
                 value={formData.name}
                 readOnly
                 disabled
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1rem', background: '#f1f5f9', color: '#64748b', cursor: 'not-allowed' }}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-400 font-medium cursor-not-allowed"
               />
             </div>
 
+            {/* Email */}
             <div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontWeight: '500', color: '#475569' }}>
-                <Mail size={18} /> Adresse Email
+              <label className="flex items-center gap-2 mb-2 font-bold text-brand-navy text-sm">
+                <Mail size={16} className="text-brand-teal" /> Adresse Email
               </label>
               <input
                 type="email"
@@ -196,46 +203,32 @@ export default function AdminProfile() {
                 value={formData.email}
                 readOnly
                 disabled
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1rem', background: '#f1f5f9', color: '#64748b', cursor: 'not-allowed' }}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-400 font-medium cursor-not-allowed"
               />
             </div>
 
-            <div style={{ paddingTop: '10px', borderTop: '1px solid #e2e8f0' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontWeight: '500', color: '#475569' }}>
-                <Lock size={18} /> Nouveau Mot de Passe
+            {/* Password */}
+            <div className="pt-4 border-t border-white/40">
+              <label className="flex items-center gap-2 mb-2 font-bold text-brand-navy text-sm">
+                <Lock size={16} className="text-brand-teal" /> Nouveau Mot de Passe
               </label>
-              <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '10px' }}>Laissez vide si vous ne souhaitez pas le changer.</p>
+              <p className="text-xs text-slate-500 mb-3 font-medium">Laissez vide si vous ne souhaitez pas le changer.</p>
               <input
                 type="password"
                 name="password"
                 value={formData.password}
                 onChange={handleInputChange}
                 placeholder="Nouveau mot de passe"
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1rem' }}
+                className="premium-input"
               />
             </div>
 
             <button 
               type="submit" 
               disabled={saving}
-              style={{ 
-                marginTop: '15px', 
-                padding: '12px', 
-                background: '#3b82f6', 
-                color: 'white', 
-                borderRadius: '8px', 
-                border: 'none', 
-                cursor: saving ? 'not-allowed' : 'pointer', 
-                fontWeight: '600',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                fontSize: '1rem',
-                opacity: saving ? 0.7 : 1
-              }}
+              className="premium-btn-primary w-full justify-center py-3.5 mt-2"
             >
-              <Save size={20} />
+              <Save size={18} />
               {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
             </button>
           </form>
@@ -244,3 +237,4 @@ export default function AdminProfile() {
     </div>
   );
 }
+

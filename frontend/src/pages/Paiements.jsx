@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { CreditCard, PlusCircle, RefreshCw, X, Printer } from 'lucide-react';
 import FilterClasse from '../components/FilterClasse';
@@ -447,12 +447,12 @@ export default function Paiements() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50 p-6 lg:p-10">
+    <div className="min-h-screen bg-gray-50/50 p-6 lg:p-10 relative overflow-hidden backdrop-saturate-150">
       <div className="mx-auto max-w-7xl space-y-6">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
             <h1 className="flex items-center gap-3 text-3xl font-bold tracking-tight text-gray-900">
-              <CreditCard className="h-8 w-8 text-blue-600" />
+              <CreditCard className="h-8 w-8 text-brand-teal" />
               Etudiants - Paiements
             </h1>
             <p className="mt-1 text-sm text-gray-500">
@@ -463,7 +463,7 @@ export default function Paiements() {
           
         </div>
 
-        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300">
           <FilterClasse
             classes={classes}
             classValue={classFilter}
@@ -497,7 +497,7 @@ export default function Paiements() {
 
           <div className="xl:col-span-4">
             <div className="sticky top-8 overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-xl shadow-blue-900/5">
-              <div className="bg-blue-600 p-5 text-white">
+              <div className="bg-brand-teal p-5 text-white">
                 <h3 className="text-lg font-bold">{editingId ? 'Modifier paiement' : 'Ajouter paiement'}</h3>
                 <p className="mt-1 text-xs text-blue-100">
                   Le type annuel marque automatiquement tous les mois comme payes.
@@ -517,7 +517,7 @@ export default function Paiements() {
                       setClassFilter(value || 'all');
                     }}
                     disabled={!!editingId}
-                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-gray-50"
+                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-brand-teal/20 disabled:cursor-not-allowed disabled:bg-gray-50 backdrop-blur-xl border border-white/80 !shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(41,107,116,0.06)] transition-all duration-300"
                   >
                     <option value="">Selectionner une classe</option>
                     {classes.map((classe) => (
@@ -536,7 +536,7 @@ export default function Paiements() {
                     value={form.id_etudiant}
                     onChange={(event) => setForm((prev) => ({ ...prev, id_etudiant: event.target.value }))}
                     disabled={!!editingId || !form.id_classe}
-                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-gray-50"
+                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-brand-teal/20 disabled:cursor-not-allowed disabled:bg-gray-50 backdrop-blur-xl border border-white/80 !shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(41,107,116,0.06)] transition-all duration-300"
                   >
                     <option value="">{form.id_classe ? 'Selectionner un eleve' : 'Choisissez d abord une classe'}</option>
                     {studentsForSelectedClass.map((student) => (
@@ -555,7 +555,7 @@ export default function Paiements() {
                     <select
                       value={form.type}
                       onChange={(event) => setForm((prev) => ({ ...prev, type: event.target.value }))}
-                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-brand-teal/20 backdrop-blur-xl border border-white/80 !shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(41,107,116,0.06)] transition-all duration-300"
                     >
                       <option value="mensuel">Mensuel</option>
                       <option value="annuel">Annuel</option>
@@ -571,7 +571,7 @@ export default function Paiements() {
                         value={form.mois}
                         onChange={(event) => setForm((prev) => ({ ...prev, mois: Number(event.target.value) }))}
                         disabled={availableMonths.length === 0 && !editingId}
-                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
+                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-brand-teal/20 backdrop-blur-xl border border-white/80 !shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(41,107,116,0.06)] transition-all duration-300"
                       >
                         {availableMonths.map((month) => (
                           <option key={month.value} value={month.value}>
@@ -586,7 +586,7 @@ export default function Paiements() {
                       )}
                     </div>
                   ) : (
-                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs font-medium text-emerald-700">
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs font-medium text-emerald-700 backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300">
                       Paiement annuel: Septembre a Juin sera marque paye.
                     </div>
                   )}
@@ -604,7 +604,7 @@ export default function Paiements() {
                       required
                       value={form.montant}
                       onChange={(event) => setForm((prev) => ({ ...prev, montant: event.target.value }))}
-                      className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
+                      className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-brand-teal/20"
                     />
                     <p className="mt-1 text-xs text-gray-500">
                       Tarif attendu: {Number(expectedAmount || 0).toFixed(2)} MAD ({form.type === 'mensuel' ? 'pour ce mois' : 'pour toute l annee, calcule depuis le mensuel'}).
@@ -637,7 +637,7 @@ export default function Paiements() {
                     type="date"
                     value={form.date_paiement}
                     onChange={(event) => setForm((prev) => ({ ...prev, date_paiement: event.target.value }))}
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-brand-teal/20"
                   />
                 </div>
 
@@ -645,7 +645,7 @@ export default function Paiements() {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-teal px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
                   >
                     {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : null}
                     {editingId ? 'Mettre a jour' : 'Ajouter'}
@@ -682,51 +682,51 @@ export default function Paiements() {
             </div>
 
             <div className="grid grid-cols-1 gap-3 px-6 py-5 md:grid-cols-2">
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Nom eleve</p>
                 <p className="mt-1 text-sm font-semibold text-gray-900">
                   {receiptData.student?.nom} {receiptData.student?.prenom}
                 </p>
               </div>
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Matricule</p>
                 <p className="mt-1 text-sm font-semibold text-gray-900">{receiptData.student?.matricule || '-'}</p>
               </div>
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Groupe</p>
                 <p className="mt-1 text-sm font-semibold text-gray-900">{receiptData.student?.classe_nom || '-'}</p>
               </div>
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Niveau</p>
                 <p className="mt-1 text-sm font-semibold text-gray-900">{receiptData.student?.classe_niveau || '-'}</p>
               </div>
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Mois</p>
                 <p className="mt-1 text-sm font-semibold text-gray-900">{receiptData.monthLabel}</p>
               </div>
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Annee</p>
                 <p className="mt-1 text-sm font-semibold text-gray-900">{receiptData.payment?.annee}</p>
               </div>
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Type</p>
                 <p className="mt-1 text-sm font-semibold text-gray-900">{receiptData.payment?.type}</p>
               </div>
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Montant</p>
                 <p className="mt-1 text-sm font-semibold text-gray-900">{Number(receiptData.payment?.montant || 0).toFixed(2)} MAD</p>
               </div>
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Reste</p>
                 <p className="mt-1 text-sm font-semibold text-gray-900">{Number(receiptData.payment?.reste || 0).toFixed(2)} MAD</p>
               </div>
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Statut</p>
                 <p className={`mt-1 text-sm font-semibold ${receiptData.payment?.statut === 'paye' ? 'text-emerald-700' : 'text-red-700'}`}>
                   {receiptData.payment?.statut}
                 </p>
               </div>
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Date paiement</p>
                 <p className="mt-1 text-sm font-semibold text-gray-900">{receiptData.payment?.date_paiement || '-'}</p>
               </div>
@@ -736,14 +736,14 @@ export default function Paiements() {
               <button
                 type="button"
                 onClick={() => setReceiptData(null)}
-                className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300"
               >
                 Fermer
               </button>
               <button
                 type="button"
                 onClick={printReceipt}
-                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                className="inline-flex items-center gap-2 rounded-xl bg-brand-teal px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
               >
                 <Printer className="h-4 w-4" />
                 Imprimer recu
@@ -755,3 +755,10 @@ export default function Paiements() {
     </div>
   );
 }
+
+
+
+
+
+
+

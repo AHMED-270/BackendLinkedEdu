@@ -89,11 +89,11 @@ export default function Annonces() {
   }, [annonces, searchTitle]);
 
   return (
-    <div className="layout-content">
+    <div className="relative">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight flex items-center gap-2">
-            <Megaphone className="text-blue-600" size={28} /> Communication Interne
+            <Megaphone className="text-brand-teal" size={28} /> Communication Interne
           </h1>
           <p className="text-slate-500 text-sm mt-1">Affichage des annonces avec consultation et telechargement des pieces jointes.</p>
         </div>
@@ -105,7 +105,7 @@ export default function Annonces() {
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              className="form-input"
+              className="form-input backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300"
               style={{ paddingLeft: '2.5rem' }}
               placeholder="Rechercher par titre, contenu ou auteur..."
               value={searchTitle}
@@ -136,7 +136,7 @@ export default function Annonces() {
               {loading ? (
                 <tr>
                   <td colSpan={5} className="py-12 text-center">
-                    <span className="loading-spinner border-blue-500" />
+                    <span className="loading-spinner border-brand-teal" />
                   </td>
                 </tr>
               ) : filteredAnnonces.length === 0 ? (
@@ -250,3 +250,6 @@ export default function Annonces() {
     </div>
   );
 }
+
+
+

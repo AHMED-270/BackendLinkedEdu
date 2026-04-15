@@ -85,7 +85,7 @@ export default function PasswordReset() {
 
           <form className="auth-form" onSubmit={handleSubmit}>
             <label htmlFor="new-password">Nouveau mot de passe</label>
-            <div className="input-with-icon" style={{ position: 'relative' }}>
+            <div className="input-with-icon backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300" style={{ position: 'relative' }}>
               <input
                 id="new-password"
                 type="password"
@@ -133,7 +133,7 @@ export default function PasswordReset() {
               onClick={() => navigate('/login')}
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#667085' }}
             >
-              Retour à la connexion
+              Retour Ã  la connexion
             </button>
           </div>
         </div>
@@ -141,3 +141,5 @@ export default function PasswordReset() {
     </motion.main>
   );
 }
+
+

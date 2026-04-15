@@ -489,35 +489,27 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
   }, [configuredMatieres, matiereProfesseurs]);
 
   return (
-    <div className={isModal ? 'bg-[#f8fafc]' : 'dashboard-content bg-gray-50/30'}>
+    <div className={isModal ? '' : 'space-y-8'}>
       {!isModal && (
-        <header className="content-header flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
-            <div className="flex items-center gap-2 text-blue-600 font-bold tracking-wider uppercase text-xs mb-1">
-              <span className="w-8 h-[2px] bg-blue-600"></span>
-              Classes
-            </div>
-            <h1 className="mt-1 flex items-center gap-3 text-4xl lg:text-5xl font-extrabold italic tracking-tight text-slate-900">
-              <BiSolidUserDetail className="text-blue-600" />
+            <h1 className="text-3xl font-extrabold bg-gradient-to-r from-brand-navy to-brand-teal bg-clip-text text-transparent tracking-tight flex items-center gap-3">
+              <BiSolidUserDetail className="text-brand-teal" size={28} />
               {isEditing ? 'Modifier Classe' : 'Nouvelle Classe'}
             </h1>
-            <p className="text-slate-500 mt-2 max-w-2xl">Formulaire de configuration des structures pédagogiques.</p>
+            <p className="text-slate-500 mt-2 max-w-2xl text-sm font-medium">Formulaire de configuration des structures pédagogiques.</p>
           </div>
-          <button
-            type="button"
-            onClick={onBack}
-            className="flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-slate-200 active:scale-95"
-          >
-            <ArrowLeft size={18} strokeWidth={3} /> Retour
+          <button type="button" onClick={onBack} className="premium-btn-secondary">
+            <ArrowLeft size={18} /> Retour
           </button>
         </header>
       )}
 
-      <div className={isModal ? 'bg-white rounded-[2rem] border border-slate-200 shadow-2xl overflow-hidden' : 'bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-10'}>
+      <div className={isModal ? 'premium-stat overflow-hidden' : 'premium-stat overflow-hidden mb-10'}>
         {isModal && (
-          <div className="px-8 pt-8 pb-6 border-b border-slate-100 bg-gradient-to-br from-blue-50/50 to-white">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-blue-600 font-black mb-1">Classes / {isEditing ? 'Modifier' : 'Ajouter'}</p>
-            <h2 className="text-3xl font-black text-slate-900 mt-1">{isEditing ? 'Éditer la Classe' : 'Créer une Classe'}</h2>
+          <div className="px-8 pt-8 pb-6 border-b border-white/40 bg-white/30 backdrop-blur-sm">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-brand-teal font-black mb-1">Classes / {isEditing ? 'Modifier' : 'Ajouter'}</p>
+            <h2 className="text-2xl font-black text-brand-navy mt-1">{isEditing ? 'Éditer la Classe' : 'Créer une Classe'}</h2>
             <p className="text-sm text-slate-500 mt-2 font-medium">Définissez le nom, le niveau et affectez les enseignants responsables.</p>
           </div>
         )}
@@ -532,13 +524,13 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
 
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Section 1: Base Info */}
-            <section className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+            <section className="border border-gray-200 rounded-xl overflow-hidden bg-white/20">
               <div className="grid grid-cols-1 md:grid-cols-12">
                 <div className="md:col-span-4 bg-gray-50 p-4 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col justify-center">
                   <h3 className="text-sm font-bold text-gray-800">Identite</h3>
                   <p className="text-xs text-gray-500 mt-1">Informations de base pour identifier la classe dans le systeme.</p>
                 </div>
-                <div className="md:col-span-8 p-4 grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white">
+                <div className="md:col-span-8 p-4 grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white/20">
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 mb-1">Nom de la classe</label>
                     <input
@@ -547,7 +539,7 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
                       onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
                       required
                       placeholder="Ex: 3ème B"
-                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
                     />
                   </div>
                   <div>
@@ -556,7 +548,7 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
                       value={niveauScolaire}
                       onChange={(e) => setNiveauScolaire(e.target.value)}
                       required
-                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
                     >
                       <option value="">Selectionner</option>
                       {SCHOOL_LEVELS.map((level) => (
@@ -572,7 +564,7 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
                       onChange={(e) => setFormData({ ...formData, niveau: e.target.value })}
                       required
                       disabled={!niveauScolaire}
-                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm disabled:bg-gray-50 disabled:text-gray-400"
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm disabled:bg-gray-50 disabled:text-gray-400"
                     >
                       <option value="">{niveauScolaire ? 'Selectionner une classe...' : 'Choisir d abord un niveau scolaire'}</option>
                       {availableNiveaux.map((niv) => (
@@ -585,13 +577,13 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
             </section>
 
             {/* Section: Filière & Pricing */}
-            <section className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+            <section className="border border-gray-200 rounded-xl overflow-hidden bg-white/20">
               <div className="grid grid-cols-1 md:grid-cols-12">
                 <div className="md:col-span-4 bg-gray-50 p-4 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col justify-center">
                   <h3 className="text-sm font-bold text-gray-800">Structure</h3>
                   <p className="text-xs text-gray-500 mt-1">Definissez la filiere et le cout de scolarite pour cette classe.</p>
                 </div>
-                <div className="md:col-span-8 p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white">
+                <div className="md:col-span-8 p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white/20">
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 mb-1">Filiere / Serie</label>
                     <select
@@ -599,7 +591,7 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
                       onChange={(e) => setFormData({ ...formData, filiere: e.target.value })}
                       required
                       disabled={!formData.niveau}
-                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm disabled:bg-gray-50 disabled:text-gray-400"
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm disabled:bg-gray-50 disabled:text-gray-400"
                     >
                       <option value="">Selectionner une filiere...</option>
                       {availableFilieres.map((fil) => (
@@ -619,7 +611,7 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
                       min="0"
                       step="0.01"
                       placeholder="Entrer le cout de scolarite"
-                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm"
                     />
                     <p className="mt-1 text-xs text-gray-500">Montant manuel: vous choisissez librement le cout total.</p>
                   </div>
@@ -628,7 +620,7 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
             </section>
 
             {/* Section 2: Professeurs */}
-            <section className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+            <section className="border border-gray-200 rounded-xl overflow-hidden bg-white/20">
               <div className="grid grid-cols-1 md:grid-cols-12">
                 <div className="md:col-span-4 bg-gray-50 p-4 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col justify-center">
                   <h3 className="text-sm font-bold text-gray-800">Enseignants</h3>
@@ -639,7 +631,7 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
                   </div>
                   <p className="mt-2 text-[11px] font-semibold text-amber-700">{unassignedMatiereCount} matiere(s) non assignee(s)</p>
                 </div>
-                <div className="md:col-span-8 p-4 bg-white">
+                <div className="md:col-span-8 p-4 bg-white/20">
                   {niveauScolaire && (
                     <p className="mb-2 text-xs text-gray-600">
                       Affichage automatique: professeurs de niveau {levelLabelByCode[niveauScolaire] || niveauScolaire}.
@@ -650,7 +642,7 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
                       Matieres du cadre pedagogique chargees selon la filiere selectionnee.
                     </p>
                   )}
-                  <div className="border border-slate-100 rounded-xl bg-slate-50/30 p-3 max-h-[420px] overflow-y-auto custom-scrollbar shadow-inner">
+                  <div className="border border-slate-100 rounded-xl bg-white/10/30 p-3 max-h-[420px] overflow-y-auto custom-scrollbar shadow-inner">
                     {configuredMatieres.length === 0 ? (
                       <div className="p-10 text-center text-slate-400 italic text-sm">
                         Selectionnez d'abord le niveau et la filiere pour charger les matieres.
@@ -669,7 +661,7 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
                           const choix = matiere.matiereId ? (professorChoicesByMatiere[matiere.matiereId] || []) : [];
                           const selectedProfesseurId = matiere.matiereId ? String(matiereProfesseurs[matiere.matiereId] || '') : '';
                           return (
-                            <div key={`${matiere.label}-${matiere.matiereId || 'missing'}`} className="rounded-xl border border-slate-200 bg-white p-3">
+                            <div key={`${matiere.label}-${matiere.matiereId || 'missing'}`} className="rounded-xl border border-slate-200 bg-white/30 p-3">
                               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
                                   <p className="text-sm font-bold text-slate-800">{matiere.label}</p>
@@ -689,7 +681,7 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
                                         [matiere.matiereId]: selectedValue,
                                       }));
                                     }}
-                                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm disabled:bg-gray-50 disabled:text-gray-400"
+                                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm disabled:bg-gray-50 disabled:text-gray-400"
                                   >
                                     <option value="">Selectionner un professeur</option>
                                     {choix.map((professeur) => (
@@ -708,12 +700,12 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
                               )}
                               <div className="mt-2 flex flex-wrap gap-1">
                                 {choix.slice(0, 3).map((professeur) => (
-                                  <span key={`${matiere.label}-${professeur.id}`} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                                  <span key={`${matiere.label}-${professeur.id}`} className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
                                     {professeur.name}
                                   </span>
                                 ))}
                                 {choix.length > 3 && (
-                                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                                  <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
                                     +{choix.length - 3} autres
                                   </span>
                                 )}
@@ -729,19 +721,12 @@ export default function AdminClassForm({ mode = 'create', classToEdit = null, on
             </section>
 
             {/* Actions */}
-            <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end pt-4 border-t border-gray-100 mt-10">
-              <button
-                type="button"
-                onClick={onBack}
-                disabled={saving}
-                className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg font-semibold transition-all text-sm active:scale-95 disabled:opacity-50"
-              >
-                Annuler
-              </button>
+            <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end pt-4 border-t border-white/40 mt-10">
+              <button type="button" onClick={onBack} disabled={saving} className="premium-btn-secondary disabled:opacity-50">Annuler</button>
               <button
                 type="submit"
                 disabled={saving}
-                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all shadow-sm text-sm active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                className="premium-btn-primary disabled:opacity-50"
               >
                 {saving ? (
                   <>

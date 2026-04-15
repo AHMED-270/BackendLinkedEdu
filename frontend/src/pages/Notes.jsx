@@ -339,7 +339,7 @@ export default function Notes() {
   };
 
   return (
-    <div className="layout-content relative">
+    <div className="relative">
       
       {/* Floating Toast Notification */}
       <AnimatePresence>
@@ -423,7 +423,7 @@ export default function Notes() {
         <div className="p-5 border-b border-slate-100 bg-slate-50/50">
           <div className="flex flex-wrap items-center gap-3 w-full">
             <select
-              className="form-select min-w-[220px] !px-4 !py-2.5 rounded-xl border border-slate-300 bg-white shadow-sm"
+              className="form-select min-w-[220px] !px-4 !py-2.5 rounded-xl border border-slate-300 bg-white shadow-sm backdrop-blur-xl border border-white/80 !shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(41,107,116,0.06)] transition-all duration-300"
               value={selectedClass}
               onChange={handleClassChange}
             >
@@ -435,7 +435,7 @@ export default function Notes() {
             
             {showMatiereField && (
               <select
-                className="form-select min-w-[220px] !px-4 !py-2.5 rounded-xl border border-slate-300 bg-white shadow-sm"
+                className="form-select min-w-[220px] !px-4 !py-2.5 rounded-xl border border-slate-300 bg-white shadow-sm backdrop-blur-xl border border-white/80 !shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(41,107,116,0.06)] transition-all duration-300"
                 value={selectedMatiere}
                 onChange={handleMatiereChange}
               >
@@ -447,7 +447,7 @@ export default function Notes() {
             )}
             
             <select
-              className="form-select min-w-[220px] !px-4 !py-2.5 rounded-xl border border-slate-300 bg-white shadow-sm"
+              className="form-select min-w-[220px] !px-4 !py-2.5 rounded-xl border border-slate-300 bg-white shadow-sm backdrop-blur-xl border border-white/80 !shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(41,107,116,0.06)] transition-all duration-300"
               value={evaluationType}
               onChange={handleEvaluationTypeChange}
             >
@@ -460,7 +460,7 @@ export default function Notes() {
             </select>
 
             <select
-              className="form-select min-w-[150px] !px-4 !py-2.5 rounded-xl border border-slate-300 bg-white shadow-sm"
+              className="form-select min-w-[150px] !px-4 !py-2.5 rounded-xl border border-slate-300 bg-white shadow-sm backdrop-blur-xl border border-white/80 !shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(41,107,116,0.06)] transition-all duration-300"
               value={semestre}
               onChange={handleSemestreChange}
             >
@@ -472,7 +472,7 @@ export default function Notes() {
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                className="form-input"
+                className="form-input backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300"
                 style={{ paddingLeft: '2.5rem' }}
                 placeholder="Rechercher un élève..."
                 value={studentsSearch}
@@ -486,14 +486,14 @@ export default function Notes() {
         <div className="flex-1 overflow-x-auto min-h-[300px]">
           {loading ? (
             <div className="flex flex-col justify-center items-center py-20">
-              <span className="loading-spinner border-blue-500 mb-4"></span>
+              <span className="loading-spinner border-brand-teal mb-4"></span>
               <p className="text-slate-500 font-medium">Chargement de la liste d'élèves...</p>
             </div>
           ) : (
             <table className="table w-full">
               <thead>
                 <tr className="bg-white">
-                  <th className="w-12 text-center">N°</th>
+                  <th className="w-12 text-center">NÂ°</th>
                   <th className="w-16">Photo</th>
                   <th>Nom de l'élève</th>
                   <th className="w-32 text-center">Note / 20</th>
@@ -578,4 +578,9 @@ export default function Notes() {
     </div>
   );
 }
+
+
+
+
+
 

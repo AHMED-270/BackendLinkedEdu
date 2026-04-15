@@ -171,7 +171,7 @@ export default function Appel() {
   };
 
   return (
-    <div className="layout-content relative">
+    <div className="relative">
       <AnimatePresence>
         {statusMsg.text && (
           <motion.div
@@ -210,7 +210,7 @@ export default function Appel() {
           <div className="flex flex-nowrap items-center justify-between gap-3 w-full overflow-x-auto pb-1">
             <div className="flex flex-nowrap items-center gap-3 shrink-0">
               <select
-                className="form-select min-w-[220px] shrink-0 !px-4 !py-2.5 rounded-xl border border-slate-300 bg-white shadow-sm"
+                className="form-select min-w-[220px] shrink-0 !px-4 !py-2.5 rounded-xl border border-slate-300 bg-white shadow-sm backdrop-blur-xl border border-white/80 !shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(41,107,116,0.06)] transition-all duration-300"
                 value={selectedClass}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -222,7 +222,7 @@ export default function Appel() {
               </select>
               {showMatiereField && (
                 <select
-                  className="form-select min-w-[220px] shrink-0 !px-4 !py-2.5 rounded-xl border border-slate-300 bg-white shadow-sm"
+                  className="form-select min-w-[220px] shrink-0 !px-4 !py-2.5 rounded-xl border border-slate-300 bg-white shadow-sm backdrop-blur-xl border border-white/80 !shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(41,107,116,0.06)] transition-all duration-300"
                   value={selectedMatiere}
                   onChange={(e) => {
                     const value = e.target.value;
@@ -282,7 +282,7 @@ export default function Appel() {
         <div className="flex-1 overflow-x-auto min-h-[400px]">
           {loading ? (
             <div className="flex flex-col justify-center items-center py-24">
-              <span className="loading-spinner border-blue-500 mb-4"></span>
+              <span className="loading-spinner border-brand-teal mb-4"></span>
               <p className="text-slate-500 font-medium">Chargement des élèves...</p>
             </div>
           ) : (
@@ -408,4 +408,9 @@ export default function Appel() {
     </div>
   );
 }
+
+
+
+
+
 

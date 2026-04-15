@@ -325,3 +325,4 @@ function DirectoryProfessors({ userRole = ROLE.DIRECTEUR }) {
 }
 
 export default DirectoryProfessors;
+

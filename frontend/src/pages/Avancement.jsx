@@ -81,7 +81,7 @@ export default function Avancement() {
   };
 
   return (
-    <div className="layout-content relative">
+    <div className="relative">
       
       {/* Floating Success/Error Toast */}
       <AnimatePresence>
@@ -109,7 +109,7 @@ export default function Avancement() {
 
       {loading && !classesProgres.length ? (
         <div className="flex flex-col justify-center items-center py-20">
-          <span className="loading-spinner border-blue-500 mb-4"></span>
+          <span className="loading-spinner border-brand-teal mb-4"></span>
           <p className="text-slate-500 font-medium">Chargement des données...</p>
         </div>
       ) : (
@@ -123,7 +123,7 @@ export default function Avancement() {
           <motion.div variants={cardVariants} className="xl:col-span-5">
             <div className="card p-6 md:p-8 sticky top-24">
               <h3 className="text-lg font-bold text-slate-800 mb-6 pb-4 border-b border-slate-100 flex items-center gap-2">
-                <TrendingUp className="text-blue-600" size={20} /> Actualiser le progrès
+                <TrendingUp className="text-brand-teal" size={20} /> Actualiser le progrès
               </h3>
               
               <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -150,7 +150,7 @@ export default function Avancement() {
                     </div>
                     <input 
                       type="text" 
-                      className="form-input pl-10" 
+                      className="form-input pl-10 backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300" 
                       placeholder="Ex: Chapitre 4 : Thermodynamique" 
                       value={chapActuel}
                       onChange={(e) => setChapActuel(e.target.value)}
@@ -162,7 +162,7 @@ export default function Avancement() {
                 <div className="form-group">
                   <div className="flex justify-between items-center mb-2">
                     <label className="form-label mb-0">Couverture du programme</label>
-                    <span className="text-lg font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-md">{pct}%</span>
+                    <span className="text-lg font-black text-brand-teal bg-blue-50 px-2 py-1 rounded-md">{pct}%</span>
                   </div>
                   <div className="flex items-center gap-4 py-2">
                     <input 
@@ -258,4 +258,7 @@ export default function Avancement() {
     </div>
   );
 }
+
+
+
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import {
   ClipboardList,
@@ -36,7 +36,7 @@ const getStatusMeta = (rawStatus) => {
   if (status === 'en_cours') {
     return {
       label: 'En cours',
-      badgeClass: 'bg-blue-50 text-blue-600 border border-blue-100',
+      badgeClass: 'bg-blue-50 text-brand-teal border border-blue-100',
     };
   }
 
@@ -131,12 +131,12 @@ export default function SecretaireReclamations() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50 p-6 lg:p-10">
+    <div className="min-h-screen bg-gray-50/50 p-6 lg:p-10 relative overflow-hidden backdrop-saturate-150">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
-              <ClipboardList className="w-8 h-8 text-blue-600" />
+              <ClipboardList className="w-8 h-8 text-brand-teal" />
               Gestion des reclamations
             </h1>
             <p className="text-sm text-gray-500 mt-1">
@@ -149,7 +149,7 @@ export default function SecretaireReclamations() {
             <input
               type="text"
               placeholder="Rechercher par parent, eleve, sujet..."
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-teal/20 outline-none transition-all"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
             />
@@ -163,7 +163,7 @@ export default function SecretaireReclamations() {
           </div>
         )}
 
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden backdrop-blur-xl border border-white/80 !shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(41,107,116,0.06)] transition-all duration-300">
           <div className="overflow-x-auto">
             <table className="table w-full text-left border-collapse">
               <thead>
@@ -225,7 +225,7 @@ export default function SecretaireReclamations() {
 
                           <div className="relative">
                             <select
-                              className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 focus:ring-2 focus:ring-blue-500/20 outline-none"
+                              className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 focus:ring-2 focus:ring-brand-teal/20 outline-none"
                               value={String(item.statut || 'en_attente').toLowerCase()}
                               onChange={(event) => onStatusChange(item.id_reclamation, event.target.value)}
                               disabled={isUpdating}
@@ -236,7 +236,7 @@ export default function SecretaireReclamations() {
                             </select>
 
                             {isUpdating && (
-                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-600">
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-brand-teal">
                                 <Loader2 className="w-4 h-4 animate-spin" />
                               </span>
                             )}
@@ -268,3 +268,10 @@ export default function SecretaireReclamations() {
     </div>
   );
 }
+
+
+
+
+
+
+

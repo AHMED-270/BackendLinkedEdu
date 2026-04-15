@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { getHomeRouteByRole } from '../constants/roles';
+import logo from '../assets/images/linkedu-logo.png';
 
 const AUTH_TOKEN_KEY = 'linkedu_token';
 const browserHost = typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1';
@@ -143,63 +144,81 @@ export default function LoginCard({ onLoginSuccess }) {
    };
 
    return (
-     <section className="auth-panel">
-       <div className="auth-card">
-         <p className="auth-logo">LinkedU</p>
-         <h2 className="auth-heading">
-           {isForgotMode ? 'Mot de passe oublie ?' : 'Se connecter'}
-         </h2>
-         <p className="auth-description">
-           {isForgotMode
-             ? "Saisissez l'adresse e-mail associee a votre compte pour recevoir un lien de reinitialisation."
-             : "Saisissez vos informations afin d'acceder a la plateforme."}
-         </p>
+     <section className="min-h-screen py-12 flex items-center justify-center bg-transparent relative overflow-hidden backdrop-saturate-150">
+       <div className="glass-card w-full max-w-md p-8 md:p-10 mx-4 md:mx-0 shadow-glass rounded-3xl relative overflow-hidden backdrop-saturate-150">
+         {/* Decorative internal glow */}
+         <div className="absolute top-[-50px] right-[-50px] w-40 h-40 bg-brand-teal/20 blur-3xl rounded-full pointer-events-none"></div>
+         <div className="absolute bottom-[-50px] left-[-50px] w-40 h-40 bg-brand-navy/10 blur-3xl rounded-full pointer-events-none"></div>
+
+         <div className="text-center mb-8 relative z-10 flex flex-col items-center">
+           <img 
+             src={logo} 
+             alt="LinkEdu Logo" 
+             className="h-20 w-auto mb-2 drop-shadow-sm transition-transform hover:scale-[1.02] duration-300"
+           />
+           <h2 className="text-slate-600 font-medium text-lg mt-4 tracking-wide">
+             {isForgotMode ? 'Mot de passe oublié ?' : 'Connectez-vous à votre espace'}
+           </h2>
+           <p className="text-sm text-slate-400 mt-2">
+             {isForgotMode
+               ? "Saisissez l'adresse e-mail associée à votre compte pour recevoir un lien de réinitialisation."
+               : "Saisissez vos informations afin d'accéder à la plateforme."}
+           </p>
+         </div>
 
          {!isForgotMode && (
-           <form className="auth-form" onSubmit={handleLoginSubmit}>
-             <label htmlFor="email">E-mail</label>
-             <input
-               id="email"
-               type="email"
-               placeholder="nom@ecole.com"
-               value={loginEmail}
-               onChange={(event) => {
-                 setLoginEmail(event.target.value);
-                 setLoginFeedback('');
-                 setLoginFeedbackType('');
-               }}
-               required
-             />
+           <form className="relative z-10 flex flex-col gap-4 animate-fade-in" onSubmit={handleLoginSubmit}>
+             <div className="flex flex-col gap-1.5">
+               <label htmlFor="email" className="text-sm font-semibold text-slate-700 ml-1">E-mail</label>
+               <input
+                 id="email"
+                 className="glass-input"
+                 type="email"
+                 placeholder="nom@ecole.com"
+                 value={loginEmail}
+                 onChange={(event) => {
+                   setLoginEmail(event.target.value);
+                   setLoginFeedback('');
+                   setLoginFeedbackType('');
+                 }}
+                 required
+               />
+             </div>
 
-             <label htmlFor="password">Mot de passe</label>
-             <input
-               id="password"
-               type="password"
-               placeholder="********"
-               value={loginPassword}
-               onChange={(event) => {
-                 setLoginPassword(event.target.value);
-                 setLoginFeedback('');
-                 setLoginFeedbackType('');
-               }}
-               required
-             />
+             <div className="flex flex-col gap-1.5">
+               <label htmlFor="password" className="text-sm font-semibold text-slate-700 ml-1">Mot de passe</label>
+               <input
+                 id="password"
+                 className="glass-input"
+                 type="password"
+                 placeholder="********"
+                 value={loginPassword}
+                 onChange={(event) => {
+                   setLoginPassword(event.target.value);
+                   setLoginFeedback('');
+                   setLoginFeedbackType('');
+                 }}
+                 required
+               />
+             </div>
 
-             <button
-               type="button"
-               className="link-small link-button"
-               onClick={() => setIsForgotMode(true)}
-             >
-               Mot de passe oublie ?
-             </button>
+             <div className="flex justify-end mt-[-8px]">
+               <button
+                 type="button"
+                 className="text-xs font-semibold text-brand-teal hover:text-brand-navy hover:underline transition-all"
+                 onClick={() => setIsForgotMode(true)}
+               >
+                 Mot de passe oublié ?
+               </button>
+             </div>
 
-             <button type="submit" className="auth-button" disabled={isLoggingIn}>
-               {isLoggingIn ? 'Connexion...' : 'Se connecter'}
+             <button type="submit" className="glass-button w-full mt-2 py-3" disabled={isLoggingIn}>
+               {isLoggingIn ? 'Connexion en cours...' : 'Se connecter'}
              </button>
 
              {loginFeedback && (
                <p
-                 style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', color: loginFeedbackType === 'error' ? '#d32f2f' : '#2e7d32' }}
+                 className={`flex items-center justify-center gap-2 text-sm font-medium mt-2 p-3 rounded-xl backdrop-blur-md border ${loginFeedbackType === 'error' ? 'bg-red-50/50 border-red-100 text-red-600' : 'bg-emerald-50/50 border-emerald-100 text-emerald-600'}`}
                >
                  {loginFeedbackType === 'error' ? <AlertCircle size={16} /> : <CheckCircle2 size={16} />}
                  {loginFeedback}
@@ -209,55 +228,59 @@ export default function LoginCard({ onLoginSuccess }) {
          )}
 
          {isForgotMode && (
-           <form className="auth-form" onSubmit={handleForgotSubmit}>
-             <label htmlFor="forgot-email">E-mail</label>
-             <input
-               id="forgot-email"
-               type="email"
-               placeholder="nom@ecole.com"
-               value={forgotEmail}
-               onChange={(e) => setForgotEmail(e.target.value)}
-               required
-             />
+           <form className="relative z-10 flex flex-col gap-4 animate-scale-up" onSubmit={handleForgotSubmit}>
+             <div className="flex flex-col gap-1.5">
+               <label htmlFor="forgot-email" className="text-sm font-semibold text-slate-700 ml-1">E-mail</label>
+               <input
+                 id="forgot-email"
+                 className="glass-input"
+                 type="email"
+                 placeholder="nom@ecole.com"
+                 value={forgotEmail}
+                 onChange={(e) => setForgotEmail(e.target.value)}
+                 required
+               />
+             </div>
 
-             <button type="submit" className="auth-button" disabled={isForgotLoading}>
-               {isForgotLoading ? 'Envoi...' : 'Reinitialiser le mot de passe'} &rarr;
+             <button type="submit" className="glass-button w-full mt-2 py-3" disabled={isForgotLoading}>
+               {isForgotLoading ? 'Envoi en cours...' : 'Réinitialiser le mot de passe'}
              </button>
 
              <button
                type="button"
-               className="back-link link-small"
-               style={{ marginTop: '0.5rem' }}
+               className="text-sm font-medium text-slate-500 hover:text-brand-navy mt-3 transition-colors flex items-center justify-center gap-1 group"
                onClick={() => {
                  setIsForgotMode(false);
                  setIsResetSent(false);
                  setForgotError('');
                }}
              >
-               &larr; Retour a la page de connexion
+               <span className="transform group-hover:-translate-x-1 transition-transform">&larr;</span> Retour à la page de connexion
              </button>
 
              {forgotError && (
-               <p className="auth-feedback" style={{ fontSize: '0.85rem', color: '#d32f2f', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+               <p className="flex items-center justify-center gap-2 text-sm font-medium mt-2 p-3 rounded-xl bg-red-50/50 border border-red-100 text-red-600 backdrop-blur-md">
                  <AlertCircle size={16} />
                  {forgotError}
                </p>
              )}
 
              {isResetSent && (
-               <p className="auth-feedback" style={{ fontSize: '0.85rem', color: '#2e7d32', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+               <p className="flex items-center justify-center gap-2 text-sm font-medium mt-2 p-3 rounded-xl bg-emerald-50/50 border border-emerald-100 text-emerald-600 backdrop-blur-md">
                  <CheckCircle2 size={16} />
-                 Si cet e-mail existe, un lien de reinitialisation a ete envoye.
+                 Lien envoyé si l'e-mail existe.
                </p>
              )}
            </form>
          )}
 
-         <div className="auth-footer" style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #eef2f7', display: 'flex', justifyContent: 'center', gap: '1rem' }}>
-           <a href="#" style={{ color: '#667085', fontSize: '0.75rem', textDecoration: 'none' }}>Conditions d'utilisation</a>
-           <a href="#" style={{ color: '#667085', fontSize: '0.75rem', textDecoration: 'none' }}>Politique de confidentialite</a>
+         <div className="relative z-10 mt-8 pt-4 border-t border-slate-200/50 flex justify-center gap-6">
+           <a href="#" className="text-xs font-medium text-slate-400 hover:text-brand-teal transition-colors">Conditions d'utilisation</a>
+           <a href="#" className="text-xs font-medium text-slate-400 hover:text-brand-teal transition-colors">Politique de confidentialité</a>
          </div>
        </div>
      </section>
    );
  }
+
+

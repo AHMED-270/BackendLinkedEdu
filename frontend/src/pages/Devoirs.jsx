@@ -336,7 +336,7 @@ export default function Devoirs() {
             <input
               type="text"
               placeholder="Ex: Devoir Chapitre 2"
-              className="input-field"
+              className="input-field backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300"
               value={form.title}
               onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
             />
@@ -346,7 +346,7 @@ export default function Devoirs() {
             <label>Description & Consignes</label>
             <textarea
               placeholder="Detaillez les objectifs et les attentes..."
-              className="input-field textarea-field"
+              className="input-field textarea-field backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300"
               value={form.description}
               onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
             ></textarea>
@@ -358,7 +358,7 @@ export default function Devoirs() {
                 <label>Date limite</label>
                 <input
                   type="date"
-                  className="input-field"
+                  className="input-field backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300"
                   value={form.deadline}
                   onChange={(e) => setForm((prev) => ({ ...prev, deadline: e.target.value }))}
                 />
@@ -367,7 +367,7 @@ export default function Devoirs() {
             <div className="form-group flex-1">
               <label>{singleMatiere ? 'Classe' : 'Classe / Matière'}</label>
               <select
-                className="input-field"
+                className="input-field backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300"
                 value={`${form.classId}-${form.matiereId}`}
                 onChange={(e) => {
                   const [c, m] = e.target.value.split('-');
@@ -436,7 +436,7 @@ export default function Devoirs() {
               <select 
                 value={filterGroup} 
                 onChange={(e) => setFilterGroup(e.target.value)}
-                className="input-field" 
+                className="input-field backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300" 
                 style={{ width: 'auto', padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.85rem' }}
               >
                 <option value="all">Tous les groupes</option>
@@ -619,4 +619,7 @@ export default function Devoirs() {
     </div>
   );
 }
+
+
+
 

@@ -2,7 +2,9 @@
 
 .portal-shell {
   min-height: 100vh;
-  padding: var(--space-8) var(--space-6);
+  width: 100vw;
+  height: 100vh;
+  padding: 0;
   /* Beautiful glowing orb background effect */
   background:
     radial-gradient(circle at 85% 10%, rgba(45, 156, 219, 0.12), transparent 45%),
@@ -11,22 +13,34 @@
   display: flex;
   flex-direction: column;
   font-family: var(--font-family);
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
 }
 
 .portal-body {
-  display: grid;
-  grid-template-columns: 250px 1fr;
-  gap: var(--space-5);
-  align-items: start;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
+  position: relative;
+  z-index: 10;
 }
 
 .portal-sidebar {
-  position: sticky;
-  top: 92px;
+  width: 280px;
+  flex-shrink: 0;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1rem 0.75rem;
+  margin: 0;
+  border-radius: 0;
+  position: relative;
+  top: 0;
   background: #ffffff;
   border: 1px solid #eaedf3;
-  border-radius: 14px;
-  padding: 1rem;
+  border-right: 1px solid rgba(226, 232, 240, 0.75);
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
@@ -125,7 +139,12 @@
 }
 
 .portal-content {
+  flex: 1;
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1.5rem 2rem;
 }
 
 .portal-tabs-mobile {
@@ -135,11 +154,13 @@
 
 /* ===== HEADER ===== */
 .portal-header {
+  flex-shrink: 0;
+  height: 72px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  margin-bottom: var(--space-6);
+  margin-bottom: 0;
 }
 
 .portal-kicker {
@@ -602,15 +623,26 @@
 
 @media (max-width: 768px) {
   .portal-shell {
-    padding: var(--space-4);
+    position: relative;
+    width: 100%;
+    height: auto;
+    min-height: 100vh;
+    inset: auto;
+    overflow: visible;
   }
 
   .portal-body {
-    grid-template-columns: 1fr;
+    display: block;
+    min-height: auto;
   }
 
   .portal-sidebar {
     display: none;
+  }
+
+  .portal-content {
+    padding: 1rem;
+    overflow: visible;
   }
 
   .portal-tabs-mobile {

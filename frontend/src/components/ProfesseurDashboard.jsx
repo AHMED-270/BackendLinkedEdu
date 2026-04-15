@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { LayoutDashboard, Calendar, Users, Star, FileText, MessageCircle, Settings, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import "./ProfesseurDashboard.css";
 
@@ -68,7 +68,7 @@ export default function ProfesseurDashboard({ user, onLogout }) {
           {menuItems.map(item => (
             <button
               key={item.name}
-              className={\prof-nav-item \\}
+              className={`prof-nav-item ${activeMenu === item.name ? 'active' : ''}`}
               onClick={() => setActiveMenu(item.name)}
             >
               <span className="nav-icon">{item.icon}</span>
@@ -108,7 +108,7 @@ export default function ProfesseurDashboard({ user, onLogout }) {
                 {/* Header Row */}
                 <div className="sg-corner"></div>
                 {weekDays.map(day => (
-                  <div key={day} className={\sg-header-day \\}>
+                  <div key={day} className={`sg-header-day ${day === 'Mercredi' ? 'today' : ''}`}>
                     {day}
                   </div>
                 ))}
@@ -120,9 +120,9 @@ export default function ProfesseurDashboard({ user, onLogout }) {
                     {weekDays.map((day) => {
                       const slot = mockWeekSchedule[time]?.[day];
                       return (
-                        <div key={\\-\\} className={\sg-cell \\}>
+                        <div key={`${time}-${day}`} className={`sg-cell ${slot ? 'has-course' : ''}`}>
                           {slot && (
-                            <div className={\course-card \\}>
+                            <div className={`course-card ${slot.status === 'en-cours' ? 'en-cours' : ''}`}>
                               <div className="course-accent"></div>
                               <div className="course-details">
                                 {slot.status === 'en-cours' && <span className="badge-en-cours">En cours</span>}
@@ -149,3 +149,5 @@ export default function ProfesseurDashboard({ user, onLogout }) {
     </div>
   );
 }
+
+

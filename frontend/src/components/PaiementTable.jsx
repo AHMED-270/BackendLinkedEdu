@@ -1,4 +1,4 @@
-import { CheckCircle2, XCircle, Eye, Pencil, Trash2 } from 'lucide-react';
+﻿import { CheckCircle2, XCircle, Eye, Pencil, Trash2 } from 'lucide-react';
 
 export default function PaiementTable({
   rows,
@@ -12,7 +12,7 @@ export default function PaiementTable({
 }) {
   if (loading) {
     return (
-      <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300">
         <div className="space-y-3">
           {[...Array(6)].map((_, index) => (
             <div key={`payment-skeleton-${index}`} className="h-10 animate-pulse rounded-lg bg-gray-100" />
@@ -24,7 +24,7 @@ export default function PaiementTable({
 
   if (rows.length === 0) {
     return (
-      <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center shadow-sm">
+      <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center shadow-sm backdrop-blur-sm focus:ring-2 focus:ring-blue-600/40 focus:border-blue-600 border-white/60 transition-all duration-300">
         <h3 className="text-lg font-semibold text-gray-700">Aucun eleve trouve</h3>
         <p className="mt-2 text-sm text-gray-500">
           Essayez un autre filtre de classe, une autre recherche, ou ajoutez des eleves.
@@ -128,3 +128,5 @@ export default function PaiementTable({
     </div>
   );
 }
+
+

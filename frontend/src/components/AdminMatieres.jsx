@@ -684,8 +684,8 @@ export default function AdminMatieres({ userRole = 'admin' }) {
 
   if (userRole !== 'admin') {
     return (
-      <div className="min-h-screen p-6 bg-[#f5f7fb]">
-        <div className="max-w-4xl mx-auto bg-white border border-gray-100 rounded-2xl shadow-sm p-8 text-gray-600 font-medium">
+      <div className="min-h-screen p-6">
+        <div className="max-w-4xl mx-auto premium-stat text-slate-600 font-medium">
           Acces reserve a l'administrateur.
         </div>
       </div>
@@ -693,34 +693,34 @@ export default function AdminMatieres({ userRole = 'admin' }) {
   }
 
   return (
-    <div className="min-h-screen p-4 lg:p-8 bg-[#f5f7fb]">
+    <div className="space-y-8">
       <div className="max-w-[1400px] mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
           <div>
-            <h1 className="mt-1 flex items-center gap-2 text-4xl lg:text-5xl font-extrabold italic tracking-tight text-slate-900">
-              <BiSolidUserDetail className="text-blue-600" />
-              Gestion des Matieres
-            </h1>
-            <p className="text-slate-500 mt-2">Creer, modifier et supprimer les matieres de l'etablissement.</p>
-          </div>
-          <button
-            type="button"
-            onClick={openCreateForm}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#2563eb] text-white font-semibold rounded-xl shadow-sm hover:bg-[#1d4ed8] transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-          >
-            <Plus className="w-4 h-4" />
-            Ajouter une Matiere
-          </button>
+            <h1 className="text-3xl font-extrabold bg-gradient-to-r from-brand-navy to-brand-teal bg-clip-text text-transparent tracking-tight flex items-center gap-3">
+            <BiSolidUserDetail className="text-brand-teal" size={28} />
+            Gestion des Matières
+          </h1>
+          <p className="text-slate-500 mt-2 text-sm font-medium">Créer, modifier et supprimer les matières de l'établissement.</p>
+        </div>
+        <button
+          type="button"
+          onClick={openCreateForm}
+          className="premium-btn-primary"
+        >
+          <Plus className="w-4 h-4" />
+          Ajouter une Matière
+        </button>
         </div>
 
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-          <div className="px-6 py-5 border-b border-gray-100 flex flex-col xl:flex-row xl:items-center justify-between gap-3 bg-gray-50/60">
+        <div className="premium-stat !p-0 overflow-hidden">
+          <div className="px-6 py-5 border-b border-white/40 flex flex-col xl:flex-row xl:items-center justify-between gap-3 bg-white/30 backdrop-blur-sm">
             <h2 className="text-sm font-semibold text-gray-700">Toutes les matieres ({filteredMatieres.length})</h2>
             <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
               <select
                 value={selectedLevel}
                 onChange={(e) => setSelectedLevel(e.target.value)}
-                className="block w-full sm:w-48 pl-3 pr-10 py-2 border border-gray-200 rounded-xl leading-5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
+                className="premium-select w-full sm:w-48"
               >
                 {levelFilterOptions.map((option) => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -735,7 +735,7 @@ export default function AdminMatieres({ userRole = 'admin' }) {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Rechercher nom..."
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
+                  className="premium-input !pl-11"
                 />
               </div>
             </div>
@@ -835,7 +835,7 @@ export default function AdminMatieres({ userRole = 'admin' }) {
 
       {viewTarget && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+          <div className="bg-white/30 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-900">Voir Matiere</h3>
               <button
@@ -882,7 +882,7 @@ export default function AdminMatieres({ userRole = 'admin' }) {
 
       {deleteTarget && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+          <div className="bg-white/30 rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
             <div className="p-6 text-center">
               <div className="w-16 h-16 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
                 <Trash2 size={32} />
@@ -917,7 +917,7 @@ export default function AdminMatieres({ userRole = 'admin' }) {
 
       {editTarget && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden">
+          <div className="bg-white/30 rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-900">Modifier Matiere</h3>
               <button
@@ -1092,7 +1092,7 @@ export default function AdminMatieres({ userRole = 'admin' }) {
 
       {showForm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden">
+          <div className="bg-white/30 rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-900">Nouvelle Matiere</h3>
               <button

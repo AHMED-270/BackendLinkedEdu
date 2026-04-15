@@ -1,4 +1,4 @@
-import { Search, Filter, CalendarDays } from 'lucide-react';
+﻿import { Search, Filter, CalendarDays } from 'lucide-react';
 
 export default function FilterClasse({
   classes,
@@ -18,7 +18,7 @@ export default function FilterClasse({
           value={searchValue}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder="Rechercher un eleve..."
-          className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-3 text-sm text-gray-700 shadow-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
+          className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-3 text-sm text-gray-700 shadow-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-brand-teal/20 backdrop-blur-xl border border-white/80 !shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(41,107,116,0.06)] transition-all duration-300"
         />
       </div>
 
@@ -27,7 +27,7 @@ export default function FilterClasse({
         <select
           value={classValue}
           onChange={(event) => onClassChange(event.target.value)}
-          className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-3 text-sm font-medium text-gray-700 shadow-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
+          className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-3 text-sm font-medium text-gray-700 shadow-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-brand-teal/20 backdrop-blur-xl border border-white/80 !shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(41,107,116,0.06)] transition-all duration-300"
         >
           <option value="all">Toutes les classes</option>
           {classes.map((classe) => (
@@ -46,9 +46,14 @@ export default function FilterClasse({
           max="2100"
           value={annee}
           onChange={(event) => onAnneeChange(event.target.value)}
-          className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-3 text-sm font-medium text-gray-700 shadow-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
+          className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-3 text-sm font-medium text-gray-700 shadow-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-brand-teal/20 backdrop-blur-xl border border-white/80 !shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(41,107,116,0.06)] transition-all duration-300"
         />
       </div>
     </div>
   );
 }
+
+
+
+
+

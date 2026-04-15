@@ -1,17 +1,19 @@
-﻿import React from 'react';
+import React from 'react';
+import { FiGrid, FiUsers, FiBookOpen, FiAlertTriangle, FiFileText, FiFlag, FiCalendar, FiChevronRight, FiLogOut } from 'react-icons/fi';
+import logo from '../assets/images/linkedu-logo.png';
 
 const menuItems = [
-  { name: 'Tableau de bord', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg> },
-  { name: 'Liste des Professeurs', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> },
-  { name: 'Liste des Etudiants', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg> },
-  { name: 'Liste des Classes', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg> },
-  { name: 'Reclamations', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> },
-  { name: 'Notes & Examens', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> },
-  { name: 'Annonces', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg> },
-  { name: 'Emploi du temps', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> },
+  { name: 'Tableau de bord', icon: FiGrid },
+  { name: 'Liste des Professeurs', icon: FiUsers },
+  { name: 'Liste des Etudiants', icon: FiBookOpen },
+  { name: 'Liste des Classes', icon: FiBookOpen },
+  { name: 'Reclamations', icon: FiAlertTriangle },
+  { name: 'Notes & Examens', icon: FiFileText },
+  { name: 'Annonces', icon: FiFlag },
+  { name: 'Emploi du temps', icon: FiCalendar },
 ];
 
-function DirectorSidebar({ user, activeMenu, setActiveMenu }) {
+function DirectorSidebar({ user, activeMenu, setActiveMenu, onRequestLogout, isLoggingOut = false }) {
   const fullName = `${String(user?.prenom || '').trim()} ${String(user?.nom || '').trim()}`.trim()
     || String(user?.name || '').trim()
     || 'Directeur';
@@ -38,28 +40,76 @@ function DirectorSidebar({ user, activeMenu, setActiveMenu }) {
   })();
 
   return (
-    <aside className="director-sidebar">
-      <div className="director-sidebar-profile">
-        <div className="director-sidebar-avatar">{initials}</div>
-        <div className="director-sidebar-user">
-          <strong>{fullName}</strong>
-          <p>{String(user?.role || 'directeur')}</p>
+    <aside className="flex h-full flex-col">
+      {/* Logo */}
+      <div className="flex items-center justify-center py-6 mb-2">
+        <div className="relative group cursor-pointer">
+          <div className="absolute inset-0 bg-brand-teal/20 blur-2xl rounded-full group-hover:bg-brand-teal/40 transition-all duration-700" />
+          <img src={logo} alt="LinkEdu" className="h-9 w-auto relative z-10 drop-shadow-xl transition-transform duration-500 group-hover:scale-110" />
         </div>
       </div>
 
-      <nav>
-        {menuItems.map((item) => (
-          <button
-            key={item.name}
-            type="button"
-            className={`side-link ${activeMenu === item.name ? 'is-active' : ''}`}
-            onClick={() => setActiveMenu(item.name)}
-          >
-            <span className="side-icon">{item.icon}</span>
-            <span>{item.name}</span>
-          </button>
-        ))}
+      {/* User profile card */}
+      <div className="px-3 mb-6">
+        <div className="rounded-[1.5rem] border border-white/60 bg-white/40 p-4 backdrop-blur-md shadow-glass-sm group hover:bg-white/60 transition-all duration-500">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-brand-navy to-brand-teal flex items-center justify-center text-white font-bold shadow-premium ring-2 ring-white transition-transform group-hover:rotate-3">
+                {initials}
+              </div>
+              <div className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500 animate-pulse-glow shadow-sm" />
+            </div>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-black text-brand-navy tracking-tight">{fullName}</div>
+              <span className="text-[9px] font-black uppercase tracking-[0.15em] text-brand-teal/70">
+                Direction
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation label */}
+      <div className="px-5 mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Navigation</div>
+
+      {/* Nav items */}
+      <nav className="flex-1 space-y-1 px-2 overflow-y-auto custom-scrollbar">
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeMenu === item.name;
+          return (
+            <button
+              key={item.name}
+              type="button"
+              onClick={() => setActiveMenu(item.name)}
+              className={`group relative flex w-full items-center gap-3.5 rounded-2xl px-4 py-3 text-sm font-bold transition-all duration-300 ${
+                isActive
+                  ? 'bg-brand-navy text-white shadow-premium'
+                  : 'text-slate-500 hover:bg-white/50 hover:text-brand-navy'
+              }`}
+            >
+              <Icon size={18} className={`${isActive ? 'text-brand-teal' : 'text-slate-400 group-hover:text-brand-teal'} transition-colors duration-300`} />
+              <span className="flex-1 tracking-tight text-left">{item.name}</span>
+              {isActive ? (
+                <div className="h-1.5 w-1.5 rounded-full bg-brand-teal shadow-glow" />
+              ) : (
+                <FiChevronRight className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-slate-300" size={14} />
+              )}
+            </button>
+          );
+        })}
       </nav>
+
+      <div className="p-3 mt-auto">
+        <button
+          onClick={() => onRequestLogout && onRequestLogout()}
+          disabled={isLoggingOut}
+          className="flex w-full items-center justify-center gap-3 rounded-[1.4rem] bg-red-50/50 px-4 py-3.5 text-sm font-bold text-red-500 border border-red-100/50 transition-all hover:bg-red-50 hover:shadow-md active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed group"
+        >
+          <FiLogOut size={18} className="group-hover:rotate-12 transition-transform" />
+          <span>Quitter LinkEdu</span>
+        </button>
+      </div>
     </aside>
   );
 }
