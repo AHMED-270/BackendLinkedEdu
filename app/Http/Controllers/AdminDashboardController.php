@@ -381,7 +381,8 @@ class AdminDashboardController extends Controller
                 'own_professeur.matiere_enseignement',
                 'own_professeur.matieres_enseignement',
                 'own_professeur.niveau_enseignement',
-                DB::raw("TRIM(CONCAT(COALESCE(classes.nom, ''), CASE WHEN classes.niveau IS NOT NULL AND classes.niveau <> '' THEN CONCAT(' - ', classes.niveau) ELSE '' END)) as classe"),
+                'classes.nom as classe_nom',
+                'classes.niveau as classe_niveau',
                 'parent_user.email as parent_email'
             )
             ->leftJoin('etudiants', 'users.id', '=', 'etudiants.id_etudiant')
@@ -410,6 +411,21 @@ class AdminDashboardController extends Controller
             if (!empty($subjects) && empty($user->matiere_enseignement)) {
                 $user->matiere_enseignement = $subjects[0];
             }
+
+            $classeName = trim((string) ($user->classe_nom ?? ''));
+            $classeNiveau = trim((string) ($user->classe_niveau ?? ''));
+
+            if ($classeName === '' && $classeNiveau === '') {
+                $user->classe = '';
+            } elseif ($classeName === '') {
+                $user->classe = $classeNiveau;
+            } elseif ($classeNiveau === '') {
+                $user->classe = $classeName;
+            } else {
+                $user->classe = $classeName . ' - ' . $classeNiveau;
+            }
+
+            unset($user->classe_nom, $user->classe_niveau);
 
             return $user;
         });
@@ -740,114 +756,118 @@ class AdminDashboardController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $classes = DB::table('classes')
+        $rows = DB::table('classes')
             ->leftJoin('etudiants', 'classes.id_classe', '=', 'etudiants.id_classe')
             ->leftJoin('users as etudiant_user', 'etudiants.id_etudiant', '=', 'etudiant_user.id')
             ->leftJoin('classe_professeur_assignments as cpa', 'classes.id_classe', '=', 'cpa.id_classe')
-            ->leftJoin('enseigner as ens', function ($join) {
-                $join->on('classes.id_classe', '=', 'ens.id_classe')
-                    ->on('cpa.id_professeur', '=', 'ens.id_professeur');
-            })
             ->leftJoin('users as professeur_user', function ($join) {
                 $join->on('cpa.id_professeur', '=', 'professeur_user.id')
                     ->where('professeur_user.role', '=', 'professeur');
             })
             ->leftJoin('professeurs as professeur_data', 'cpa.id_professeur', '=', 'professeur_data.id_professeur')
+            ->leftJoin('enseigner as ens', function ($join) {
+                $join->on('classes.id_classe', '=', 'ens.id_classe')
+                    ->on('cpa.id_professeur', '=', 'ens.id_professeur');
+            })
             ->select(
                 'classes.id_classe',
                 'classes.nom',
                 'classes.niveau',
                 'classes.filiere',
                 'classes.pricing',
-                DB::raw('COUNT(DISTINCT etudiants.id_etudiant) as students_count'),
-                DB::raw('COUNT(DISTINCT professeur_user.id) as professeurs_count'),
-                DB::raw("GROUP_CONCAT(DISTINCT professeur_user.name ORDER BY professeur_user.id SEPARATOR '||') as professeurs_names"),
-                DB::raw("GROUP_CONCAT(DISTINCT professeur_user.id ORDER BY professeur_user.id SEPARATOR ',') as professeurs_ids"),
-                DB::raw("GROUP_CONCAT(DISTINCT COALESCE(professeur_data.telephone, '') ORDER BY professeur_user.id SEPARATOR '||') as professeurs_telephones"),
-                DB::raw("GROUP_CONCAT(DISTINCT CONCAT(COALESCE(ens.id_professeur, ''), ':', COALESCE(ens.id_matiere, '')) ORDER BY ens.id_professeur, ens.id_matiere SEPARATOR ',') as professeur_matiere_pairs"),
-                DB::raw("GROUP_CONCAT(DISTINCT etudiant_user.id ORDER BY etudiant_user.id SEPARATOR ',') as etudiants_ids"),
-                DB::raw("GROUP_CONCAT(DISTINCT etudiant_user.name ORDER BY etudiant_user.id SEPARATOR '||') as etudiants_names"),
-                DB::raw("GROUP_CONCAT(DISTINCT COALESCE(etudiants.matricule, '') ORDER BY etudiant_user.id SEPARATOR '||') as etudiants_matricules")
+                'etudiants.id_etudiant',
+                'etudiants.matricule',
+                'etudiant_user.name as etudiant_name',
+                'professeur_user.id as professeur_id',
+                'professeur_user.name as professeur_name',
+                'professeur_data.telephone as professeur_telephone',
+                'ens.id_matiere as matiere_id'
             )
-            ->groupBy('classes.id_classe', 'classes.nom', 'classes.niveau', 'classes.filiere', 'classes.pricing')
             ->orderBy('classes.niveau')
+            ->orderBy('classes.id_classe')
             ->get();
 
-        $classes = $classes->map(function ($classe) {
-            $names = $classe->professeurs_names
-                ? array_values(array_filter(explode('||', $classe->professeurs_names)))
-                : [];
+        $classesById = [];
 
-            $ids = $classe->professeurs_ids
-                ? array_values(array_map('intval', array_filter(explode(',', $classe->professeurs_ids))))
-                : [];
+        foreach ($rows as $row) {
+            $classId = (int) $row->id_classe;
 
-            $telephones = $classe->professeurs_telephones
-                ? array_values(explode('||', $classe->professeurs_telephones))
-                : [];
-
-            $professeursDetails = [];
-            foreach ($ids as $index => $idProfesseur) {
-                $professeursDetails[] = [
-                    'id' => $idProfesseur,
-                    'name' => $names[$index] ?? null,
-                    'telephone' => !empty($telephones[$index]) ? $telephones[$index] : null,
+            if (!isset($classesById[$classId])) {
+                $classesById[$classId] = [
+                    'id_classe' => $classId,
+                    'nom' => $row->nom,
+                    'niveau' => $row->niveau,
+                    'filiere' => $row->filiere,
+                    'pricing' => (float) ($row->pricing ?? 0),
+                    'students_count' => 0,
+                    'professeurs_count' => 0,
+                    'professeurs_names' => [],
+                    'professeurs_ids' => [],
+                    'professeurs_details' => [],
+                    'professeur_matieres' => [],
+                    'effectif_details' => [],
+                    '_student_map' => [],
+                    '_prof_map' => [],
                 ];
             }
 
-            $professeurMatieres = [];
-            if (!empty($classe->professeur_matiere_pairs)) {
-                foreach (explode(',', $classe->professeur_matiere_pairs) as $pair) {
-                    [$idProfesseur, $idMatiere] = array_pad(explode(':', $pair, 2), 2, null);
-                    $idProfesseur = (int) $idProfesseur;
-                    $idMatiere = (int) $idMatiere;
+            if (!empty($row->id_etudiant)) {
+                $studentId = (int) $row->id_etudiant;
 
-                    if ($idProfesseur <= 0 || $idMatiere <= 0) {
-                        continue;
-                    }
-
-                    if (!array_key_exists($idProfesseur, $professeurMatieres)) {
-                        $professeurMatieres[$idProfesseur] = [];
-                    }
-
-                    if (!in_array($idMatiere, $professeurMatieres[$idProfesseur], true)) {
-                        $professeurMatieres[$idProfesseur][] = $idMatiere;
-                    }
+                if (!isset($classesById[$classId]['_student_map'][$studentId])) {
+                    $classesById[$classId]['_student_map'][$studentId] = [
+                        'id' => $studentId,
+                        'name' => $row->etudiant_name,
+                        'matricule' => !empty($row->matricule) ? $row->matricule : null,
+                    ];
                 }
             }
 
-            $etudiantIds = $classe->etudiants_ids
-                ? array_values(array_map('intval', array_filter(explode(',', $classe->etudiants_ids))))
-                : [];
+            if (!empty($row->professeur_id)) {
+                $professeurId = (int) $row->professeur_id;
 
-            $etudiantNames = $classe->etudiants_names
-                ? array_values(array_filter(explode('||', $classe->etudiants_names)))
-                : [];
+                if (!isset($classesById[$classId]['_prof_map'][$professeurId])) {
+                    $classesById[$classId]['_prof_map'][$professeurId] = [
+                        'id' => $professeurId,
+                        'name' => $row->professeur_name,
+                        'telephone' => !empty($row->professeur_telephone) ? $row->professeur_telephone : null,
+                    ];
+                }
 
-            $etudiantMatricules = $classe->etudiants_matricules
-                ? array_values(explode('||', $classe->etudiants_matricules))
-                : [];
+                if (!isset($classesById[$classId]['professeur_matieres'][$professeurId])) {
+                    $classesById[$classId]['professeur_matieres'][$professeurId] = [];
+                }
 
-            $effectifDetails = [];
-            foreach ($etudiantIds as $index => $idEtudiant) {
-                $effectifDetails[] = [
-                    'id' => $idEtudiant,
-                    'name' => $etudiantNames[$index] ?? null,
-                    'matricule' => !empty($etudiantMatricules[$index]) ? $etudiantMatricules[$index] : null,
-                ];
+                $matiereId = (int) ($row->matiere_id ?? 0);
+                if ($matiereId > 0 && !in_array($matiereId, $classesById[$classId]['professeur_matieres'][$professeurId], true)) {
+                    $classesById[$classId]['professeur_matieres'][$professeurId][] = $matiereId;
+                }
             }
+        }
 
-            $classe->professeurs_names = $names;
-            $classe->professeurs_ids = $ids;
-            $classe->professeurs_details = $professeursDetails;
-            $classe->professeur_matieres = $professeurMatieres;
-            $classe->effectif_details = $effectifDetails;
-            $classe->pricing = (float) ($classe->pricing ?? 0);
+        $classes = [];
 
-            unset($classe->professeurs_telephones, $classe->professeur_matiere_pairs, $classe->etudiants_ids, $classe->etudiants_names, $classe->etudiants_matricules);
+        foreach ($classesById as $classData) {
+            $classData['effectif_details'] = array_values($classData['_student_map']);
+            $classData['students_count'] = count($classData['effectif_details']);
 
-            return $classe;
-        });
+            $classData['professeurs_details'] = array_values($classData['_prof_map']);
+            $classData['professeurs_count'] = count($classData['professeurs_details']);
+
+            $classData['professeurs_ids'] = array_values(array_map(
+                'intval',
+                array_keys($classData['_prof_map'])
+            ));
+
+            $classData['professeurs_names'] = array_values(array_map(
+                static fn (array $professeur) => $professeur['name'],
+                $classData['professeurs_details']
+            ));
+
+            unset($classData['_student_map'], $classData['_prof_map']);
+
+            $classes[] = $classData;
+        }
 
         return response()->json($classes);
     }
