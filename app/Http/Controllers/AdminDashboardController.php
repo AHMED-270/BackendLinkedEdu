@@ -13,6 +13,7 @@ use App\Models\Matiere;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -136,47 +137,42 @@ class AdminDashboardController extends Controller
             DB::commit();
 
             $mailWarnings = [];
-            if (! $this->isMailDeliveryConfigured()) {
-                $mailWarnings[] = $this->mailSetupWarningMessage('Email cadre', false);
-            } else {
-                try {
-                    if (! $user->email) {
-                        throw new \RuntimeException('Email cadre manquant.');
-                    }
-
-                    $roleLabel = match ($validated['role']) {
-                        'secretaire' => 'Secretaire',
-                        'professeur' => 'Professeur',
-                        'directeur' => 'Directeur',
-                        'comptable' => 'Comptable',
-                        default => ucfirst((string) $validated['role']),
-                    };
-
-                    $mailHtml = $this->buildAccountCreationEmailHtml([
-                        'role_label' => $roleLabel,
-                        'name' => (string) ($user->name ?? ''),
-                        'nom' => (string) ($user->nom ?? ''),
-                        'prenom' => (string) ($user->prenom ?? ''),
-                        'email' => (string) ($user->email ?? ''),
-                        'password' => $generatedPassword,
-                        'login_url' => $this->resolveFrontendLoginUrl(),
-                    ]);
-
-                    Mail::send([], [], function ($message) use ($user, $roleLabel, $mailHtml) {
-                        $message->to($user->email)
-                            ->subject("Identifiants {$roleLabel} - LinkEdu")
-                            ->from(config('mail.from.address'), config('mail.from.name'));
-
-                        $message->html($mailHtml);
-                    });
-                } catch (\Throwable $e) {
-                    \Log::warning('Account creation email failed', [
-                        'email' => $user->email,
-                        'error' => $e->getMessage(),
-                    ]);
-
-                    $mailWarnings[] = 'Email cadre non envoye: service email temporairement indisponible.';
+            try {
+                if (! $user->email) {
+                    throw new \RuntimeException('Email cadre manquant.');
                 }
+
+                $roleLabel = match ($validated['role']) {
+                    'secretaire' => 'Secretaire',
+                    'professeur' => 'Professeur',
+                    'directeur' => 'Directeur',
+                    'comptable' => 'Comptable',
+                    default => ucfirst((string) $validated['role']),
+                };
+
+                $mailHtml = $this->buildAccountCreationEmailHtml([
+                    'role_label' => $roleLabel,
+                    'name' => (string) ($user->name ?? ''),
+                    'nom' => (string) ($user->nom ?? ''),
+                    'prenom' => (string) ($user->prenom ?? ''),
+                    'email' => (string) ($user->email ?? ''),
+                    'password' => $generatedPassword,
+                    'login_url' => $this->resolveFrontendLoginUrl(),
+                ]);
+
+                $this->sendEmailWithFallback(
+                    (string) $user->email,
+                    "Identifiants {$roleLabel} - LinkEdu",
+                    $mailHtml,
+                    trim(strip_tags($mailHtml))
+                );
+            } catch (\Throwable $e) {
+                \Log::warning('Account creation email failed', [
+                    'email' => $user->email,
+                    'error' => $e->getMessage(),
+                ]);
+
+                $mailWarnings[] = 'Email cadre non envoye: service email temporairement indisponible.';
             }
 
             return response()->json([
@@ -498,60 +494,52 @@ class AdminDashboardController extends Controller
         $studentFullName = trim(($studentUser->prenom ?? '') . ' ' . ($studentUser->nom ?? ''));
         $parentFullName = trim(($parentUser->prenom ?? '') . ' ' . ($parentUser->nom ?? ''));
 
-        if (! $this->isMailDeliveryConfigured()) {
-            \Log::warning('Activation emails skipped: mail delivery is not configured properly.');
-        } else {
-            try {
-                if (! $studentUser->email) {
-                    throw new \RuntimeException('Email eleve manquant.');
-                }
-
-                $studentMailBody = "Bonjour {$studentFullName},\n\n"
-                    . "Votre compte eleve LinkEdu est active.\n"
-                    . "Email: {$studentUser->email}\n"
-                    . "Mot de passe: {$studentPassword}\n\n"
-                    . "Lien de connexion: " . (config('app.frontend_url') ?: 'http://localhost:5173') . "/login\n\n";
-
-                Mail::raw(
-                    $studentMailBody,
-                    function ($message) use ($studentUser) {
-                        $message->to($studentUser->email)
-                            ->subject('Activation compte Eleve - LinkEdu')
-                            ->from(config('mail.from.address'), config('mail.from.name'));
-                    }
-                );
-            } catch (\Throwable $e) {
-                \Log::warning('Student activation email failed', [
-                    'email' => $studentUser->email,
-                    'error' => $e->getMessage(),
-                ]);
+        try {
+            if (! $studentUser->email) {
+                throw new \RuntimeException('Email eleve manquant.');
             }
 
-            try {
-                if (! $parentUser->email) {
-                    throw new \RuntimeException('Email parent manquant.');
-                }
+            $studentMailBody = "Bonjour {$studentFullName},\n\n"
+                . "Votre compte eleve LinkEdu est active.\n"
+                . "Email: {$studentUser->email}\n"
+                . "Mot de passe: {$studentPassword}\n\n"
+                . "Lien de connexion: " . (config('app.frontend_url') ?: 'http://localhost:5173') . "/login\n\n";
 
-                $parentMailBody = "Bonjour {$parentFullName},\n\n"
-                    . "Votre compte parent LinkEdu est active.\n"
-                    . "Email: {$parentUser->email}\n"
-                    . "Mot de passe: {$parentPassword}\n\n"
-                    . "Lien de connexion: " . (config('app.frontend_url') ?: 'http://localhost:5173') . "/login\n\n";
+            $this->sendEmailWithFallback(
+                (string) $studentUser->email,
+                'Activation compte Eleve - LinkEdu',
+                null,
+                $studentMailBody
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('Student activation email failed', [
+                'email' => $studentUser->email,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
-                Mail::raw(
-                    $parentMailBody,
-                    function ($message) use ($parentUser) {
-                        $message->to($parentUser->email)
-                            ->subject('Activation compte Parent - LinkEdu')
-                            ->from(config('mail.from.address'), config('mail.from.name'));
-                    }
-                );
-            } catch (\Throwable $e) {
-                \Log::warning('Parent activation email failed', [
-                    'email' => $parentUser->email,
-                    'error' => $e->getMessage(),
-                ]);
+        try {
+            if (! $parentUser->email) {
+                throw new \RuntimeException('Email parent manquant.');
             }
+
+            $parentMailBody = "Bonjour {$parentFullName},\n\n"
+                . "Votre compte parent LinkEdu est active.\n"
+                . "Email: {$parentUser->email}\n"
+                . "Mot de passe: {$parentPassword}\n\n"
+                . "Lien de connexion: " . (config('app.frontend_url') ?: 'http://localhost:5173') . "/login\n\n";
+
+            $this->sendEmailWithFallback(
+                (string) $parentUser->email,
+                'Activation compte Parent - LinkEdu',
+                null,
+                $parentMailBody
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('Parent activation email failed', [
+                'email' => $parentUser->email,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         return response()->json([
@@ -708,41 +696,81 @@ class AdminDashboardController extends Controller
                 return $frontend . '/login';
         }
 
-            private function isMailDeliveryConfigured(): bool
-            {
-                $mailer = strtolower(trim((string) config('mail.default', '')));
+    private function sendEmailWithFallback(string $to, string $subject, ?string $htmlBody = null, ?string $textBody = null): void
+    {
+        $textBody = $textBody ?? '';
 
-                if ($mailer === '' || in_array($mailer, ['log', 'array'], true)) {
-                    return false;
-                }
+        try {
+            if ($htmlBody !== null && trim($htmlBody) !== '') {
+                Mail::send([], [], function ($message) use ($to, $subject, $htmlBody) {
+                    $message->to($to)
+                        ->subject($subject)
+                        ->from(config('mail.from.address'), config('mail.from.name'));
 
-                if ($mailer !== 'smtp') {
-                    return true;
-                }
-
-                $host = strtolower(trim((string) config('mail.mailers.smtp.host', '')));
-                $port = (int) config('mail.mailers.smtp.port', 0);
-                $username = trim((string) config('mail.mailers.smtp.username', ''));
-                $password = trim((string) config('mail.mailers.smtp.password', ''));
-                $fromAddress = trim((string) config('mail.from.address', ''));
-
-                if ($host === '' || $port <= 0 || $username === '' || $password === '' || $fromAddress === '') {
-                    return false;
-                }
-
-                if (app()->environment('production') && in_array($host, ['127.0.0.1', 'localhost'], true)) {
-                    return false;
-                }
-
-                return true;
+                    $message->html($htmlBody);
+                });
+            } else {
+                Mail::raw($textBody, function ($message) use ($to, $subject) {
+                    $message->to($to)
+                        ->subject($subject)
+                        ->from(config('mail.from.address'), config('mail.from.name'));
+                });
             }
 
-            private function mailSetupWarningMessage(string $scope, bool $plural): string
-            {
-                $status = $plural ? 'non envoyes' : 'non envoye';
+            return;
+        } catch (\Throwable $smtpException) {
+            \Log::warning('Primary mail transport failed, trying Resend fallback', [
+                'to' => $to,
+                'subject' => $subject,
+                'error' => $smtpException->getMessage(),
+            ]);
+        }
 
-                return $scope . ' ' . $status . ': configurez MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD et MAIL_FROM_ADDRESS dans Laravel Cloud.';
-            }
+        if ($this->sendEmailViaResend($to, $subject, $htmlBody, $textBody)) {
+            return;
+        }
+
+        throw new \RuntimeException('Service e-mail indisponible sur tous les canaux.');
+    }
+
+    private function sendEmailViaResend(string $to, string $subject, ?string $htmlBody, string $textBody): bool
+    {
+        $apiKey = trim((string) config('services.resend.key', ''));
+        $from = trim((string) (env('RESEND_FROM') ?: config('mail.from.address', '')));
+
+        if ($apiKey === '' || $from === '') {
+            return false;
+        }
+
+        $html = trim((string) ($htmlBody ?? ''));
+        $text = trim($textBody);
+
+        if ($text === '') {
+            $text = trim(strip_tags($html));
+        }
+
+        try {
+            $response = Http::withToken($apiKey)
+                ->acceptJson()
+                ->post('https://api.resend.com/emails', [
+                    'from' => $from,
+                    'to' => [$to],
+                    'subject' => $subject,
+                    'html' => $html !== '' ? $html : null,
+                    'text' => $text !== '' ? $text : null,
+                ]);
+
+            return $response->successful();
+        } catch (\Throwable $exception) {
+            \Log::warning('Resend fallback failed', [
+                'to' => $to,
+                'subject' => $subject,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
 
         private function buildAccountCreationEmailHtml(array $data): string
         {
