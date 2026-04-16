@@ -38,8 +38,6 @@ class PasswordResetLinkController extends Controller
         }
 
         $temporaryPassword = $this->generateTemporaryPassword();
-        $oldPassword = (string) $user->password;
-        $oldRememberToken = $user->remember_token;
 
         $user->password = Hash::make($temporaryPassword);
         $user->remember_token = Str::random(60);
@@ -84,18 +82,14 @@ class PasswordResetLinkController extends Controller
                 'message' => 'Service e-mail indisponible pour le moment. Nouveau mot de passe temporaire: ' . $temporaryPassword,
             ]);
         } catch (\Throwable $exception) {
-            $user->password = $oldPassword;
-            $user->remember_token = $oldRememberToken;
-            $user->save();
-
             \Log::error('Password reset email delivery failed', [
                 'message' => $exception->getMessage(),
             ]);
 
             return response()->json([
-                'status' => 'error',
-                'message' => 'Service e-mail temporairement indisponible. Reessayez plus tard.',
-            ], 503);
+                'status' => 'ok',
+                'message' => 'Service e-mail indisponible pour le moment. Nouveau mot de passe temporaire: ' . $temporaryPassword,
+            ]);
         }
     }
 
