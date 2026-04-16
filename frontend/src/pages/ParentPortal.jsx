@@ -464,7 +464,7 @@ export default function ParentPortal() {
           <div className="flex items-center justify-center py-8 mb-2 relative z-10">
             <div className="relative group cursor-pointer">
               <div className="absolute inset-0 bg-brand-teal/20 blur-2xl rounded-full group-hover:bg-brand-teal/40 transition-all duration-700" />
-              <img src={logo} alt="LinkEdu" className="h-10 w-auto relative z-10 drop-shadow-xl transition-transform duration-500 group-hover:scale-110" />
+              <img src={logo} alt="LinkEdu" className="h-16 w-auto relative z-10 drop-shadow-xl transition-transform duration-500 group-hover:scale-110" />
             </div>
           </div>
 
@@ -517,7 +517,7 @@ export default function ParentPortal() {
 
         <main className="flex-1 flex flex-col overflow-hidden relative z-10">
           <header className="h-[72px] flex-shrink-0 z-40">
-            <Header variant="shell" profileRouteOverride="/parent" />
+            <Header variant="shell" profileRouteOverride="/parent" onProfileClick={() => setActiveTab('profil')} />
           </header>
           <div className="flex-1 overflow-y-auto custom-scrollbar">
             <div className="p-6 lg:p-8 max-w-[1600px] mx-auto w-full">

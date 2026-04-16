@@ -87,7 +87,7 @@ export default function Sidebar() {
             title="Aller au tableau de bord"
           >
             <div className="absolute inset-0 bg-brand-teal/20 blur-2xl rounded-full group-hover:bg-brand-teal/40 transition-all duration-700" />
-            <img src={logo} alt="LinkEdu" className="h-10 w-auto relative z-10 drop-shadow-xl transition-transform duration-500 group-hover:scale-110" />
+            <img src={logo} alt="LinkEdu" className="h-16 w-auto relative z-10 drop-shadow-xl transition-transform duration-500 group-hover:scale-110" />
           </button>
         </div>
 

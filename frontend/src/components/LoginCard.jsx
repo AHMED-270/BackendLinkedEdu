@@ -31,25 +31,18 @@ export default function LoginCard({ onLoginSuccess }) {
 
     try {
       const performLogin = async () => {
-        // First, get the CSRF cookie from Sanctum
-        try {
-          await axios.get(apiBaseUrl + '/sanctum/csrf-cookie', {
-            withCredentials: true,
-          });
-        } catch (error) {
-          console.warn('CSRF cookie request failed, continuing anyway:', error);
-        }
+        await axios.get(apiBaseUrl + '/sanctum/csrf-cookie', {
+          withCredentials: true,
+          withXSRFToken: true,
+        });
 
-        // Then make the login request
         return axios.post(
           apiBaseUrl + '/api/login',
           { email: loginEmail.trim().toLowerCase(), password: loginPassword },
           {
             withCredentials: true,
-            headers: { 
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-            },
+            withXSRFToken: true,
+            headers: { Accept: 'application/json' },
           }
         );
       };
@@ -131,14 +124,10 @@ export default function LoginCard({ onLoginSuccess }) {
      setIsResetSent(false);
 
      try {
-       // Get CSRF cookie first
-       try {
-         await axios.get(apiBaseUrl + '/sanctum/csrf-cookie', {
-           withCredentials: true,
-         });
-       } catch (error) {
-         console.warn('CSRF cookie request failed, continuing anyway:', error);
-       }
+       await axios.get(apiBaseUrl + '/sanctum/csrf-cookie', {
+         withCredentials: true,
+         withXSRFToken: true,
+       });
 
        await axios.post(
          apiBaseUrl + '/api/forgot-password',
@@ -148,10 +137,8 @@ export default function LoginCard({ onLoginSuccess }) {
          },
          {
            withCredentials: true,
-           headers: { 
-             'Accept': 'application/json',
-             'Content-Type': 'application/json',
-           },
+           withXSRFToken: true,
+           headers: { Accept: 'application/json' },
          }
        );
 
@@ -174,7 +161,7 @@ export default function LoginCard({ onLoginSuccess }) {
            <img 
              src={logo} 
              alt="LinkEdu Logo" 
-             className="h-20 w-auto mb-2 drop-shadow-sm transition-transform hover:scale-[1.02] duration-300"
+             className="h-28 w-auto mb-2 drop-shadow-sm transition-transform hover:scale-[1.02] duration-300"
            />
            <h2 className="text-slate-600 font-medium text-lg mt-4 tracking-wide">
              {isForgotMode ? 'Mot de passe oublié ?' : 'Connectez-vous à votre espace'}

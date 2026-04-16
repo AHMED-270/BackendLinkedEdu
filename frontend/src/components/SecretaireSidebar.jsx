@@ -115,7 +115,7 @@ export default function SecretaireSidebar() {
         <div className="flex items-center justify-center py-6 mb-2">
           <div className="relative group cursor-pointer">
             <div className="absolute inset-0 bg-brand-teal/20 blur-2xl rounded-full group-hover:bg-brand-teal/40 transition-all duration-700" />
-            <img src={logo} alt="LinkEdu" className="h-9 w-auto relative z-10 drop-shadow-xl transition-transform duration-500 group-hover:scale-110" />
+            <img src={logo} alt="LinkEdu" className="h-16 w-auto relative z-10 drop-shadow-xl transition-transform duration-500 group-hover:scale-110" />
           </div>
         </div>
 

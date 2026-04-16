@@ -210,7 +210,7 @@ export default function AdminDashboard({ onLogout, userRole = 'admin', user = nu
         <div className="flex items-center justify-center py-8 mb-2 relative z-10">
           <div className="relative group cursor-pointer">
             <div className="absolute inset-0 bg-brand-teal/20 blur-2xl rounded-full group-hover:bg-brand-teal/40 transition-all duration-700" />
-            <img src={logo} alt="LinkEdu" className="h-10 w-auto relative z-10 drop-shadow-xl transition-transform duration-500 group-hover:scale-110" />
+            <img src={logo} alt="LinkEdu" className="h-16 w-auto relative z-10 drop-shadow-xl transition-transform duration-500 group-hover:scale-110" />
           </div>
         </div>
 

@@ -68,6 +68,7 @@ axios.interceptors.request.use(config => {
 
 
 axios.defaults.withCredentials = true;
+axios.defaults.withXSRFToken = true;
 axios.defaults.baseURL = resolveApiBaseUrl();
 axios.defaults.headers.common['Accept'] = 'application/json';
 

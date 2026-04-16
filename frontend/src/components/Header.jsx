@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import './Header.css';
 
-export default function Header({ variant = 'full', profileRouteOverride = '' }) {
+export default function Header({ variant = 'full', profileRouteOverride = '', onProfileClick = null }) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -17,6 +17,14 @@ export default function Header({ variant = 'full', profileRouteOverride = '' }) 
   const role = String(user?.role || '').toLowerCase();
   const isFinancePortalRole = role === 'secretaire' || role === 'comptable';
   const profileRoute = profileRouteOverride || (isFinancePortalRole ? '/secretaire/profil' : '/profil');
+
+  const handleProfileClick = () => {
+    if (onProfileClick) {
+      onProfileClick();
+    } else {
+      navigate(profileRoute);
+    }
+  };
 
   // --- LOGOUT MODAL (REDESIGN PREMIUM) ---
   const logoutModal = showLogoutAlert && typeof document !== 'undefined'
@@ -99,10 +107,10 @@ export default function Header({ variant = 'full', profileRouteOverride = '' }) 
               onClick={() => navigate('/')}
               className="group flex items-center gap-2 cursor-pointer"
             >
-              <div className="w-9 h-9 bg-gradient-to-br from-brand-teal to-brand-navy rounded-xl shadow-glow flex items-center justify-center text-white font-bold text-lg group-hover:rotate-6 transition-transform">
+              <div className="w-11 h-11 bg-gradient-to-br from-brand-teal to-brand-navy rounded-xl shadow-glow flex items-center justify-center text-white font-bold text-xl group-hover:rotate-6 transition-transform">
                 L
               </div>
-              <div className="text-2xl font-black tracking-tighter">
+              <div className="text-3xl font-black tracking-tighter">
                 <span className="text-brand-navy">Link</span>
                 <span className="text-brand-teal">Edu</span>
               </div>
@@ -130,7 +138,7 @@ export default function Header({ variant = 'full', profileRouteOverride = '' }) 
         <div className="flex items-center gap-3 shrink-0">
           {/* PROFILE PILL */}
           <button 
-            onClick={() => navigate(profileRoute)} 
+            onClick={handleProfileClick}
             className="flex items-center gap-3 p-1.5 pr-4 rounded-2xl bg-white/40 border border-white/60 hover:bg-white/80 hover:shadow-glass hover:border-brand-teal/20 transition-all duration-300 group"
           >
             <div className="relative">
