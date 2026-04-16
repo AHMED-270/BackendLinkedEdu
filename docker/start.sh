@@ -8,6 +8,9 @@ echo "Starting LinkEdu backend on port ${PORT}"
 mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache
 chmod -R ug+rwx storage bootstrap/cache || true
 
+echo "Clearing Laravel cache"
+php artisan optimize:clear >/dev/null 2>&1 || true
+
 DB_CONNECTION="${DB_CONNECTION:-sqlite}"
 
 if [ "$DB_CONNECTION" = "sqlite" ]; then
