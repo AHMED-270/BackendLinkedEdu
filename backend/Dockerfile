@@ -1,6 +1,6 @@
 FROM php:8.3-cli-alpine
 
-# System dependencies and PHP extensions required by Laravel + PostgreSQL
+# System dependencies and PHP extensions required by Laravel + SQLite
 RUN apk add --no-cache \
     bash \
     git \
@@ -9,9 +9,9 @@ RUN apk add --no-cache \
     oniguruma-dev \
     icu-dev \
     netcat-openbsd \
+    sqlite-dev \
     composer \
-    postgresql-dev \
-    && docker-php-ext-install pdo_pgsql mbstring bcmath intl zip
+    && docker-php-ext-install pdo_sqlite mbstring bcmath intl zip
 
 WORKDIR /var/www/html
 
@@ -31,6 +31,8 @@ RUN chmod +x /usr/local/bin/start.sh
 ENV APP_ENV=production \
     APP_DEBUG=false \
     PORT=8080 \
+    DB_CONNECTION=sqlite \
+    DB_DATABASE=/var/www/html/database/database.sqlite \
     RUN_MIGRATIONS=true
 
 EXPOSE 8080

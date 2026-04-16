@@ -110,4 +110,34 @@ If you keep root directory as repository root instead, set Dockerfile path expli
 - Backend: `backend/Dockerfile`
 - Frontend: `frontend/Dockerfile`
 
+## Deploy On Laravel Cloud + Vercel (SQLite)
+
+Use this setup if you want backend on Laravel Cloud and frontend on Vercel without PostgreSQL.
+
+### 1) Backend (Laravel Cloud)
+
+1. Deploy [backend](backend) as your Laravel Cloud application.
+2. Set environment variables using [backend/.env.laravel-cloud.example](backend/.env.laravel-cloud.example):
+	- `DB_CONNECTION=sqlite`
+	- `DB_DATABASE=/var/www/html/database/database.sqlite`
+	- `FRONTEND_URL=https://<your-vercel-domain>.vercel.app`
+	- `SANCTUM_STATEFUL_DOMAINS=<your-vercel-domain>.vercel.app`
+	- `SESSION_SECURE_COOKIE=true`
+	- `SESSION_SAME_SITE=none`
+3. Generate and set `APP_KEY`.
+4. Run migrations after first deploy.
+
+### 2) Frontend (Vercel)
+
+1. Deploy [frontend](frontend) as a Vercel project.
+2. Set root directory to `frontend`.
+3. Add `VITE_API_URL=https://<your-laravel-cloud-domain>` in Vercel environment variables.
+4. Ensure SPA routing rewrite exists via [frontend/vercel.json](frontend/vercel.json).
+
+### 3) Included project files for this setup
+
+- [backend/.env.laravel-cloud.example](backend/.env.laravel-cloud.example)
+- [frontend/.env.production.example](frontend/.env.production.example)
+- [frontend/vercel.json](frontend/vercel.json)
+
     
