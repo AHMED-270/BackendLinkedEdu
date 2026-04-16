@@ -1,143 +1,58 @@
-# LinkEdu
+<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
-## Deploy On Render (Ready)
+<p align="center">
+<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+</p>
 
-This repository now includes [render.yaml](render.yaml) for one-click Blueprint deploy:
+## About Laravel
 
-- [backend](backend) as a PHP web service
-- [frontend](frontend) as a static site
-- Render Postgres database
+Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
 
-### 1) Push main branch
+- [Simple, fast routing engine](https://laravel.com/docs/routing).
+- [Powerful dependency injection container](https://laravel.com/docs/container).
+- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
+- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
+- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
+- [Robust background job processing](https://laravel.com/docs/queues).
+- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
 
-Render will deploy from your `main` branch.
+Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
-### 2) Deploy with Blueprint
+## Learning Laravel
 
-1. Open Render Dashboard.
-2. Click `New` -> `Blueprint`.
-3. Select this repository.
-4. Keep [render.yaml](render.yaml) as detected and deploy.
+Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
 
-### 3) Important after creation
+In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
 
-If Render gives different generated URLs than the defaults in [render.yaml](render.yaml):
+You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
 
-1. In service `linkedu-backend`, set env vars:
-	- `APP_URL=https://<your-backend-url>`
-	- `FRONTEND_URL=https://<your-frontend-url>`
-	- `SANCTUM_STATEFUL_DOMAINS=<your-frontend-host-only>`
-2. In service `linkedu-frontend`, set:
-	- `VITE_API_URL=https://<your-backend-url>`
-3. Redeploy both services.
+## Agentic Development
 
-### 4) Default production behavior
+Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
 
-- Laravel migrations run automatically on deploy via `preDeployCommand`.
-- Frontend uses SPA rewrite to `index.html`.
-- CORS allows local development and `*.onrender.com` domains.
+```bash
+composer require laravel/boost --dev
 
-## Deploy On Railway (Docker)
+php artisan boost:install
+```
 
-This repository now includes Docker support for both services:
+Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
 
-- [backend/Dockerfile](backend/Dockerfile)
-- [backend/railway.toml](backend/railway.toml)
-- [frontend/Dockerfile](frontend/Dockerfile)
-- [frontend/railway.toml](frontend/railway.toml)
+## Contributing
 
-### 1) Create two Railway services from same repository
+Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
 
-1. `linkedu-backend`
-	- Root directory: `backend`
-	- Builder: `Dockerfile`
-2. `linkedu-frontend`
-	- Root directory: `frontend`
-	- Builder: `Dockerfile`
+## Code of Conduct
 
-### 2) Required Railway environment variables
+In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
 
-Backend service (`linkedu-backend`):
+## Security Vulnerabilities
 
-- `APP_NAME=LinkEdu`
-- `APP_ENV=production`
-- `APP_DEBUG=false`
-- `APP_KEY=<generate with: php artisan key:generate --show>`
-- `APP_URL=https://<your-backend-domain>.up.railway.app`
-- `FRONTEND_URL=https://<your-frontend-domain>.up.railway.app`
-- `LOG_CHANNEL=stderr`
-- `LOG_LEVEL=info`
-- `DB_CONNECTION=pgsql`
-- `DB_URL=<Railway Postgres connection string>`
-- `CACHE_STORE=database`
-- `SESSION_DRIVER=database`
-- `QUEUE_CONNECTION=sync`
-- `SANCTUM_STATEFUL_DOMAINS=<your-frontend-domain>.up.railway.app`
-- Optional: `RUN_MIGRATIONS=true`
+If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
 
-Frontend service (`linkedu-frontend`):
+## License
 
-- `VITE_API_URL=https://<your-backend-domain>.up.railway.app`
-
-### 3) Runtime behavior
-
-- Backend container waits briefly for database, runs migrations (if enabled), then starts on Railway `PORT`.
-- Frontend container builds with Vite and serves the static app on Railway `PORT`.
-
-### 4) If Railway shows `composer: not found`
-
-This means Railway is not building that service with the Dockerfile you expect.
-
-Use these exact settings per service:
-
-1. Backend service:
-	- Root directory: `backend`
-	- Builder: `Dockerfile`
-	- Dockerfile path: `Dockerfile`
-	- Build command in Railway UI: leave empty
-2. Frontend service:
-	- Root directory: `frontend`
-	- Builder: `Dockerfile`
-	- Dockerfile path: `Dockerfile`
-	- Build command in Railway UI: leave empty
-
-Then click `Redeploy` for both services.
-
-The repository now includes per-service `railway.toml` files to force Docker builds when each service root directory is set correctly.
-
-If you keep root directory as repository root instead, set Dockerfile path explicitly:
-
-- Backend: `backend/Dockerfile`
-- Frontend: `frontend/Dockerfile`
-
-## Deploy On Laravel Cloud + Vercel (SQLite)
-
-Use this setup if you want backend on Laravel Cloud and frontend on Vercel without PostgreSQL.
-
-### 1) Backend (Laravel Cloud)
-
-1. Deploy [backend](backend) as your Laravel Cloud application.
-2. Set environment variables using [backend/.env.laravel-cloud.example](backend/.env.laravel-cloud.example):
-	- `DB_CONNECTION=sqlite`
-	- `DB_DATABASE=/var/www/html/database/database.sqlite`
-	- `FRONTEND_URL=https://<your-vercel-domain>.vercel.app`
-	- `SANCTUM_STATEFUL_DOMAINS=<your-vercel-domain>.vercel.app`
-	- `SESSION_SECURE_COOKIE=true`
-	- `SESSION_SAME_SITE=none`
-3. Generate and set `APP_KEY`.
-4. Run migrations after first deploy.
-
-### 2) Frontend (Vercel)
-
-1. Deploy [frontend](frontend) as a Vercel project.
-2. Set root directory to `frontend`.
-3. Add `VITE_API_URL=https://<your-laravel-cloud-domain>` in Vercel environment variables.
-4. Ensure SPA routing rewrite exists via [frontend/vercel.json](frontend/vercel.json).
-
-### 3) Included project files for this setup
-
-- [backend/.env.laravel-cloud.example](backend/.env.laravel-cloud.example)
-- [frontend/.env.production.example](frontend/.env.production.example)
-- [frontend/vercel.json](frontend/vercel.json)
-
-    
+The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
