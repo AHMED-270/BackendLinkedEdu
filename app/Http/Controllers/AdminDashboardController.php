@@ -136,38 +136,47 @@ class AdminDashboardController extends Controller
             DB::commit();
 
             $mailWarnings = [];
-            try {
-                if (! $user->email) {
-                    throw new \RuntimeException('Email cadre manquant.');
+            if (! $this->isMailDeliveryConfigured()) {
+                $mailWarnings[] = $this->mailSetupWarningMessage('Email cadre', false);
+            } else {
+                try {
+                    if (! $user->email) {
+                        throw new \RuntimeException('Email cadre manquant.');
+                    }
+
+                    $roleLabel = match ($validated['role']) {
+                        'secretaire' => 'Secretaire',
+                        'professeur' => 'Professeur',
+                        'directeur' => 'Directeur',
+                        'comptable' => 'Comptable',
+                        default => ucfirst((string) $validated['role']),
+                    };
+
+                    $mailHtml = $this->buildAccountCreationEmailHtml([
+                        'role_label' => $roleLabel,
+                        'name' => (string) ($user->name ?? ''),
+                        'nom' => (string) ($user->nom ?? ''),
+                        'prenom' => (string) ($user->prenom ?? ''),
+                        'email' => (string) ($user->email ?? ''),
+                        'password' => $generatedPassword,
+                        'login_url' => $this->resolveFrontendLoginUrl(),
+                    ]);
+
+                    Mail::send([], [], function ($message) use ($user, $roleLabel, $mailHtml) {
+                        $message->to($user->email)
+                            ->subject("Identifiants {$roleLabel} - LinkEdu")
+                            ->from(config('mail.from.address'), config('mail.from.name'));
+
+                        $message->html($mailHtml);
+                    });
+                } catch (\Throwable $e) {
+                    \Log::warning('Account creation email failed', [
+                        'email' => $user->email,
+                        'error' => $e->getMessage(),
+                    ]);
+
+                    $mailWarnings[] = 'Email cadre non envoye: service email temporairement indisponible.';
                 }
-
-                $roleLabel = match ($validated['role']) {
-                    'secretaire' => 'Secretaire',
-                    'professeur' => 'Professeur',
-                    'directeur' => 'Directeur',
-                    'comptable' => 'Comptable',
-                    default => ucfirst((string) $validated['role']),
-                };
-
-                $mailHtml = $this->buildAccountCreationEmailHtml([
-                    'role_label' => $roleLabel,
-                    'name' => (string) ($user->name ?? ''),
-                    'nom' => (string) ($user->nom ?? ''),
-                    'prenom' => (string) ($user->prenom ?? ''),
-                    'email' => (string) ($user->email ?? ''),
-                    'password' => $generatedPassword,
-                    'login_url' => $this->resolveFrontendLoginUrl(),
-                ]);
-
-                Mail::send([], [], function ($message) use ($user, $roleLabel, $mailHtml) {
-                    $message->to($user->email)
-                        ->subject("Identifiants {$roleLabel} - LinkEdu")
-                        ->from(config('mail.from.address'), config('mail.from.name'));
-
-                    $message->html($mailHtml);
-                });
-            } catch (\Throwable $e) {
-                $mailWarnings[] = 'Email cadre non envoye: ' . $e->getMessage();
             }
 
             return response()->json([
@@ -491,55 +500,79 @@ class AdminDashboardController extends Controller
 
         $mailWarnings = [];
 
-        try {
-            if (! $studentUser->email) {
-                throw new \RuntimeException('Email eleve manquant.');
+        if (! $this->isMailDeliveryConfigured()) {
+            $mailWarnings[] = $this->mailSetupWarningMessage('Emails eleve et parent', true);
+        } else {
+            try {
+                if (! $studentUser->email) {
+                    throw new \RuntimeException('Email eleve manquant.');
+                }
+
+                $studentMailBody = "Bonjour {$studentFullName},\n\n"
+                    . "Votre compte eleve LinkEdu est active.\n"
+                    . "Email: {$studentUser->email}\n"
+                    . "Mot de passe: {$studentPassword}\n\n"
+                    . "Lien de connexion: " . (config('app.frontend_url') ?: 'http://localhost:5173') . "/login\n\n";
+
+                Mail::raw(
+                    $studentMailBody,
+                    function ($message) use ($studentUser) {
+                        $message->to($studentUser->email)
+                            ->subject('Activation compte Eleve - LinkEdu')
+                            ->from(config('mail.from.address'), config('mail.from.name'));
+                    }
+                );
+            } catch (\Throwable $e) {
+                \Log::warning('Student activation email failed', [
+                    'email' => $studentUser->email,
+                    'error' => $e->getMessage(),
+                ]);
+
+                $mailWarnings[] = 'Email eleve non envoye: service email temporairement indisponible.';
             }
 
-            $studentMailBody = "Bonjour {$studentFullName},\n\n"
-                . "Votre compte eleve LinkEdu est active.\n"
-                . "Email: {$studentUser->email}\n"
-                . "Mot de passe: {$studentPassword}\n\n"
-                . "Lien de connexion: " . (config('app.frontend_url') ?: 'http://localhost:5173') . "/login\n\n";
-
-            Mail::raw(
-                $studentMailBody,
-                function ($message) use ($studentUser) {
-                    $message->to($studentUser->email)
-                        ->subject('Activation compte Eleve - LinkEdu')
-                        ->from(config('mail.from.address'), config('mail.from.name'));
+            try {
+                if (! $parentUser->email) {
+                    throw new \RuntimeException('Email parent manquant.');
                 }
-            );
-        } catch (\Throwable $e) {
-            $mailWarnings[] = 'Email eleve non envoye: ' . $e->getMessage();
-        }
 
-        try {
-            if (! $parentUser->email) {
-                throw new \RuntimeException('Email parent manquant.');
+                $parentMailBody = "Bonjour {$parentFullName},\n\n"
+                    . "Votre compte parent LinkEdu est active.\n"
+                    . "Email: {$parentUser->email}\n"
+                    . "Mot de passe: {$parentPassword}\n\n"
+                    . "Lien de connexion: " . (config('app.frontend_url') ?: 'http://localhost:5173') . "/login\n\n";
+
+                Mail::raw(
+                    $parentMailBody,
+                    function ($message) use ($parentUser) {
+                        $message->to($parentUser->email)
+                            ->subject('Activation compte Parent - LinkEdu')
+                            ->from(config('mail.from.address'), config('mail.from.name'));
+                    }
+                );
+            } catch (\Throwable $e) {
+                \Log::warning('Parent activation email failed', [
+                    'email' => $parentUser->email,
+                    'error' => $e->getMessage(),
+                ]);
+
+                $mailWarnings[] = 'Email parent non envoye: service email temporairement indisponible.';
             }
-
-            $parentMailBody = "Bonjour {$parentFullName},\n\n"
-                . "Votre compte parent LinkEdu est active.\n"
-                . "Email: {$parentUser->email}\n"
-                . "Mot de passe: {$parentPassword}\n\n"
-                . "Lien de connexion: " . (config('app.frontend_url') ?: 'http://localhost:5173') . "/login\n\n";
-
-            Mail::raw(
-                $parentMailBody,
-                function ($message) use ($parentUser) {
-                    $message->to($parentUser->email)
-                        ->subject('Activation compte Parent - LinkEdu')
-                        ->from(config('mail.from.address'), config('mail.from.name'));
-                }
-            );
-        } catch (\Throwable $e) {
-            $mailWarnings[] = 'Email parent non envoye: ' . $e->getMessage();
         }
 
         return response()->json([
             'message' => 'Compte etudiant active. Les identifiants ont ete prepares pour etudiant et parent.',
             'warnings' => $mailWarnings,
+            'credentials' => [
+                'etudiant' => [
+                    'email' => (string) ($studentUser->email ?? ''),
+                    'password' => $studentPassword,
+                ],
+                'parent' => [
+                    'email' => (string) ($parentUser->email ?? ''),
+                    'password' => $parentPassword,
+                ],
+            ],
         ]);
     }
 
@@ -681,6 +714,42 @@ class AdminDashboardController extends Controller
 
                 return $frontend . '/login';
         }
+
+            private function isMailDeliveryConfigured(): bool
+            {
+                $mailer = strtolower(trim((string) config('mail.default', '')));
+
+                if ($mailer === '' || in_array($mailer, ['log', 'array'], true)) {
+                    return false;
+                }
+
+                if ($mailer !== 'smtp') {
+                    return true;
+                }
+
+                $host = strtolower(trim((string) config('mail.mailers.smtp.host', '')));
+                $port = (int) config('mail.mailers.smtp.port', 0);
+                $username = trim((string) config('mail.mailers.smtp.username', ''));
+                $password = trim((string) config('mail.mailers.smtp.password', ''));
+                $fromAddress = trim((string) config('mail.from.address', ''));
+
+                if ($host === '' || $port <= 0 || $username === '' || $password === '' || $fromAddress === '') {
+                    return false;
+                }
+
+                if (app()->environment('production') && in_array($host, ['127.0.0.1', 'localhost'], true)) {
+                    return false;
+                }
+
+                return true;
+            }
+
+            private function mailSetupWarningMessage(string $scope, bool $plural): string
+            {
+                $status = $plural ? 'non envoyes' : 'non envoye';
+
+                return $scope . ' ' . $status . ': configurez MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD et MAIL_FROM_ADDRESS dans Laravel Cloud.';
+            }
 
         private function buildAccountCreationEmailHtml(array $data): string
         {
