@@ -42,11 +42,18 @@ class PasswordResetLinkController extends Controller
             ], 503);
         }
 
-        if (in_array($status, [Password::RESET_LINK_SENT, Password::INVALID_USER], true)) {
+        if ($status === Password::RESET_LINK_SENT) {
             return response()->json([
                 'status' => 'ok',
-                'message' => 'Si cette adresse e-mail existe dans notre systeme, un lien de reinitialisation vient d etre envoye.',
+                'message' => 'Un lien de reinitialisation a ete envoye a votre adresse e-mail.',
             ]);
+        }
+
+        if ($status === Password::INVALID_USER) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Aucun compte associe a cette adresse e-mail.',
+            ], 404);
         }
 
         throw ValidationException::withMessages([

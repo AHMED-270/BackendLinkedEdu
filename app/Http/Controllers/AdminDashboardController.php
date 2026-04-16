@@ -498,10 +498,8 @@ class AdminDashboardController extends Controller
         $studentFullName = trim(($studentUser->prenom ?? '') . ' ' . ($studentUser->nom ?? ''));
         $parentFullName = trim(($parentUser->prenom ?? '') . ' ' . ($parentUser->nom ?? ''));
 
-        $mailWarnings = [];
-
         if (! $this->isMailDeliveryConfigured()) {
-            $mailWarnings[] = $this->mailSetupWarningMessage('Emails eleve et parent', true);
+            \Log::warning('Activation emails skipped: mail delivery is not configured properly.');
         } else {
             try {
                 if (! $studentUser->email) {
@@ -527,8 +525,6 @@ class AdminDashboardController extends Controller
                     'email' => $studentUser->email,
                     'error' => $e->getMessage(),
                 ]);
-
-                $mailWarnings[] = 'Email eleve non envoye: service email temporairement indisponible.';
             }
 
             try {
@@ -555,14 +551,11 @@ class AdminDashboardController extends Controller
                     'email' => $parentUser->email,
                     'error' => $e->getMessage(),
                 ]);
-
-                $mailWarnings[] = 'Email parent non envoye: service email temporairement indisponible.';
             }
         }
 
         return response()->json([
             'message' => 'Compte etudiant active. Les identifiants ont ete prepares pour etudiant et parent.',
-            'warnings' => $mailWarnings,
             'credentials' => [
                 'etudiant' => [
                     'email' => (string) ($studentUser->email ?? ''),
