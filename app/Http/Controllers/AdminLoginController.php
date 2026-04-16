@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;    
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
@@ -27,6 +28,12 @@ class AdminLoginController extends Controller
                 "email" => ["required", "email"],
                 "password" => ["required", "string"],
             ]);
+
+            if (! Schema::hasTable('users')) {
+                return response()->json([
+                    'message' => 'Base de donnees non initialisee. Lancez les migrations puis le seeding.',
+                ], 503);
+            }
 
             $normalizedEmail = mb_strtolower(trim((string) $validated["email"]));
 
@@ -61,7 +68,17 @@ class AdminLoginController extends Controller
             }
 
             // Créer un token au cas où une app mobile en aurait besoin
-            $token = $user->createToken("web-token")->plainTextToken;
+            $token = null;
+            if (Schema::hasTable('personal_access_tokens')) {
+                try {
+                    $token = $user->createToken("web-token")->plainTextToken;
+                } catch (\Throwable $tokenException) {
+                    \Log::warning('Token creation skipped during login', [
+                        'user_id' => $user->id,
+                        'message' => $tokenException->getMessage(),
+                    ]);
+                }
+            }
 
             $profilePhotoUrl = $user->profile_photo_path
                 ? Storage::disk('public')->url($user->profile_photo_path)
