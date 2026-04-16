@@ -1,0 +1,10 @@
+{
+  "name": "linkeduq-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Placeholder package manifest for cloud build pipelines",
+  "scripts": {
+    "build": "echo \"No frontend build required\"",
+    "dev": "echo \"No frontend dev server required\""
+  }
+}
