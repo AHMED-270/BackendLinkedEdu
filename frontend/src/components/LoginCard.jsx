@@ -31,18 +31,25 @@ export default function LoginCard({ onLoginSuccess }) {
 
     try {
       const performLogin = async () => {
-        await axios.get(apiBaseUrl + '/sanctum/csrf-cookie', {
-          withCredentials: true,
-          withXSRFToken: true,
-        });
+        // First, get the CSRF cookie from Sanctum
+        try {
+          await axios.get(apiBaseUrl + '/sanctum/csrf-cookie', {
+            withCredentials: true,
+          });
+        } catch (error) {
+          console.warn('CSRF cookie request failed, continuing anyway:', error);
+        }
 
+        // Then make the login request
         return axios.post(
           apiBaseUrl + '/api/login',
           { email: loginEmail.trim().toLowerCase(), password: loginPassword },
           {
             withCredentials: true,
-            withXSRFToken: true,
-            headers: { Accept: 'application/json' },
+            headers: { 
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
           }
         );
       };
@@ -124,10 +131,14 @@ export default function LoginCard({ onLoginSuccess }) {
      setIsResetSent(false);
 
      try {
-       await axios.get(apiBaseUrl + '/sanctum/csrf-cookie', {
-         withCredentials: true,
-         withXSRFToken: true,
-       });
+       // Get CSRF cookie first
+       try {
+         await axios.get(apiBaseUrl + '/sanctum/csrf-cookie', {
+           withCredentials: true,
+         });
+       } catch (error) {
+         console.warn('CSRF cookie request failed, continuing anyway:', error);
+       }
 
        await axios.post(
          apiBaseUrl + '/api/forgot-password',
@@ -137,8 +148,10 @@ export default function LoginCard({ onLoginSuccess }) {
          },
          {
            withCredentials: true,
-           withXSRFToken: true,
-           headers: { Accept: 'application/json' },
+           headers: { 
+             'Accept': 'application/json',
+             'Content-Type': 'application/json',
+           },
          }
        );
 
@@ -224,12 +237,13 @@ export default function LoginCard({ onLoginSuccess }) {
              </button>
 
              {loginFeedback && (
-               <p
-                 className={`flex items-center justify-center gap-2 text-sm font-medium mt-2 p-3 rounded-xl backdrop-blur-md border ${loginFeedbackType === 'error' ? 'bg-red-50/50 border-red-100 text-red-600' : 'bg-emerald-50/50 border-emerald-100 text-emerald-600'}`}
+               <div
+                 className={`flex items-center justify-start gap-3 text-sm font-medium mt-3 p-4 rounded-xl backdrop-blur-md border-l-4 ${loginFeedbackType === 'error' ? 'bg-red-50 border-l-red-500 text-red-700 border-r border-t border-b border-red-100' : 'bg-emerald-50 border-l-emerald-500 text-emerald-700 border-r border-t border-b border-emerald-100'}`}
+                 role="alert"
                >
-                 {loginFeedbackType === 'error' ? <AlertCircle size={16} /> : <CheckCircle2 size={16} />}
-                 {loginFeedback}
-               </p>
+                 {loginFeedbackType === 'error' ? <AlertCircle size={18} className="flex-shrink-0" /> : <CheckCircle2 size={18} className="flex-shrink-0" />}
+                 <span>{loginFeedback}</span>
+               </div>
              )}
            </form>
          )}
@@ -266,17 +280,17 @@ export default function LoginCard({ onLoginSuccess }) {
              </button>
 
              {forgotError && (
-               <p className="flex items-center justify-center gap-2 text-sm font-medium mt-2 p-3 rounded-xl bg-red-50/50 border border-red-100 text-red-600 backdrop-blur-md">
-                 <AlertCircle size={16} />
-                 {forgotError}
-               </p>
+               <div className="flex items-center justify-start gap-3 text-sm font-medium mt-3 p-4 rounded-xl bg-red-50 border-l-4 border-l-red-500 text-red-700 border-r border-t border-b border-red-100 backdrop-blur-md" role="alert">
+                 <AlertCircle size={18} className="flex-shrink-0" />
+                 <span>{forgotError}</span>
+               </div>
              )}
 
              {isResetSent && (
-               <p className="flex items-center justify-center gap-2 text-sm font-medium mt-2 p-3 rounded-xl bg-emerald-50/50 border border-emerald-100 text-emerald-600 backdrop-blur-md">
-                 <CheckCircle2 size={16} />
-                 Lien envoyé si l'e-mail existe.
-               </p>
+               <div className="flex items-center justify-start gap-3 text-sm font-medium mt-3 p-4 rounded-xl bg-emerald-50 border-l-4 border-l-emerald-500 text-emerald-700 border-r border-t border-b border-emerald-100 backdrop-blur-md">
+                 <CheckCircle2 size={18} className="flex-shrink-0" />
+                 <span>Lien envoyé si l'e-mail existe.</span>
+               </div>
              )}
            </form>
          )}

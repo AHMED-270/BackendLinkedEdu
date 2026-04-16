@@ -420,27 +420,32 @@ function DirecteurDashboard({ user, onLogout }) {
                 {/* Tables row */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Recent Reclamations */}
-                  <article className="premium-stat !p-0 overflow-hidden">
-                    <div className="premium-section-header !mb-0 px-6 pt-6 pb-4">
-                      <h2 className="premium-section-title">Réclamations récentes</h2>
-                      <button onClick={() => setActiveMenu('Reclamations')} className="text-xs font-bold text-brand-teal hover:text-brand-navy transition-colors">
-                        Voir toutes →
-                      </button>
+                  <article className="premium-card border border-slate-200 overflow-hidden">
+                    <div className="px-6 py-5 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                          <span className="w-1 h-6 bg-brand-teal rounded-full"></span>
+                          Réclamations récentes
+                        </h2>
+                        <button onClick={() => setActiveMenu('Reclamations')} className="text-xs font-bold text-brand-teal hover:text-brand-navy transition-colors hover:underline">
+                          Voir toutes →
+                        </button>
+                      </div>
                     </div>
-                    <div className="premium-table-wrap !rounded-none !shadow-none">
-                      <table>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
                         <thead>
-                          <tr>
-                            <th>SUJET</th>
-                            <th>CIBLE</th>
-                            <th>STATUT</th>
-                            <th>DATE</th>
+                          <tr className="bg-white border-b border-slate-100">
+                            <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Sujet</th>
+                            <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Cible</th>
+                            <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Statut</th>
+                            <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Date</th>
                           </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-slate-100">
                           {recentReclamations.length === 0 ? (
                             <tr>
-                              <td colSpan="4" className="!text-center !text-slate-400 !py-8">Aucune réclamation récente.</td>
+                              <td colSpan="4" className="px-6 py-12 text-center text-slate-400 italic">Aucune réclamation récente.</td>
                             </tr>
                           ) : (
                             recentReclamations.map((claim) => {
@@ -448,11 +453,11 @@ function DirecteurDashboard({ user, onLogout }) {
                                 ? new Date(claim.date_reclamation).toLocaleDateString('fr-FR')
                                 : '-';
                               return (
-                                <tr key={claim.id_reclamation}>
-                                  <td><strong className="text-brand-navy">{claim.sujet || 'Sans sujet'}</strong></td>
-                                  <td>{claim.cible_label || '-'}</td>
-                                  <td><span className="premium-badge-blue">{claim.statut || '-'}</span></td>
-                                  <td className="text-slate-400 text-xs">{claimDate}</td>
+                                <tr key={claim.id_reclamation} className="hover:bg-slate-50 transition-colors duration-150">
+                                  <td className="px-6 py-4"><strong className="text-slate-800">{claim.sujet || 'Sans sujet'}</strong></td>
+                                  <td className="px-6 py-4 text-slate-700">{claim.cible_label || '-'}</td>
+                                  <td className="px-6 py-4"><span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">{claim.statut || '-'}</span></td>
+                                  <td className="px-6 py-4 text-slate-500 text-sm">{claimDate}</td>
                                 </tr>
                               );
                             })
@@ -463,24 +468,29 @@ function DirecteurDashboard({ user, onLogout }) {
                   </article>
 
                   {/* Parent Demandes */}
-                  <article className="premium-stat !p-0 overflow-hidden">
-                    <div className="premium-section-header !mb-0 px-6 pt-6 pb-4">
-                      <h2 className="premium-section-title">Demandes des parents</h2>
+                  <article className="premium-card border border-slate-200 overflow-hidden">
+                    <div className="px-6 py-5 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                          <span className="w-1 h-6 bg-orange-500 rounded-full"></span>
+                          Demandes des parents
+                        </h2>
+                      </div>
                     </div>
-                    <div className="premium-table-wrap !rounded-none !shadow-none">
-                      <table>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
                         <thead>
-                          <tr>
-                            <th>PARENT</th>
-                            <th>TYPE</th>
-                            <th>STATUT</th>
-                            <th>DATE</th>
+                          <tr className="bg-white border-b border-slate-100">
+                            <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Parent</th>
+                            <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Type</th>
+                            <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Statut</th>
+                            <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Date</th>
                           </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-slate-100">
                           {recentDemandes.length === 0 ? (
                             <tr>
-                              <td colSpan="4" className="!text-center !text-slate-400 !py-8">Aucune demande récente.</td>
+                              <td colSpan="4" className="px-6 py-12 text-center text-slate-400 italic">Aucune demande récente.</td>
                             </tr>
                           ) : (
                             recentDemandes.map((demande) => {
@@ -489,11 +499,11 @@ function DirecteurDashboard({ user, onLogout }) {
                                 ? new Date(demande.date_demande).toLocaleDateString('fr-FR')
                                 : '-';
                               return (
-                                <tr key={demande.id_demande}>
-                                  <td><strong className="text-brand-navy">{parentName || demande.parent_email || '-'}</strong></td>
-                                  <td>{demande.type_demande || '-'}</td>
-                                  <td><span className="premium-badge-orange">{demande.statut || '-'}</span></td>
-                                  <td className="text-slate-400 text-xs">{demandeDate}</td>
+                                <tr key={demande.id_demande} className="hover:bg-slate-50 transition-colors duration-150">
+                                  <td className="px-6 py-4"><strong className="text-slate-800">{parentName || demande.parent_email || '-'}</strong></td>
+                                  <td className="px-6 py-4 text-slate-700">{demande.type_demande || '-'}</td>
+                                  <td className="px-6 py-4"><span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">{demande.statut || '-'}</span></td>
+                                  <td className="px-6 py-4 text-slate-500 text-sm">{demandeDate}</td>
                                 </tr>
                               );
                             })

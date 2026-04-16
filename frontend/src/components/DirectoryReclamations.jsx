@@ -378,12 +378,28 @@ function DirectoryReclamations() {
           <form onSubmit={handleSubmit} className="director-claim-form">
             <div className="claim-form-group">
               <label>Sujet</label>
-              <input type="text" name="sujet" value={formData.sujet} onChange={handleChange} required />
+              <input 
+                type="text" 
+                name="sujet" 
+                value={formData.sujet} 
+                onChange={handleChange} 
+                required 
+                placeholder="Saisissez le sujet"
+                className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-teal/20 focus:border-brand-teal focus:bg-white transition-all cursor-text shadow-sm hover:shadow-md placeholder-slate-400"
+              />
             </div>
 
             <div className="claim-form-group">
               <label>Description</label>
-              <textarea name="description" rows="5" value={formData.description} onChange={handleChange} required></textarea>
+              <textarea 
+                name="description" 
+                rows="5" 
+                value={formData.description} 
+                onChange={handleChange} 
+                required 
+                placeholder="Décrivez votre réclamation"
+                className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-teal/20 focus:border-brand-teal focus:bg-white transition-all cursor-text shadow-sm hover:shadow-md placeholder-slate-400 resize-vertical"
+              ></textarea>
             </div>
 
             <div className="claim-form-group">
@@ -393,10 +409,17 @@ function DirectoryReclamations() {
                 value={formData.cible}
                 onChange={handleCibleChange}
                 disabled={editingId !== null}
+                className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-teal/20 focus:border-brand-teal focus:bg-white transition-all cursor-pointer appearance-none shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%231f2937' d='M1 4l5 5 5-5'/%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 12px center',
+                  paddingRight: '36px'
+                }}
               >
-                <option value="parent">Parent</option>
-                <option value="directeur">Professeur</option>
-                <option value="secretaire">Secretaire</option>
+                <option value="parent" className="text-slate-800">Parent</option>
+                <option value="directeur" className="text-slate-800">Professeur</option>
+                <option value="secretaire" className="text-slate-800">Secretaire</option>
               </select>
             </div>
 
@@ -410,6 +433,7 @@ function DirectoryReclamations() {
                   placeholder="Ex: Yassine Amrani"
                   value={formData.etudiant_nom}
                   onChange={handleChange}
+                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-teal/20 focus:border-brand-teal focus:bg-white transition-all cursor-text shadow-sm hover:shadow-md placeholder-slate-400"
                 />
                 <datalist id="director-claim-etudiants">
                   {etudiants.map((etu) => {
@@ -430,6 +454,7 @@ function DirectoryReclamations() {
                   placeholder="Ex: Karim Lahlou"
                   value={formData.professeur_nom}
                   onChange={handleChange}
+                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-teal/20 focus:border-brand-teal focus:bg-white transition-all cursor-text shadow-sm hover:shadow-md placeholder-slate-400"
                 />
                 <datalist id="director-claim-professeurs">
                   {professeurs.map((prof) => {
@@ -447,10 +472,17 @@ function DirectoryReclamations() {
                   name="secretaire_id"
                   value={formData.secretaire_id}
                   onChange={handleChange}
+                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-teal/20 focus:border-brand-teal focus:bg-white transition-all cursor-pointer appearance-none shadow-sm hover:shadow-md"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%231f2937' d='M1 4l5 5 5-5'/%3E%3C/svg%3E")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 12px center',
+                    paddingRight: '36px'
+                  }}
                 >
-                  <option value="">Selectionner une secretaire</option>
+                  <option value="" className="text-slate-400">Selectionner une secretaire</option>
                   {secretaires.map((sec) => (
-                    <option key={sec.id_secretaire} value={String(sec.id_secretaire)}>
+                    <option key={sec.id_secretaire} value={String(sec.id_secretaire)} className="text-slate-800">
                       {`${sec.prenom || ''} ${sec.nom || ''}`.trim() || sec.email}
                     </option>
                   ))}

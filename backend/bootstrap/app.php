@@ -28,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/login',
             'api/admin/login',
             'api/admin/logout',
+            'api/logout',
             'api/directeur/login',
         ]);
 

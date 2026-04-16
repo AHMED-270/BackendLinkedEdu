@@ -37,10 +37,10 @@ export default function EmploiDuTemps() {
     setLoading(true);
     setError('');
     try {
-      const params = classId ? { class_id: classId } : {};
+      const params = classId && classId !== '0' ? { class_id: classId } : {};
       const data = await professorGet('/api/professeur/emploi-du-temps', params);
       setClasses(data.classes || []);
-      setSelectedClass(data.selectedClassId ? String(data.selectedClassId) : '');
+      setSelectedClass(classId || '0');
       setSchedule(data.schedule || []);
     } catch {
       setError("Impossible de charger l'emploi du temps.");
@@ -256,19 +256,16 @@ export default function EmploiDuTemps() {
             onChange={(e) => {
               const value = e.target.value;
               setSelectedClass(value);
-              loadSchedule(value);
+              loadSchedule(value === '0' ? '' : value);
             }}
             disabled={loading || classes.length === 0}
           >
-            {classes.length === 0 ? (
-              <option value="">Aucune classe</option>
-            ) : (
-              classes.map((classe) => (
-                <option key={classe.id} value={classe.id}>
-                  {formatClassLabel(classe)}
-                </option>
-              ))
-            )}
+            <option value="0">Toutes les classes</option>
+            {classes.map((classe) => (
+              <option key={classe.id} value={classe.id}>
+                {formatClassLabel(classe)}
+              </option>
+            ))}
           </select>
           <motion.button
             whileHover={{ scale: 1.05 }}

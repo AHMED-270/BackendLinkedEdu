@@ -885,9 +885,10 @@ class ProfessorController extends Controller
             ->get(['id_classe', 'nom', 'niveau']);
 
         $requestedClassId = (int) $request->query('class_id', 0);
+        $showAllClasses = $requestedClassId === 0;
         $selectedClassId = $requestedClassId > 0 && $classIds->contains($requestedClassId)
             ? $requestedClassId
-            : (int) optional($classRows->first())->id_classe;
+            : 0;
 
         $classes = $classRows
             ->map(function ($row) {
@@ -900,11 +901,16 @@ class ProfessorController extends Controller
             })
             ->values();
 
-        $schedule = DB::table('emploi_du_temps')
+        $query = DB::table('emploi_du_temps')
             ->join('classes', 'emploi_du_temps.id_classe', '=', 'classes.id_classe')
             ->join('matieres', 'emploi_du_temps.id_matiere', '=', 'matieres.id_matiere')
-            ->where('emploi_du_temps.id_professeur', $user->id)
-            ->where('emploi_du_temps.id_classe', $selectedClassId)
+            ->where('emploi_du_temps.id_professeur', $user->id);
+
+        if (! $showAllClasses && $selectedClassId > 0) {
+            $query->where('emploi_du_temps.id_classe', $selectedClassId);
+        }
+
+        $schedule = $query
             ->whereExists(function ($query) use ($user) {
                 $query->select(DB::raw(1))
                     ->from('enseigner')

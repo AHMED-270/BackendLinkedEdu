@@ -192,7 +192,12 @@ const DirectorySettings = ({ userRole = ROLE.DIRECTEUR }) => {
 
           {activeTab === 'securite' && (
             <div className="settings-section fade-in">
-              <h3>Changer le Mot de Passe</h3>
+              <div className="security-header-banner">
+                <div className="security-header-content">
+                  <i className="fa-solid fa-lock"></i>
+                  <h3>Mettre À jour le mot de passe</h3>
+                </div>
+              </div>
               <form onSubmit={savePassword} className="settings-form">
                 <div className="form-group full-width">
                   <label>Mot de passe actuel</label>
@@ -208,7 +213,10 @@ const DirectorySettings = ({ userRole = ROLE.DIRECTEUR }) => {
                 </div>
                 
                 <div className="form-actions">
-                  <button type="submit" className="btn-primary">Mettre à jour le mot de passe</button>
+                  <button type="submit" className="btn-primary btn-password-update">
+                    <i className="fa-solid fa-lock"></i>
+                    Mettre à jour le mot de passe
+                  </button>
                 </div>
               </form>
             </div>
