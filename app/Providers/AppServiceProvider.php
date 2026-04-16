@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -80,6 +81,14 @@ class AppServiceProvider extends ServiceProvider
 
             if (! $hasUsers || ! $hasTokens) {
                 Artisan::call('migrate', ['--force' => true]);
+            }
+
+            if (
+                filter_var(env('AUTO_SEED_ON_EMPTY_DB', true), FILTER_VALIDATE_BOOL)
+                && Schema::hasTable('users')
+                && DB::table('users')->count() === 0
+            ) {
+                Artisan::call('db:seed', ['--force' => true]);
             }
         } catch (\Throwable $exception) {
             Log::warning('SQLite bootstrap failed', [
