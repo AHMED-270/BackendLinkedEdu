@@ -24,6 +24,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->normalizeMailConfiguration();
         $this->bootstrapSqliteDatabase();
 
         // Compatibility fix for older MySQL/MariaDB index length limits.
@@ -101,5 +102,32 @@ class AppServiceProvider extends ServiceProvider
     {
         return str_starts_with($path, DIRECTORY_SEPARATOR)
             || (bool) preg_match('/^[A-Za-z]:[\\\\\/]/', $path);
+    }
+
+    private function normalizeMailConfiguration(): void
+    {
+        $clean = static function (mixed $value): mixed {
+            if (! is_string($value)) {
+                return $value;
+            }
+
+            return trim($value, " \t\n\r\0\x0B\"'");
+        };
+
+        $smtpHost = $clean(config('mail.mailers.smtp.host'));
+        $smtpPort = $clean(config('mail.mailers.smtp.port'));
+        $smtpUsername = $clean(config('mail.mailers.smtp.username'));
+        $smtpPassword = $clean(config('mail.mailers.smtp.password'));
+        $fromAddress = $clean(config('mail.from.address'));
+        $fromName = $clean(config('mail.from.name'));
+
+        config([
+            'mail.mailers.smtp.host' => $smtpHost,
+            'mail.mailers.smtp.port' => is_numeric($smtpPort) ? (int) $smtpPort : $smtpPort,
+            'mail.mailers.smtp.username' => $smtpUsername,
+            'mail.mailers.smtp.password' => $smtpPassword,
+            'mail.from.address' => $fromAddress,
+            'mail.from.name' => $fromName,
+        ]);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
@@ -19,6 +20,18 @@ class PasswordResetLinkController extends Controller
         $request->validate([
             'email' => ['required', 'email'],
         ]);
+
+        $normalizedEmail = mb_strtolower(trim((string) $request->input('email')));
+        $userExists = User::query()
+            ->whereRaw('LOWER(email) = ?', [$normalizedEmail])
+            ->exists();
+
+        if (! $userExists) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Aucun compte associe a cette adresse e-mail.',
+            ], 404);
+        }
 
         if ($this->isProductionMailerMisconfigured()) {
             return response()->json([
