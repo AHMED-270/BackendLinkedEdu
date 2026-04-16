@@ -6,3 +6,4 @@ $content = preg_replace("/<<<<<<< HEAD\r?\n(.*?)\r?\n=======\r?\n(.*?)\r?\n>>>>>
 file_put_contents("backend/routes/api.php", $content);
 echo "Fixed";
 
+
